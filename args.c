@@ -3,17 +3,17 @@
 
 int main(int argc, char *argv[]) { // Example code
     setUsageMessage("USAGE: %s -n [number] -t [string] <-b> <-c> <-z [float]>", basename(argv[0]));
-    argInit(int, myArg, NO_DEFAULT_VALUE);
-    argInit(char, myString[100], NO_DEFAULT_VALUE);
-    argInit(float, thingy, 0.1f);
-    argInit(char, boolean1, 0);
-    argInit(char, boolean2, 1);
-    setFlagsFromArgs(argc, argv, "-n:%d -t:%99s -z:%f -b:bool -c:bool", &myArg, &myString, &thingy, &boolean1, &boolean2);
-    require(3, 
-        myArg > -1, "Int 1 must be positive",
-        REQUIRE_NO_DEFAULT_VALUE(myArg), NULL,
-        REQUIRE_NO_DEFAULT_VALUE(myString), NULL
+    basicArgInit(int, myInt, NO_DEFAULT_VALUE);
+    basicArgInit(float, thingy, 0.1f);
+    basicArgInit(char, boolean1, 0);
+    basicArgInit(char, boolean2, 1);
+    argInit(char, myString, [100], NO_DEFAULT_VALUE);
+    setFlagsFromArgs(argc, argv, "-n:%d -t:%99s --term:%99s -z:%f -b:bool -c:bool", &myInt, &myString, &myString, &thingy, &boolean1, &boolean2);
+    argAssert(3, 
+        myInt > -1, "Int 1 must not be negative",
+        REQUIRED_ARGUMENT(myInt), NULL,
+        REQUIRED_ARGUMENT(myString), NULL
     );
-    printf("myInt: %d, myString: %s, float: %f, bool1: %d, bool2: %d\n", myArg, myString, thingy, boolean1, boolean2);
+    printf("myInt: %d, myString: %s, float: %f, bool1: %d, bool2: %d\n", myInt, myString, thingy, boolean1, boolean2);
     return 0;
 }

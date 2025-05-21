@@ -76,9 +76,9 @@ void setFlagsFromArgs(int argc, char *argv[], const char *argFormatter, ...) {
     return;
 }
 
-void require(int assertionCount, ...) { // Pass in the number of assertions, followed by sets of test cases and messages for each assertion.
-    va_list args;                       // Pass in NULL for a message to default to the usage message.
-    va_start(args, assertionCount);     // Be sure to call this after calling setFlagsFromArgs() to get data from the user. This function is designed to validate command line arguments.
+void argAssert(int assertionCount, ...) { // Pass in the number of assertions, followed by sets of test cases and messages for each assertion.
+    va_list args;                        // Pass in NULL for a message to default to the usage message.
+    va_start(args, assertionCount);      // Be sure to call this after calling setFlagsFromArgs() to get data from the user. This function is designed to validate command line arguments.
     int expression;
     char *message;
     int exitFlag = 0;
@@ -98,15 +98,21 @@ void require(int assertionCount, ...) { // Pass in the number of assertions, fol
     va_end(args);
 }
 
-#define argInit(leftType, varName, value) \
-    leftType varName = value;\
-    const leftType default_##varName = value; // This macro is designed to be used with the left side of the variable declaration freed up so a "default" variable can be created from its name.
-                                              // For example, the variable char **myInt[100] = {0} should be declared as argInit(char **, myInt[100], {0});
+// This macro is designed to be used with the name of the variable declaration freed up so a "default" variable can be created from its name.
+// For example, the variable char **myInt[100] = {0} should be declared as argInit(char **, myInt, [100], {0});
+// For variables with basic types, they can be declared with basicArgInit(type, name, value) instead.
+#define NONE
+#define argInit(leftType, varName, rightType, value)\
+    leftType varName rightType = value;\
+    const leftType default_##varName rightType = value;
+#define basicArgInit(type, varName, value)\
+    argInit(type, varName, NONE, value)
 
-#define REQUIRE_NO_DEFAULT_VALUE(varName)\
-    memcmp(&varName, &default_##varName, sizeof(varName)) // This is designed to be used in the require() function to assert that an argument should not have a default value.
-                                                          // This is NOT designed to handle pointers to heap-allocated memory.
-                                                          // The default value macros should only be used on array types, not pointer types.
-                                                          // If you need to use heap memory, memcpy() the data into a heap memory space after fetching it from the user.
+// This is designed to be used in the require() function to assert that an argument should not have a default value.
+// This is NOT designed to handle pointers to heap-allocated memory.
+// The default value macros should only be used on array types, not pointer types.
+// If you need to use heap memory, memcpy() the data into a heap memory space after fetching it from the user.
+#define REQUIRED_ARGUMENT(varName)\
+    memcmp(&varName, &default_##varName, sizeof(varName)) 
 
 #define NO_DEFAULT_VALUE {0} // For readability purposes.
