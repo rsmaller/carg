@@ -10,4 +10,4 @@ argsexample: argsexample.c
 	$(CC) -o argsexample argsexample.c
 
 clean:
-	$(RM) argsexample
+	$(RM) argsexample argsexample.obj
