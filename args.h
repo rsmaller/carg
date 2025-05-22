@@ -90,19 +90,19 @@ void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char 
             break;
         }
         if (compareFlag(flagItem, argv[*argIndex])) {
-            if (*argIndex < argc - 1 && isFlag(argFormatter, argv[(*argIndex)+1])) {
-                usage();
-            }
             currentArg = va_arg(formatterArgs, argStruct *);
             flagCopierPointer = currentArg -> value;
             currentArg -> hasValue = 1;
             if (compareFlag(formatterItem, "bool")) {
                 *(char *)flagCopierPointer = !*(char *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
             } else {
-                if (*argIndex == argc - 1) {
+                if (*argIndex < argc - 1 && isFlag(argFormatter, argv[(*argIndex)+1])) {
                     usage();
+                } else if (*argIndex == argc - 1) {
+                    usage();
+                } else {
+                    sscanf(argv[(*argIndex) + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
                 }
-                sscanf(argv[(*argIndex) + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
             }
             break;
         }
@@ -186,6 +186,9 @@ void argAssert(int assertionCount, ...) {
 #define REQUIRED_ARGUMENT(varName)\
     varName.hasValue
 
+#define MUTUALLY_EXCLUSIVE(varName1, varName2)\
+    !(varName1.hasValue && varName2.hasValue)
+
 #define NO_DEFAULT_VALUE {0} // Set default argument to 0, for readability purposes.
 
 #define NONE // Empty and does nothing. For semantics.
@@ -251,6 +254,7 @@ void argAssert(int assertionCount, ...) {
 //  argAssert() is designed for this, it accepts the number of argument assertions as an argument. All assertions after that are two arguments each:
 //  The first argument should be the condition that must be met. This can be any expression which can be evaluated as a zero versus nonzero value.
 //  If this condition is that the argument is required, use REQUIRED_ARGUMENT() with the corresponding argument struct.
+//  If two arguments should not be set at the same time, use MUTUALLY_EXCLUSIVE() with the corresponding structs.
 //  The second argument should be the message to display if the condition is not met. Set this to USAGE_MESSAGE to use the usage message instead.
 
 //  For example:
