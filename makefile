@@ -4,10 +4,10 @@ RM = rm -f
 
 default: all
 
-all: args
+all: argsexample
 
-args: args.c
-	$(CC) -o args args.c
+argsexample: argsexample.c
+	$(CC) -o argsexample argsexample.c
 
 clean:
-	$(RM) args
+	$(RM) argsexample
