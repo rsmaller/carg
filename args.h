@@ -13,6 +13,7 @@
 typedef struct argStruct {
     void *value;
     char hasValue;
+    int flags;
 } argStruct;
 
 char usageString[1024] = "Please specify a usage message in your client code.";
@@ -20,6 +21,8 @@ char usageString[1024] = "Please specify a usage message in your client code.";
 void usage(void);
 
 #define maxFormatterSize 2048
+
+int namelessArgCount = 0;
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
@@ -35,8 +38,9 @@ int compareFlag(const char *argument, const char *parameter) {
 //  For internal use only.
 int getArgCountFromFormatter(char *argFormatter) {
     int returnVal = 1;
-    strtok(argFormatter, " ");
-    while (strtok(NULL, " ")) returnVal++;
+    char *token;
+    token = strtok(argFormatter, " ");
+    while (token = strtok(NULL, " ")) returnVal++;
     return returnVal;
 }
 
@@ -89,6 +93,16 @@ void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char 
         if (!flagItem) {
             break;
         }
+        if ((*argIndex) <= namelessArgCount) {
+            if (isFlag(argFormatter, argv[*argIndex])) {
+                usage();
+            }
+            currentArg = va_arg(formatterArgs, argStruct *);
+            flagCopierPointer = currentArg -> value;
+            currentArg -> hasValue = 1;
+            sscanf(argv[(*argIndex)], formatterItem, flagCopierPointer);
+            break;
+        }
         if (compareFlag(flagItem, argv[*argIndex])) {
             currentArg = va_arg(formatterArgs, argStruct *);
             flagCopierPointer = currentArg -> value;
@@ -110,6 +124,17 @@ void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char 
         else break;
     }
 }
+
+//  Flags and Flag Checkers
+
+#define NO_FLAGS 0
+
+#define NAMELESS_ARG 1
+
+#define STRING 2
+
+#define hasFlag(item, flag)\
+    (item & flag)
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: User-Facing Functions and Definitions
@@ -133,16 +158,18 @@ void usage() {
 //  Note that when doing so, the name arg1 means a struct that contains an array of 100 char **.
 //  The value can later be accessed via the name arg1Value. This is achieved with token pasting.
 //  For variables with basic types, they can be declared with basicArgInit(type, name, value) instead.
-#define argInit(leftType, varName, rightType, val)\
+#define argInit(leftType, varName, rightType, val, flagsArg)\
     leftType varName##Value rightType = val;\
     argStruct varName = (argStruct) {\
             .value = &varName##Value,\
-            .hasValue = 0\
-    };
+            .hasValue = 0,\
+            .flags = flagsArg\
+    };\
+    if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;
 
 //  A wrapper for argInit().
-#define basicArgInit(type, varName, value)\
-    argInit(type, varName, NONE, value)
+#define basicArgInit(type, varName, value, flagsArg)\
+    argInit(type, varName, NONE, value, flagsArg)
 
 //  Pass in the argument count, argument vector, and all argument structs generated from the argInit()
 //  and basicArgInit() functions to set them based on the argument vector.
@@ -174,7 +201,7 @@ void argAssert(int assertionCount, ...) {
                 printf("%s\n", message);
                 exitFlag = 1;
             } else {
-                usage();
+                // usage();
             }
         }
     }
@@ -233,9 +260,9 @@ void argAssert(int assertionCount, ...) {
 
 //  Below is an example of the initializer and setter in conjunction.
 //  Keeping everything in mind, the string variable would need to be initialized first:
-//  basicArgInit(char *, myString, "default");
+//  basicArgInit(char *, myString, "default", NO_FLAGS);
 //  All arguments should be initialized before setting them, so let's add an int argument also:
-//  basicArgInit(int, myInt, 0);
+//  basicArgInit(int, myInt, 0, NO_FLAGS);
 
 //  Then, these values can be set using the setFlagsFromArgs() function:
 //  setFlagsFromArgs(argc, argv, "-v:%s -i:%d", myString, myInt);
