@@ -40,7 +40,7 @@ int getArgCountFromFormatter(char *argFormatter) {
     int returnVal = 1;
     char *token;
     token = strtok(argFormatter, " ");
-    while (token = strtok(NULL, " ")) returnVal++;
+    while ((token = strtok(NULL, " "))) returnVal++;
     return returnVal;
 }
 
@@ -70,7 +70,7 @@ int isFlag(const char *formatter, const char *toCheck) {
 //  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
 void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char *argFormatter, va_list formatterArgs) {
-    assert(("Formatter must be smaller than the max formatter size", strlen(argFormatter) < maxFormatterSize));
+    assert(((void)"Formatter must be smaller than the max formatter size", strlen(argFormatter) < maxFormatterSize));
     char internalFormatterArray[maxFormatterSize];
     char argCountArray[maxFormatterSize];
     char *internalFormatter = internalFormatterArray;
@@ -211,7 +211,7 @@ void argumentOverrideCallbacks(int argc, char *argv[], const char *argFormatter,
     va_list args;
     va_start(args, argFormatter);
     for (int i=1; i<argc; i++) {
-        while (currentFlag = strtok_r(internalFormatterPointer, " ", &savePointer)) {
+        while ((currentFlag = strtok_r(internalFormatterPointer, " ", &savePointer))) {
             internalFormatterPointer = savePointer;
             functionCursor = va_arg(args, void(*)(void));
             if (compareFlag(currentFlag, argv[i])) {
@@ -336,7 +336,7 @@ void argAssert(int assertionCount, ...) {
 
 //  To specify arguments that make the program do something entirely different, primarily running a single function and then terminating, call the argumentOverrideCallbacks()
 //  function. This function accepts the argument count, argument vector, flags, and function pointers associated with them.
-//  For example, to declare an argument for a help-displaying function and another random helper function:
+//  For example, to declare arguments for a help-displaying function and another random helper function:
 //  argumentOverrideCallbacks(argc, argv, "-h -r", &help, &randomHelperFunction);
 
 //  Another feature this library supports is nameless arguments. Nameless arguments are passed in to the program without a flag.
