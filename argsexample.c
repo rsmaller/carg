@@ -15,7 +15,7 @@ void help2(void) {
     printf("Help 2 message here\n");
 }
 
-int main(int argc, char *argv[]) { // Example code
+int main(const int argc, char *argv[]) { // Example code
     setUsageMessage("USAGE: %s [number] [number] -n [number] -t [string] <-b> <-c> <-z [float]>", basename(argv[0]));
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);

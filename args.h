@@ -17,6 +17,8 @@ typedef struct argStruct {
 
 char usageString[1024] = "Please specify a usage message in your client code.";
 
+typedef void(*voidFuncPtr)(void); // Some syntax highlighters don't like seeing function pointer parentheses in a macro.
+
 void usage(void);
 
 #define maxFormatterSize 2048
@@ -197,13 +199,13 @@ void argumentOverrideCallbacks(const int argc, char *argv[], const char *argForm
     char *internalFormatterPointer = internalFormatter;
     char *savePointer = NULL;
     const char *currentFlag = NULL;
-    void (*functionCursor)(void) = NULL;
+    voidFuncPtr functionCursor = NULL;
     va_list args;
     va_start(args, argFormatter);
     for (int i=1; i<argc; i++) {
         while ((currentFlag = strtok_r(internalFormatterPointer, " ", &savePointer))) {
             internalFormatterPointer = savePointer;
-            functionCursor = va_arg(args, void(*)(void));
+            functionCursor = va_arg (args, voidFuncPtr);
             if (compareFlag(currentFlag, argv[i])) {
                 functionCursor();
                 exit(0);
