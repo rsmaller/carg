@@ -7,6 +7,14 @@
     #define basename(x) x
 #endif
 
+void help(void) {
+    printf("Help message here\n");
+}
+
+void help2(void) {
+    printf("Help 2 message here\n");
+}
+
 int main(int argc, char *argv[]) { // Example code
     setUsageMessage("USAGE: %s [number] [number] -n [number] -t [string] <-b> <-c> <-z [float]>", basename(argv[0]));
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
@@ -16,6 +24,7 @@ int main(int argc, char *argv[]) { // Example code
     basicArgInit(char, boolArg1, 0, NO_FLAGS);
     basicArgInit(char, boolArg2, 1, NO_FLAGS);
     argInit(char, stringArg, [100], NO_DEFAULT_VALUE, NO_FLAGS);
+    argumentOverrideCallbacks(argc, argv, "-h -h2", &help, &help2);
     setFlagsFromNamelessArgs(argc, argv, "%d %d", &namelessArg, &namelessArg2);
     setFlagsFromNamedArgs(argc, argv, "-n:%d -t:%10s --term:%20s -z:%f -b:bool -c:bool", &intArg, &stringArg, &stringArg, &floatArg, &boolArg1, &boolArg2);
     argAssert(5,

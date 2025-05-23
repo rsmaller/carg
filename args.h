@@ -193,6 +193,36 @@ void setFlagsFromNamelessArgs(int argc, char *argv[], const char *argFormatter, 
         currentArg -> hasValue = 1;
         sscanf(argv[i], currentFormatter, flagCopierPointer);
     }
+    va_end(formatterArgs);
+}
+
+//  Call this before any other argument setter functions. 
+//  This accepts the argument count and vector, a set of flags, and a series of functions to call corresponding with each flag.
+//  If one of these functions is called, the program will terminate.
+//  These arguments will override any other arguments passed in.
+void argumentOverrideCallbacks(int argc, char *argv[], const char *argFormatter, ...) {
+    if (argc < 2) return;
+    char internalFormatter[maxFormatterSize];
+    strncpy(internalFormatter, argFormatter, maxFormatterSize);
+    char *internalFormatterPointer = internalFormatter;
+    char *savePointer = NULL;
+    char *currentFlag = NULL;
+    void (*functionCursor)(void) = NULL;
+    va_list args;
+    va_start(args, argFormatter);
+    for (int i=1; i<argc; i++) {
+        while (currentFlag = strtok_r(internalFormatterPointer, " ", &savePointer)) {
+            internalFormatterPointer = savePointer;
+            functionCursor = va_arg(args, void(*)(void));
+            if (compareFlag(currentFlag, argv[i])) {
+                functionCursor();
+                exit(0);
+            } else {
+                continue;
+            }
+        }
+    }
+    va_end(args);
 }
 
 //  Pass in the number of assertions, followed by sets of test cases and messages for each assertion.
@@ -303,6 +333,11 @@ void argAssert(int assertionCount, ...) {
 //  );
 //  This will print "Int 1 must not be negative" if a value less than or equal to -1 is given.
 //  The usage message will show if myInt or myString are not given values by the user.
+
+//  To specify arguments that make the program do something entirely different, primarily running a single function and then terminating, call the argumentOverrideCallbacks()
+//  function. This function accepts the argument count, argument vector, flags, and function pointers associated with them.
+//  For example, to declare an argument for a help-displaying function and another random helper function:
+//  argumentOverrideCallbacks(argc, argv, "-h -r", &help, &randomHelperFunction);
 
 //  Another feature this library supports is nameless arguments. Nameless arguments are passed in to the program without a flag.
 //  These arguments should always come before named arguments to prevent argument ambiguity.
