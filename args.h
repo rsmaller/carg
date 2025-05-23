@@ -250,7 +250,7 @@ void argAssert(int assertionCount, ...) {
     va_end(args);
 }
 
-//  This is designed to be used in the require() function to assert that an argument cannot have a default value.
+//  This is designed to be used in the argAssert() function to assert that an argument cannot have a default value.
 #define REQUIRED_ARGUMENT(varName)\
     varName.hasValue
 
