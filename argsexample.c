@@ -20,17 +20,17 @@ int main(int argc, char *argv[]) { // Example code
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS);
-    basicArgInit(float, floatArg, 0.1f, NO_FLAGS);
+    basicArgInit(float, floatArg, 0.5f, NO_FLAGS);
     basicArgInit(char, boolArg1, 0, NO_FLAGS);
     basicArgInit(char, boolArg2, 1, NO_FLAGS);
-    argInit(char, stringArg, [100], NO_DEFAULT_VALUE, NO_FLAGS);
+    argInit(char, stringArg, [100], "default", NO_FLAGS);
     argumentOverrideCallbacks(argc, argv, "-h -h2", &help, &help2);
     setFlagsFromNamelessArgs(argc, argv, "%d %d", &namelessArg, &namelessArg2);
     setFlagsFromNamedArgs(argc, argv, "-n:%d -t:%10s --term:%20s -z:%f -b:bool -c:bool", &intArg, &stringArg, &stringArg, &floatArg, &boolArg1, &boolArg2);
-    argAssert(3,
+    argAssert(5,
         intArgValue > -1, "Int 1 must not be negative",
-        // REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
-        // REQUIRED_ARGUMENT(stringArg), USAGE_MESSAGE,
+        REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
+        REQUIRED_ARGUMENT(stringArg), USAGE_MESSAGE,
         MUTUALLY_EXCLUSIVE(boolArg1, boolArg2), "Both booleans can't be toggled at the same time",
         namelessArgValue > 0, "Nameless int 1 must be positive"
     );

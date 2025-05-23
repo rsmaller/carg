@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <stdint.h>
 #include <assert.h>
 
 #ifdef _MSC_VER
@@ -38,9 +37,8 @@ int compareFlag(const char *argument, const char *parameter) {
 //  For internal use only.
 int getArgCountFromFormatter(char *argFormatter) {
     int returnVal = 1;
-    char *token;
-    token = strtok(argFormatter, " ");
-    while ((token = strtok(NULL, " "))) returnVal++;
+    strtok(argFormatter, " ");
+    while ((strtok(NULL, " "))) returnVal++;
     return returnVal;
 }
 
@@ -49,13 +47,11 @@ int isFlag(const char *formatter, const char *toCheck) {
     char internalFormatterArray[maxFormatterSize];
     char *internalFormatter = internalFormatterArray;
     char *savePointer = NULL;
-    char *flagItem;
-    char *formatterItem;
     strncpy(internalFormatter, formatter, maxFormatterSize - 1);
     internalFormatter[maxFormatterSize - 1] = '\0';
     while (1) {
-        flagItem = strtok_r(internalFormatter, ": ", &savePointer);
-        formatterItem = strtok_r(NULL, ": ", &savePointer);
+        char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
+        strtok_r(NULL, ": ", &savePointer); // Discard formatter item
         internalFormatter = savePointer;
         if (!flagItem) {
             break;
@@ -69,7 +65,9 @@ int isFlag(const char *formatter, const char *toCheck) {
 
 //  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
-void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char *argFormatter, va_list formatterArgs) {
+void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex, const char *argFormatter, va_list outerArgs) {
+    va_list formatterArgs;
+    va_copy(formatterArgs, outerArgs);
     assert(((void)"Formatter must be smaller than the max formatter size", strlen(argFormatter) < maxFormatterSize));
     char internalFormatterArray[maxFormatterSize];
     char argCountArray[maxFormatterSize];
@@ -78,24 +76,20 @@ void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char 
     strncpy(argCountArray, argFormatter, maxFormatterSize - 1);
     internalFormatter[maxFormatterSize - 1] = '\0';
     argCountArray[maxFormatterSize - 1] = '\0';
-    int argCount = getArgCountFromFormatter(argCountArray);
-    int argIncrement = 0;
     char *savePointer = NULL;
-    char *flagItem;
-    char *formatterItem;
-    argStruct *currentArg;
     void *flagCopierPointer = NULL;
     while (1) {
-        argIncrement++;
-        flagItem = strtok_r(internalFormatter, ": ", &savePointer);
-        formatterItem = strtok_r(NULL, ": ", &savePointer);
+        const char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
+        const char *formatterItem = strtok_r(NULL, ": ", &savePointer);
         internalFormatter = savePointer;
+        argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         if (!flagItem) {
             break;
         }
         if (compareFlag(flagItem, argv[*argIndex])) {
-            currentArg = va_arg(formatterArgs, argStruct *);
+            if (!currentArg) return;
             flagCopierPointer = currentArg -> value;
+            if (!flagCopierPointer) return;
             currentArg -> hasValue = 1;
             if (compareFlag(formatterItem, "bool")) {
                 *(char *)flagCopierPointer = !*(char *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
@@ -110,8 +104,6 @@ void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char 
             }
             break;
         }
-        if (argIncrement < argCount) va_arg(formatterArgs, argStruct *);
-        else break;
     }
 }
 
@@ -136,7 +128,7 @@ void usage() {
     exit(0);
 }
 
-//  This function uses a string formatter to generate a usage message to be used when usage() is caled.
+//  This function uses a string formatter to generate a usage message to be used when usage() is called.
 #define setUsageMessage(...) do { \
     snprintf(usageString, 1023, __VA_ARGS__);\
     usageString[1023] = '\0';\
@@ -163,7 +155,7 @@ void usage() {
 
 //  Pass in the argument count, argument vector, and all argument structs generated from the argInit()
 //  and basicArgInit() functions to set them based on the argument vector.
-void setFlagsFromNamedArgs(int argc, char *argv[], const char *argFormatter, ...) {
+void setFlagsFromNamedArgs(const int argc, char *argv[], const char *argFormatter, ...) {
     if (argc < 2) usage();
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
@@ -172,23 +164,21 @@ void setFlagsFromNamedArgs(int argc, char *argv[], const char *argFormatter, ...
         checkArgAgainstFormatter(argc, argv, &i, argFormatter, formatterArgs);
     }
     va_end(formatterArgs);
-    return;
 }
 
 //  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().
 //  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
-void setFlagsFromNamelessArgs(int argc, char *argv[], const char *argFormatter, ...) {
+void setFlagsFromNamelessArgs(const int argc, char *argv[], const char *argFormatter, ...) {
     if (argc < 2) usage();
     char internalFormatter[maxFormatterSize];
-    strncpy(internalFormatter, argFormatter, maxFormatterSize);
-    char *currentFormatter = NULL;
+    strncpy(internalFormatter, argFormatter, maxFormatterSize-1);
+    const char *currentFormatter = NULL;
     void *flagCopierPointer = NULL;
-    argStruct *currentArg;
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     for (int i=1; i<namelessArgCount+1; i++) {
         currentFormatter = strtok(internalFormatter, " ");
-        currentArg = va_arg(formatterArgs, argStruct *);
+        argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         flagCopierPointer = currentArg -> value;
         currentArg -> hasValue = 1;
         sscanf(argv[i], currentFormatter, flagCopierPointer);
@@ -200,13 +190,13 @@ void setFlagsFromNamelessArgs(int argc, char *argv[], const char *argFormatter, 
 //  This accepts the argument count and vector, a set of flags, and a series of functions to call corresponding with each flag.
 //  If one of these functions is called, the program will terminate.
 //  These arguments will override any other arguments passed in.
-void argumentOverrideCallbacks(int argc, char *argv[], const char *argFormatter, ...) {
+void argumentOverrideCallbacks(const int argc, char *argv[], const char *argFormatter, ...) {
     if (argc < 2) return;
     char internalFormatter[maxFormatterSize];
-    strncpy(internalFormatter, argFormatter, maxFormatterSize);
+    strncpy(internalFormatter, argFormatter, maxFormatterSize-1);
     char *internalFormatterPointer = internalFormatter;
     char *savePointer = NULL;
-    char *currentFlag = NULL;
+    const char *currentFlag = NULL;
     void (*functionCursor)(void) = NULL;
     va_list args;
     va_start(args, argFormatter);
@@ -229,15 +219,13 @@ void argumentOverrideCallbacks(int argc, char *argv[], const char *argFormatter,
 //  Pass in NULL for a message to default to the usage message.
 //  Be sure to call this after calling setFlagsFromNamedArgs() to get data from the user.
 //  This function is designed to validate command line arguments.
-void argAssert(int assertionCount, ...) { 
+void argAssert(int assertionCount, ...) {
     va_list args;                         
-    va_start(args, assertionCount);       
-    int expression;
-    char *message;
+    va_start(args, assertionCount);
     int exitFlag = 0;
     for (int i=0; i<assertionCount; i++) {
-        expression = va_arg(args, int);
-        message = va_arg(args, char *);
+        const int expression = va_arg(args, int);
+        char *message = va_arg(args, char *);
         if (!(expression)) {
             if (message) {
                 printf("%s\n", message);
