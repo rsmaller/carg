@@ -317,6 +317,6 @@ void argAssert(int assertionCount, ...) {
 //  Lastly, set the values for named arguments:
 //  setFlagsFromNamedArgs(argc, argv, "-n:%d", &namedArg);
 
-//  Keep in mind that nameless arguments are always required regardless if they are defined as such with an assertion or not.
+//  Keep in mind that nameless arguments are required regardless if they are enforced with an assertion or not.
 //  Furthermore, they are assigned to argument variables based on their order. Make sure they line up correctly when you set their values!
 //  Nameless arguments can be used in assertions the same way as named arguments.
