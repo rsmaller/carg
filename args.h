@@ -1,3 +1,7 @@
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  SECTION: Includes, Type Definitions, and Function Prototypes
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 #pragma once
 #include <string.h>
 #include <stdio.h>
@@ -5,25 +9,29 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#ifdef _MSC_VER
-    #define strtok_r strtok_s
-#endif
-
 typedef struct argStruct {
     void *value;
     char hasValue;
     int flags;
 } argStruct;
 
-char usageString[1024] = "Please specify a usage message in your client code.";
-
 typedef void(*voidFuncPtr)(void); // Some syntax highlighters don't like seeing function pointer parentheses in a macro.
 
 void usage(void);
 
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  SECTION: Global Variables and Definitions
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 #define maxFormatterSize 2048
 
+#ifdef _MSC_VER
+    #define strtok_r strtok_s
+#endif
+
 int namelessArgCount = 0;
+
+char usageString[1024] = "Please specify a usage message in your client code.";
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
