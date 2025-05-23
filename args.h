@@ -67,7 +67,7 @@ int isFlag(const char *formatter, const char *toCheck) {
     return 0;
 }
 
-//  Checks a va_list passed in from setFlagsFromArgs() to set arguments accordingly.
+//  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
 void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char *argFormatter, va_list formatterArgs) {
     assert(("Formatter must be smaller than the max formatter size", strlen(argFormatter) < maxFormatterSize));
@@ -93,16 +93,6 @@ void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char 
         if (!flagItem) {
             break;
         }
-        if ((*argIndex) <= namelessArgCount) {
-            if (isFlag(argFormatter, argv[*argIndex])) {
-                usage();
-            }
-            currentArg = va_arg(formatterArgs, argStruct *);
-            flagCopierPointer = currentArg -> value;
-            currentArg -> hasValue = 1;
-            sscanf(argv[(*argIndex)], formatterItem, flagCopierPointer);
-            break;
-        }
         if (compareFlag(flagItem, argv[*argIndex])) {
             currentArg = va_arg(formatterArgs, argStruct *);
             flagCopierPointer = currentArg -> value;
@@ -125,6 +115,10 @@ void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char 
     }
 }
 
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  SECTION: User-Facing Functions and Definitions
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 //  Flags and Flag Checkers
 
 #define NO_FLAGS 0
@@ -135,10 +129,6 @@ void checkArgAgainstFormatter(int argc, char *argv[], int *argIndex, const char 
 
 #define hasFlag(item, flag)\
     (item & flag)
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: User-Facing Functions and Definitions
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //  Prints the usage message.
 void usage() {
@@ -173,20 +163,41 @@ void usage() {
 
 //  Pass in the argument count, argument vector, and all argument structs generated from the argInit()
 //  and basicArgInit() functions to set them based on the argument vector.
-void setFlagsFromArgs(int argc, char *argv[], const char *argFormatter, ...) {
+void setFlagsFromNamedArgs(int argc, char *argv[], const char *argFormatter, ...) {
+    if (argc < 2) usage();
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     int i;
-    for (i=1; i<argc; i++) {
+    for (i=namelessArgCount; i<argc; i++) {
         checkArgAgainstFormatter(argc, argv, &i, argFormatter, formatterArgs);
     }
     va_end(formatterArgs);
     return;
 }
 
+//  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().
+//  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
+void setFlagsFromNamelessArgs(int argc, char *argv[], const char *argFormatter, ...) {
+    if (argc < 2) usage();
+    char internalFormatter[maxFormatterSize];
+    strncpy(internalFormatter, argFormatter, maxFormatterSize);
+    char *currentFormatter = NULL;
+    void *flagCopierPointer = NULL;
+    argStruct *currentArg;
+    va_list formatterArgs;
+    va_start(formatterArgs, argFormatter);
+    for (int i=1; i<namelessArgCount+1; i++) {
+        currentFormatter = strtok(internalFormatter, " ");
+        currentArg = va_arg(formatterArgs, argStruct *);
+        flagCopierPointer = currentArg -> value;
+        currentArg -> hasValue = 1;
+        sscanf(argv[i], currentFormatter, flagCopierPointer);
+    }
+}
+
 //  Pass in the number of assertions, followed by sets of test cases and messages for each assertion.
 //  Pass in NULL for a message to default to the usage message.
-//  Be sure to call this after calling setFlagsFromArgs() to get data from the user. This function is designed to validate command line arguments.
+//  Be sure to call this after calling setFlagsFromNamedArgs() to get data from the user. This function is designed to validate command line arguments.
 void argAssert(int assertionCount, ...) { 
     va_list args;                         
     va_start(args, assertionCount);       
@@ -201,7 +212,7 @@ void argAssert(int assertionCount, ...) {
                 printf("%s\n", message);
                 exitFlag = 1;
             } else {
-                // usage();
+                usage();
             }
         }
     }
@@ -239,21 +250,21 @@ void argAssert(int assertionCount, ...) {
 //  As for arguments, they are stored in structs and variables of their respective type.
 //  Structs serve to keep track of whether an argument has been specified by the user or not.
 //  To simplify the declaration of arguments, argInit and basicArgInit() were created.
-//  Simply call argInit() or basicArgInit() with both a variable name to declare, type information, and a default value.
+//  Simply call argInit() or basicArgInit() with both a variable name to declare, type information, a default value, and a bitmask representing toggled flags.
 //  To write explicitly that a variable should not have a default value, use the NO_DEFAULT_VALUE macro in place of a default value.
 
 //  argInit() and basicArgInit() will create a struct from the variable name entered into them.
 //  Keep in mind the resulting struct does not contain type information about the variable you declare a container for the argument.
 //  To access the data the user entered, add "Value" to the end of the struct's name.
-//  For example, when declaring an int argument via basicArgInit(int, intArg, 1):
+//  For example, when declaring an int argument via basicArgInit(int, intArg, 1, NO_FLAGS):
 //      intArg is a struct.
 //      intArgValue is an int where the value of the argument is stored.
 //      intArg contains a void pointer to intArgValue.
 
 //  The value of an argument should only be accessed after setting the variables' values in accordance with user input.
 //  Keep in mind variables must be initialized via argInit() or basicArgInit() before being set.
-//  To set argument values from the user, use the setFlagsFromArgs() function. This function accepts the argc and argv parameters and a string formatter for arguments.
-//  setFlagsFromArgs accepts both flag parameters and string formatters associated with them.
+//  To set argument values from the user, use the setFlagsFromNamedArgs() function. This function accepts the argc and argv parameters and a string formatter for arguments.
+//  setFlagsFromNamedArgs accepts both flag parameters and string formatters associated with them.
 //  That formatter might look like: "-v:%s" followed by a string argument struct.
 //  This would mean that the flag -v should be followed by a string:
 //      example.exe -v <INSERT_STRING_HERE>
@@ -264,8 +275,8 @@ void argAssert(int assertionCount, ...) {
 //  All arguments should be initialized before setting them, so let's add an int argument also:
 //  basicArgInit(int, myInt, 0, NO_FLAGS);
 
-//  Then, these values can be set using the setFlagsFromArgs() function:
-//  setFlagsFromArgs(argc, argv, "-v:%s -i:%d", myString, myInt);
+//  Then, these values can be set using the setFlagsFromNamedArgs() function:
+//  setFlagsFromNamedArgs(argc, argv, "-v:%s -i:%d", myString, myInt);
 //  The %s formatter corresponds to the argument struct myString and the %d formatter corresponds to the myInt struct.
 
 //  Assuming the resulting program is ran with the following arguments:
@@ -278,7 +289,7 @@ void argAssert(int assertionCount, ...) {
 
 //  If this is all the functionality you need, you're done!
 //  However, you may want to make an argument required or limit which values the user can set it to, especially one that is initialized with NO_DEFAULT_VALUE.
-//  argAssert() is designed for this, it accepts the number of argument assertions as an argument. All assertions after that are two arguments each:
+//  argAssert() is designed for this; it accepts the number of argument assertions as an argument. All assertions after that are two arguments each:
 //  The first argument should be the condition that must be met. This can be any expression which can be evaluated as a zero versus nonzero value.
 //  If this condition is that the argument is required, use REQUIRED_ARGUMENT() with the corresponding argument struct.
 //  If two arguments should not be set at the same time, use MUTUALLY_EXCLUSIVE() with the corresponding structs.
@@ -291,4 +302,21 @@ void argAssert(int assertionCount, ...) {
 //          REQUIRED_ARGUMENT(myString), USAGE_MESSAGE
 //  );
 //  This will print "Int 1 must not be negative" if a value less than or equal to -1 is given.
-//  The usage message will print if myInt or myString are not given values by the user.
+//  The usage message will show if myInt or myString are not given values by the user.
+
+//  Another feature this library supports is nameless arguments. Nameless arguments are passed in to the program without a flag.
+//  These arguments should always come before named arguments to prevent argument ambiguity.
+
+//  To use nameless arguments alongside named arguments, initialize both first:
+//  basicArgInit(int, namelessArg, 0, NAMELESS_ARG);
+//  basicArgInit(char, namedArg, 'a', NO_FLAGS);
+
+//  Then, set the values for nameless arguments first:
+//  setFlagsFromNamelessArgs(argc, argv, "%d", &namelessArg);
+
+//  Lastly, set the values for named arguments:
+//  setFlagsFromNamedArgs(argc, argv, "-n:%d", &namedArg);
+
+//  Keep in mind that nameless arguments are always required regardless if they are defined as such with an assertion or not.
+//  Furthermore, they are assigned to argument variables based on their order. Make sure they line up correctly when you set their values!
+//  Nameless arguments can be used in assertions the same way as named arguments.
