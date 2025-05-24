@@ -1,5 +1,4 @@
 #include "args.h"
-#include <signal.h>
 
 #ifndef _MSC_VER
     #include <libgen.h>

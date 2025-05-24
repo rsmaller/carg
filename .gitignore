@@ -1,3 +1,12 @@
+# CMake Stuff
+*.vcxproj
+*.filters
+*.recipe
+*.sln
+*.dir
+*.cmake
+/CMakeCache.txt
+
 # Prerequisites
 *.d
 
@@ -50,3 +59,13 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+/cmake-build-relwithdebinfo
+/cmake-build-release
+/cmake-build-minsizerel
+/cmake-build-debug-msvc
+/cmake-build-debug
+/CMakeFiles
+/.idea
+/x64
+/bin

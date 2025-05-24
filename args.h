@@ -2,6 +2,7 @@
 //  SECTION: Includes, Type Definitions, and Function Prototypes
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+// ReSharper disable CppNonInlineFunctionDefinitionInHeaderFile
 #pragma once
 #include <string.h>
 #include <stdio.h>

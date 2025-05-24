@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.11.0)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ./build)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ./bin)
+project(cargs VERSION 0.0.1)
+set(CMAKE_CXX_STANDARD 23)
+add_executable(cargs argsexample.c)
+include_directories(${CMAKE_SOURCE_DIR})
+
+IF (MSVC)
+    set(CMAKE_EXE_LINKER_FLAGS "/IGNORE:4099 /IGNORE:4098 /IGNORE:4996")
+ENDIF()
