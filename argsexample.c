@@ -20,9 +20,10 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS);
     basicArgInit(float, floatArg, 0.5f, NO_FLAGS);
-    basicArgInit(char, boolArg1, 0, NO_FLAGS);
-    basicArgInit(char, boolArg2, 1, NO_FLAGS);
-    argInit(char, stringArg, [100], "default", NO_FLAGS);
+    basicArgInit(char, boolArg1, 0, BOOLEAN_ARG);
+    basicArgInit(char, boolArg2, 1, BOOLEAN_ARG);
+    heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100);
+    // argInit(char, stringArg, [100], "default", NO_FLAGS);
     argumentOverrideCallbacks(argc, argv, "-h -h2", &help, &help2);
     setFlagsFromNamelessArgs(argc, argv, "%d %d", &namelessArg, &namelessArg2);
     setFlagsFromNamedArgs(argc, argv, "-n:%d -t:%10s --term:%20[^\n] -z:%f -b:bool -c:bool", &intArg, &stringArg, &stringArg, &floatArg, &boolArg1, &boolArg2);
@@ -34,5 +35,6 @@ int main(const int argc, char *argv[]) { // Example code
         namelessArgValue > 0, "Nameless int 1 must be positive"
     );
     printf("namelessArg: %d, namelessArg2: %d, intArg: %d, stringArg: %s, float: %f, bool1: %d, bool2: %d\n", namelessArgValue, namelessArg2Value, intArgValue, stringArgValue, floatArgValue, boolArg1Value, boolArg2Value);
+    free(stringArgValue);
     return 0;
 }

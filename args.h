@@ -35,6 +35,21 @@ int namelessArgCount = 0;
 char usageString[1024] = "Please specify a usage message in your client code.";
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  SECTION: Flags and Flag Checkers
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#define NO_FLAGS (0)
+
+#define NAMELESS_ARG (1<<0)
+
+#define BOOLEAN_ARG (1<<1)
+
+#define HEAP_ALLOCATED (1<<2)
+
+#define hasFlag(item, flag)\
+(item & flag)
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -55,7 +70,7 @@ int getArgCountFromFormatter(char *argFormatter) {
 }
 
 int isFlag(const char *formatter, const char *toCheck) {
-    // assert(("Formatter must be smaller than the max formatter size", strlen(formatter) < maxFormatterSize));
+    assert(("Formatter must be smaller than the max formatter size", strlen(formatter) < maxFormatterSize));
     char internalFormatterArray[maxFormatterSize];
     char *internalFormatter = internalFormatterArray;
     char *savePointer = NULL;
@@ -78,9 +93,9 @@ int isFlag(const char *formatter, const char *toCheck) {
 //  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
 void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex, const char *argFormatter, va_list outerArgs) {
+    assert(((void)"Formatter must be smaller than the max formatter size.", strlen(argFormatter) < maxFormatterSize));
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
-    assert(((void)"Formatter must be smaller than the max formatter size", strlen(argFormatter) < maxFormatterSize));
     char internalFormatterArray[maxFormatterSize];
     char argCountArray[maxFormatterSize];
     char *internalFormatter = internalFormatterArray;
@@ -104,6 +119,8 @@ void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex,
             if (!flagCopierPointer) return;
             currentArg -> hasValue = 1;
             if (compareFlag(formatterItem, "bool")) {
+                assert(((void)"Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.",
+                        hasFlag(currentArg -> flags, BOOLEAN_ARG)));
                 *(char *)flagCopierPointer = !*(char *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
             } else {
                 if (*argIndex < argc - 1 && isFlag(argFormatter, argv[(*argIndex)+1])) {
@@ -123,19 +140,6 @@ void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex,
 //  SECTION: User-Facing Functions and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-//  Flags and Flag Checkers
-
-#define NO_FLAGS (0)
-
-#define NAMELESS_ARG (1<<0)
-
-#define BOOLEAN_ARG (1<<1)
-
-#define STRING_ARG (1<<2)
-
-#define hasFlag(item, flag)\
-    (item & flag)
-
 //  Prints the usage message.
 void usage() {
     printf("%s\n", usageString);
@@ -154,7 +158,7 @@ void usage() {
 //  Note that when doing so, the name arg1 means a struct that contains an array of 100 char **.
 //  The value can later be accessed via the name arg1Value. This is achieved with token pasting.
 //  For variables with basic types, they can be declared with basicArgInit(type, name, value) instead.
-#define argInit(leftType, varName, rightType, val, flagsArg)\
+#define argInit(leftType, varName, rightType, val, flagsArg, ...)\
     leftType varName##Value rightType = val;\
     argStruct varName = (argStruct) {\
             .value = &varName##Value,\
@@ -162,6 +166,16 @@ void usage() {
             .flags = flagsArg\
     };\
     if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;
+
+//  This macro is for initializing arguments which point to heap-allocated memory.
+//  Make sure to free the pointer in the varName##Value variable when finished using this argument.
+//  Keep in mind that heap-allocated arguments cannot be directly initialized with a default value in this macro.
+#define heapArgInit(leftType, varName, rightType, flagsArg, size)\
+    argInit(leftType, varName, rightType, NO_DEFAULT_VALUE, flagsArg)\
+    void *varName##Ptr = malloc(size);\
+    memset(varName##Ptr, 0, size);\
+    varName##Value = varName##Ptr;\
+    varName.value = varName##Value;
 
 //  A wrapper for argInit().
 #define basicArgInit(type, varName, value, flagsArg)\
@@ -260,8 +274,11 @@ void argAssert(const int assertionCount, ...) {
 #define MUTUALLY_EXCLUSIVE(varName1, varName2)\
     !(varName1.hasValue && varName2.hasValue)
 
-#define NO_DEFAULT_VALUE {0} // Set default argument to 0, for readability purposes.
+// Set default argument to 0, for readability purposes.
+#define NO_DEFAULT_VALUE {0}
 
-#define NONE // Empty and does nothing. For semantics.
+// Empty and does nothing. For semantics.
+#define NONE
 
-#define USAGE_MESSAGE NULL  // For use in argAssert.
+// For use in argAssert.
+#define USAGE_MESSAGE NULL

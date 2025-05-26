@@ -19,6 +19,8 @@ Structs serve to keep track of whether an argument has been specified by the use
 To simplify the declaration of arguments, `argInit()` and basicArgInit() were created.
 Simply call `argInit()` or `basicArgInit()` with both a variable name to declare, type information, a default value, and a bitmask representing toggled flags.
 To write explicitly that a variable should not have a default value, use the `NO_DEFAULT_VALUE` macro in place of a default value.
+This macro is only for readability, and it will zero-initialize the variable you create.
+To enforce that an argument must be given a value, see `argAssert()` below.
 
 `argInit()` and `basicArgInit()` will create a struct from the variable name entered into them.
 Keep in mind the resulting struct does not contain type information about the variable you declare a container for the argument.
