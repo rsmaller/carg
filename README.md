@@ -66,7 +66,10 @@ setFlagsFromNamedArgs(argc, argv, "-v:%s -i:%d", myString, myInt);
 
 The %s formatter corresponds to the argument struct `myString` and the %d formatter corresponds to the struct `myInt`.
 
-Assuming the resulting program is ran with the following arguments:
+If you need to have spaces in your string, be sure to use the `%[^\n]` formatter instead of `%s`.
+String arguments with spaces need to be delimited with double quotes.
+
+Assuming the resulting program is run with the following arguments:
 
 ```
 example.exe -v yes -i 5

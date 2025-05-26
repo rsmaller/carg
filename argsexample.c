@@ -25,7 +25,7 @@ int main(const int argc, char *argv[]) { // Example code
     argInit(char, stringArg, [100], "default", NO_FLAGS);
     argumentOverrideCallbacks(argc, argv, "-h -h2", &help, &help2);
     setFlagsFromNamelessArgs(argc, argv, "%d %d", &namelessArg, &namelessArg2);
-    setFlagsFromNamedArgs(argc, argv, "-n:%d -t:%10s --term:%20s -z:%f -b:bool -c:bool", &intArg, &stringArg, &stringArg, &floatArg, &boolArg1, &boolArg2);
+    setFlagsFromNamedArgs(argc, argv, "-n:%d -t:%10s --term:%20[^\n] -z:%f -b:bool -c:bool", &intArg, &stringArg, &stringArg, &floatArg, &boolArg1, &boolArg2);
     argAssert(5,
         intArgValue > -1, "Int 1 must not be negative",
         REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,

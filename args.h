@@ -4,6 +4,10 @@
 
 // ReSharper disable CppNonInlineFunctionDefinitionInHeaderFile
 #pragma once
+#ifdef _MSC_VER
+    #define strtok_r strtok_s
+    #define _CRT_SECURE_NO_WARNINGS // sscanf() is required for this project.
+#endif
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,10 +30,6 @@ void usage(void);
 
 #define maxFormatterSize 2048
 
-#ifdef _MSC_VER
-    #define strtok_r strtok_s
-#endif
-
 int namelessArgCount = 0;
 
 char usageString[1024] = "Please specify a usage message in your client code.";
@@ -48,8 +48,9 @@ int compareFlag(const char *argument, const char *parameter) {
 //  For internal use only.
 int getArgCountFromFormatter(char *argFormatter) {
     int returnVal = 1;
-    strtok(argFormatter, " ");
-    while ((strtok(NULL, " "))) returnVal++;
+    char *savePointer = NULL;
+    strtok_r(argFormatter, " ", &savePointer);
+    while (strtok_r(NULL, " ", &savePointer)) returnVal++;
     return returnVal;
 }
 
@@ -58,7 +59,7 @@ int isFlag(const char *formatter, const char *toCheck) {
     char internalFormatterArray[maxFormatterSize];
     char *internalFormatter = internalFormatterArray;
     char *savePointer = NULL;
-    strncpy(internalFormatter, formatter, maxFormatterSize - 1);
+    strncpy_s(internalFormatter, maxFormatterSize, formatter, maxFormatterSize - 1);
     internalFormatter[maxFormatterSize - 1] = '\0';
     while (1) {
         char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
@@ -83,8 +84,8 @@ void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex,
     char internalFormatterArray[maxFormatterSize];
     char argCountArray[maxFormatterSize];
     char *internalFormatter = internalFormatterArray;
-    strncpy(internalFormatter, argFormatter, maxFormatterSize - 1);
-    strncpy(argCountArray, argFormatter, maxFormatterSize - 1);
+    strncpy_s(internalFormatter, maxFormatterSize, argFormatter, maxFormatterSize - 1);
+    strncpy_s(argCountArray, maxFormatterSize, argFormatter, maxFormatterSize - 1);
     internalFormatter[maxFormatterSize - 1] = '\0';
     argCountArray[maxFormatterSize - 1] = '\0';
     char *savePointer = NULL;
@@ -124,11 +125,13 @@ void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex,
 
 //  Flags and Flag Checkers
 
-#define NO_FLAGS 0
+#define NO_FLAGS (0)
 
-#define NAMELESS_ARG 1
+#define NAMELESS_ARG (1<<0)
 
-#define STRING 2
+#define BOOLEAN_ARG (1<<1)
+
+#define STRING_ARG (1<<2)
 
 #define hasFlag(item, flag)\
     (item & flag)
@@ -182,13 +185,14 @@ void setFlagsFromNamedArgs(const int argc, char *argv[], const char *argFormatte
 void setFlagsFromNamelessArgs(const int argc, char *argv[], const char *argFormatter, ...) {
     if (argc < 2) usage();
     char internalFormatter[maxFormatterSize];
-    strncpy(internalFormatter, argFormatter, maxFormatterSize-1);
+    char *savePointer = NULL;
+    strncpy_s(internalFormatter, maxFormatterSize, argFormatter, maxFormatterSize-1);
     const char *currentFormatter = NULL;
     void *flagCopierPointer = NULL;
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     for (int i=1; i<namelessArgCount+1; i++) {
-        currentFormatter = strtok(internalFormatter, " ");
+        currentFormatter = strtok_r(internalFormatter, " ", &savePointer);
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         flagCopierPointer = currentArg -> value;
         currentArg -> hasValue = 1;
@@ -204,7 +208,7 @@ void setFlagsFromNamelessArgs(const int argc, char *argv[], const char *argForma
 void argumentOverrideCallbacks(const int argc, char *argv[], const char *argFormatter, ...) {
     if (argc < 2) return;
     char internalFormatter[maxFormatterSize];
-    strncpy(internalFormatter, argFormatter, maxFormatterSize-1);
+    strncpy_s(internalFormatter, maxFormatterSize, argFormatter, maxFormatterSize-1);
     char *internalFormatterPointer = internalFormatter;
     char *savePointer = NULL;
     const char *currentFlag = NULL;
@@ -218,8 +222,6 @@ void argumentOverrideCallbacks(const int argc, char *argv[], const char *argForm
             if (compareFlag(currentFlag, argv[i])) {
                 functionCursor();
                 exit(0);
-            } else {
-                continue;
             }
         }
     }
@@ -230,7 +232,7 @@ void argumentOverrideCallbacks(const int argc, char *argv[], const char *argForm
 //  Pass in NULL for a message to default to the usage message.
 //  Be sure to call this after calling setFlagsFromNamedArgs() to get data from the user.
 //  This function is designed to validate command line arguments.
-void argAssert(int assertionCount, ...) {
+void argAssert(const int assertionCount, ...) {
     va_list args;                         
     va_start(args, assertionCount);
     int exitFlag = 0;

@@ -62,6 +62,7 @@ dkms.conf
 
 /cmake-build-relwithdebinfo
 /cmake-build-release
+/cmake-build-release-msvc
 /cmake-build-minsizerel
 /cmake-build-debug-msvc
 /cmake-build-debug
@@ -69,3 +70,4 @@ dkms.conf
 /.idea
 /x64
 /bin
+/argsexample
