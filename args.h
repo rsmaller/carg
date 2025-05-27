@@ -47,7 +47,7 @@ char usageString[1024] = "Please specify a usage message in your client code.";
 #define HEAP_ALLOCATED (1<<2)
 
 #define hasFlag(item, flag)\
-(item & flag)
+    (item & flag)
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
@@ -70,7 +70,7 @@ int getArgCountFromFormatter(char *argFormatter) {
 }
 
 int isFlag(const char *formatter, const char *toCheck) {
-    assert(("Formatter must be smaller than the max formatter size", strlen(formatter) < maxFormatterSize));
+    assert(((void)"Formatter must be smaller than the max formatter size", strlen(formatter) < maxFormatterSize));
     char internalFormatterArray[maxFormatterSize];
     char *internalFormatter = internalFormatterArray;
     char *savePointer = NULL;
