@@ -180,7 +180,7 @@ void usage() {
     void *varName##Ptr = malloc(size);\
     memset(varName##Ptr, 0, size);\
     varName##Value = varName##Ptr;\
-    varName.value = varName##Value;
+    varName.value = varName##Ptr;
 
 //  A wrapper for argInit().
 #define basicArgInit(type, varName, value, flagsArg)\
