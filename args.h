@@ -7,6 +7,11 @@
 #ifdef _MSC_VER
     #define strtok_r strtok_s
     #define _CRT_SECURE_NO_WARNINGS // sscanf() is required for this project.
+    #define MSVC_FORMAT_STRING _Printf_format_string_
+    #define GCC_FORMAT_STRING
+#elif defined(__GNUC__) || defined(__clang__)
+    #define MSVC_FORMAT_STRING
+    #define GCC_FORMAT_STRING __attribute__((format(scanf, 3, 4)))
 #endif
 #include <string.h>
 #include <stdio.h>
@@ -183,7 +188,7 @@ void usage() {
 
 //  Pass in the argument count, argument vector, and all argument structs generated from the argInit()
 //  and basicArgInit() functions to set them based on the argument vector.
-void setFlagsFromNamedArgs(const int argc, char *argv[], const char *argFormatter, ...) {
+GCC_FORMAT_STRING void setFlagsFromNamedArgs(const int argc, char *argv[], MSVC_FORMAT_STRING const char * const argFormatter, ...) {
     if (argc < 2) usage();
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
@@ -196,7 +201,7 @@ void setFlagsFromNamedArgs(const int argc, char *argv[], const char *argFormatte
 
 //  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().
 //  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
-void setFlagsFromNamelessArgs(const int argc, char *argv[], const char *argFormatter, ...) {
+GCC_FORMAT_STRING void setFlagsFromNamelessArgs(const int argc, char *argv[], MSVC_FORMAT_STRING const char *argFormatter, ...) {
     if (argc < 2) usage();
     char internalFormatter[maxFormatterSize];
     char *savePointer = NULL;
