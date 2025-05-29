@@ -1,11 +1,5 @@
 #include "args.h"
 
-#ifndef _MSC_VER
-    #include <libgen.h>
-#else
-    #define basename(x) x
-#endif
-
 void help(void) {
     printf("Help message here\n");
 }
@@ -23,9 +17,10 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(char, boolArg1, 0, BOOLEAN_ARG);
     basicArgInit(char, boolArg2, 1, BOOLEAN_ARG);
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100 * sizeof(char)); // Heap string.
+    heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
     argInit(char, stringArg2, [100], "default", NO_FLAGS); // Stack string.
     argumentOverrideCallbacks(argc, argv, "-h -h2", &help, &help2);
-    setFlagsFromNamelessArgs(argc, argv, "%d %d", &namelessArg, &namelessArg2);
+    setFlagsFromNamelessArgs(argc, argv, "%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
     setFlagsFromNamedArgs(argc, argv, "-n:%d -t:%10s --term:%20[^\n] -ff:%10s -z:%f -b:bool -c:bool", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg1, &boolArg2);
     argAssert(5,
         intArgValue > -1, "Int 1 must be at least 0",
@@ -34,7 +29,8 @@ int main(const int argc, char *argv[]) { // Example code
         MUTUALLY_EXCLUSIVE(boolArg1, boolArg2), "Both booleans can't be toggled at the same time",
         namelessArgValue > 0, "Nameless int 1 must be positive"
     );
-    printf("namelessArg: %d, namelessArg2: %d, intArg: %d, stringArg: %s, stringArg2: %s, float: %f, bool1: %d, bool2: %d\n", namelessArgValue, namelessArg2Value, intArgValue, stringArgValue, stringArg2Value, floatArgValue, boolArg1Value, boolArg2Value);
-    free(stringArgValue); // Free heap string.
+    printf("nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d, stringArg: %s, stringArg2: %s, float: %f, bool1: %d, bool2: %d\n", namelessArgCount, namelessArgValue, namelessArg2Value, namelessStringArgValue, intArgValue, stringArgValue, stringArg2Value, floatArgValue, boolArg1Value, boolArg2Value);
+    free(stringArgValue); // Free heap strings.
+    free(namelessStringArgValue);
     return 0;
 }

@@ -145,6 +145,21 @@ void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex,
 //  SECTION: User-Facing Functions and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+//  Fetches the basename of a file from a path.
+char *basename(char * const filePath) {
+    char *valueToTokenize = (char *)malloc(strlen(filePath) + 1);
+    strncpy(valueToTokenize, filePath, strlen(filePath));
+    valueToTokenize[strlen(filePath)] = '\0';
+    char *valueCursor = valueToTokenize;
+    char *savePointer = NULL;
+    while (strtok_s(valueCursor, "\\/", &savePointer) && *savePointer != '\0') {
+        valueCursor = savePointer;
+    }
+    const char * const returnArithmetic = valueToTokenize; // Prevent IDEs from complaining about using local pointers in return arithmetic.
+    free(valueToTokenize);
+    return filePath + (valueCursor - returnArithmetic);
+}
+
 //  Prints the usage message.
 void usage() {
     printf("%s\n", usageString);
@@ -193,7 +208,7 @@ GCC_FORMAT_STRING void setFlagsFromNamedArgs(const int argc, char *argv[], MSVC_
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     int i;
-    for (i=namelessArgCount; i<argc; i++) {
+    for (i=namelessArgCount + 1; i<argc; i++) {
         checkArgAgainstFormatter(argc, argv, &i, argFormatter, formatterArgs);
     }
     va_end(formatterArgs);
@@ -202,8 +217,9 @@ GCC_FORMAT_STRING void setFlagsFromNamedArgs(const int argc, char *argv[], MSVC_
 //  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().
 //  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
 GCC_FORMAT_STRING void setFlagsFromNamelessArgs(const int argc, char *argv[], MSVC_FORMAT_STRING const char *argFormatter, ...) {
-    if (argc < 2) usage();
+    if (argc <= namelessArgCount) usage();
     char internalFormatter[maxFormatterSize];
+    char *internalFormatterPointer = internalFormatter;
     char *savePointer = NULL;
     strncpy_s(internalFormatter, maxFormatterSize, argFormatter, maxFormatterSize-1);
     const char *currentFormatter = NULL;
@@ -211,7 +227,8 @@ GCC_FORMAT_STRING void setFlagsFromNamelessArgs(const int argc, char *argv[], MS
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     for (int i=1; i<namelessArgCount+1; i++) {
-        currentFormatter = strtok_r(internalFormatter, " ", &savePointer);
+        currentFormatter = strtok_r(internalFormatterPointer, " ", &savePointer);
+        internalFormatterPointer = savePointer;
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         flagCopierPointer = currentArg -> value;
         currentArg -> hasValue = 1;
