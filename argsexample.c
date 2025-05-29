@@ -9,7 +9,7 @@ void help2(void) {
 }
 
 int main(const int argc, char *argv[]) { // Example code
-    setUsageMessage("USAGE: %s [number] [number] -n [number] -t [string] <-b> <-c> <-ff [string]> <-z [float]>", basename(argv[0]));
+    setUsageMessage("USAGE: %s [number] [number] [string] -n [number] -t [string] <-b> <-c> <-ff [string]> <-z [float]>", basename(argv[0]));
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS);
