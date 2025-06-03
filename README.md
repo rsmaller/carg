@@ -4,6 +4,7 @@
 Before using this library, ensure your `main()` function accepts an argc and argv as parameters.
 This library parses those parameters using string formatters and sets variables to their values accordingly.
 
+### Setting a Usage Message
 It's likely the first thing you will want to do is declare a usage message for your program.
 The `setUsageMessage()` function allows you to do this; it sets a usage message that caps out at 1023 characters.
 It accepts a string with formatters in it. This might look something like:
@@ -14,6 +15,7 @@ setUsageMessage("USAGE: %s -n Arg1 -t Arg2", basename(argv[0]));
 
 The `usage()` function will print out this message and terminate the program.
 
+### Initializing Arguments
 As for arguments, they are stored in structs and variables of their respective type.
 Structs serve to keep track of whether an argument has been specified by the user or not.
 To simplify the declaration of arguments, `argInit()` and basicArgInit() were created.
@@ -22,9 +24,11 @@ To write explicitly that a variable should not have a default value, use the `NO
 This macro is only for readability, and it will zero-initialize the variable you create.
 To enforce that an argument must be given a value, see `argAssert()` below.
 
-`argInit()` and `basicArgInit()` will create a struct from the variable name entered into them.
-Keep in mind the resulting struct does not contain type information about the variable you declare a container for the argument.
+`argInit()`, `basicArgInit()` and `heapArgInit()` will create a struct from the variable name entered into them.
+Keep in mind the resulting struct uses a void pointer to reference the variable where the argument data will be stored.
 To access the data the user entered, add "Value" to the end of the struct's name.
+For arguments initialized with `heapArgInit()`, the "Value" variable contains the pointer to the heap-allocated memory
+and should be freed when it is no longer needed.
 For example, when declaring an int argument via:
 
 ```
@@ -36,8 +40,9 @@ basicArgInit(int, intArg, 1, NO_FLAGS)
 - `intArgValue` is an int where the value of the argument is stored. 
 - If the arg was declared as a char instead, the type of `intArgValue` would be char.
 
+### Setting Argument Values from The Argument Vector
 The value of an argument should only be accessed after setting the variables' values in accordance with user input.
-Keep in mind variables must be initialized via `argInit()` or `basicArgInit()` before being set.
+Keep in mind variables must be initialized via `argInit()`, `basicArgInit()` or `heapArgInit()` before being set.
 To set argument values from the user, use the `setFlagsFromNamedArgs()` function. This function accepts the argc and argv parameters and a string formatter for arguments.
 `setFlagsFromNamedArgs()` accepts both flag parameters and string formatters associated with them.
 That formatter might look like: `"-v:%s"` followed by a string argument struct.
@@ -87,9 +92,8 @@ example.exe
 
 `myStringValue` would contain the string "default" and `myIntValue` would contain the number 5.
 
-If this is all the functionality you need, you're done!
-
-However, you may want to make an argument required or limit which values the user can set it to, especially one that is initialized with NO_DEFAULT_VALUE.
+### Argument Assertions
+You may want to make an argument required or limit which values the user can set it to, especially one that is initialized with NO_DEFAULT_VALUE.
 
 `argAssert()` is designed for this; it accepts the number of argument assertions as an argument. All assertions after that are two arguments each.
 
@@ -112,6 +116,7 @@ argAssert(3,
 will print `"Int 1 must not be negative"`if a value less than or equal to -1 is given.
 The usage message will show if arguments `myInt` or `myString` are not given values by the user.
 
+### Arguments That Override Program Control Flow
 To specify arguments that make the program do something entirely different, primarily running a single function and then terminating, call the `argumentOverrideCallbacks()` function. This function accepts the argument count, argument vector, flags, and function pointers associated with them.
 
 For example, to declare arguments for a help-displaying function and another random helper function:
@@ -120,6 +125,7 @@ For example, to declare arguments for a help-displaying function and another ran
 argumentOverrideCallbacks(argc, argv, "-h -r", &help, &randomHelperFunction);
 ```
 
+### Arguments Without Flags
 Another feature this library supports is nameless arguments. Nameless arguments are passed in to the program without a flag.
 These arguments should always come before named arguments to prevent argument ambiguity.
 
@@ -145,3 +151,145 @@ setFlagsFromNamedArgs(argc, argv, "-n:%d", &namedArg);
 Keep in mind that nameless arguments are required regardless if they are enforced with an assertion or not.
 Furthermore, they are assigned to argument variables based on their order. Make sure they line up correctly when you set their values!
 Nameless arguments can be used in assertions the same way as named arguments.
+
+## Function Implementations
+
+### `basename()`
+The `basename()` function is similar to the function often included in `libgen.h` in POSIX systems; considering this 
+header is not officially supported on other compilers, a basic implementation of `basename` is included in this 
+argument library.
+A basename function takes a full file path string and returns the very last item in the file tree, or more specifically 
+the substring following all forward or backward slashes. For example, `basename("C:\Users\User1\test.exe")` will return 
+`test.exe`. This is useful for truncating the name of your program as it appears in the argument vector.
+
+### `usage()`
+This simply prints out the usage message and terminates the program.
+
+### `setUsageMessage()`
+This function-style macro accepts a string formatter and variadic arguments. It uses both of those pieces of information 
+to generate and set a usage message for your program.
+
+### `argInit()`
+This function-style macro initializes an argument via a variable where the result goes and a struct which contains a 
+void pointer to that variable. It accepts split type information, a variable name, a default value, and flags.
+For example, to initialize a simple character argument, the following might be used:
+
+`arginit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS)`
+
+To initialize an array of 100 characters, that would look like:
+
+`arginit(char, charArrayArg, [100], NO_DEFAULT_VALUE, NO_FLAGS)`
+
+These arguments could later be accessed with `charArgValue` and `charArrayArgValue` respectively.
+For use in argument setting functions, however, `charArg` and `charArrayArg` should be used.
+
+### `basicArgInit()`
+This macro is a wrapper for `argInit()` which only specifies basic type information; arrays and function pointers cannot 
+be declared with this macro. To declare the char argument like in `argInit()`, but with a default value of 2,
+do the following:
+
+`basicArginit(char, charArg, 2, NO_FLAGS)`
+
+### `heapArgInit()`
+This function-style macro will heap-allocate a variable for which an argument's value will be copied into. It takes the 
+same arguments as `argInit()`, except it has no default value argument and a memory allocation size must be given as the 
+last argument to the macro.
+
+### `setFlagsFromNamedArgs()`
+This function is variadic; it accepts the argument count, the argument vector, a string formatter, and a sequence of
+arguments which are the addresses of argument structs. This data is used to set arguments based on what is passed from 
+the command line. The argument structs should correspond to flags in the string formatter. Each argument should be a 
+flag plus a colon plus the corresponding string formatter. Each argument should also be separated by spaces. For 
+example:
+
+`setFlagsFromNamedArgs(argc, argv, "-n:%d -t:%10s -b:bool", &intArg, &stringArg, &boolArg)`
+
+- Will use the `-n` flag plus a digit value to set the `intArg` argument and subsequently the `intArgValue` variable.
+- Will use the `-t` flag plus a string value to set the `stringArg` argument and subsequently the `stringArgValue` variable.
+- Will use the `-b` flag to toggle the boolean `boolArg` argument and subsequently the `boolArgValue` variable.
+
+### `setFlagsFromNamelessArgs()`
+This function works similarly to `setFlagsFromNamedArgs()`, but it has a few key differences:
+- Arguments are "nameless", meaning they are defined based on their order and not any flags.
+- The string formatter passed in should not have any flags in it as a result.
+
+For example:
+
+`setFlagsFromNamelessArgs(argc, argv, "%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg)`
+
+ - Will use a digit formatter to set `namelessArg` to the value passed in as the very first command line argument.
+ - Will use a digit formatter to set `namelessArg2` to the value passed in as the second command line argument.
+ - Will use a string formatter to set `namelessStringArg` to the value passed in as the third command line argument.
+
+### `argumentOverrideCallbacks()`
+This function accepts the argument count and vector, plus a series of variadic arguments, mainly a formatter and 
+function pointers which accept no arguments and return nothing. This function type is referred to as `voidFuncPtr` in
+the `args.h` header. It will set flags where, when passed by the user, will run a specific function and terminate the 
+program, essentially overriding the control flow of the program.
+
+For example:
+
+`argumentOverrideCallbacks(argc, argv, "-h -h2", &help, &help2)`
+
+ - Means the `-h` flag will run the `help()` function and then terminate the program.
+ - Means the `-h2` flag will run the `help2()` function and then terminate the program.
+
+### `argAssert()`
+This function accepts variadic arguments for assertions plus assertion messages. `argAssert()` keeps track of this via 
+an assertion count, which is the first argument this function accepts. Each assertion should test some value
+for an argument, like `intArgValue > 0` for example. Assertion messages are what gets printed when the assertion fails.
+
+An assertion might look like:
+
+`argAssert(1, intArgValue > 0, "Int argument must be positive")`
+
+You can otherwise specify `NULL` to print out the usage message instead. The `USAGE_MESSAGE` macro expands to NULL and 
+can also be used; it exists for readability purposes.
+
+## Assertion Macros
+
+### `REQUIRED_ARGUMENT()`
+This is a function-style macro which accepts an argument struct as an argument. This is an assertion which will fail if 
+an argument is not given a value by the user. This should be used in `argAssert()`:
+
+`argAssert(1, REQUIRED_ARGUMENT(charArg), "Char argument is required")`
+
+### `MUTUALLY_EXCLUSIVE()`
+This is another assertion macro. This one accepts two argument structs, and the assertion will fail if both arguments 
+have been provided a value by the user. In other words, this assertion forces the user to pick at most one of two 
+arguments.
+
+## Initializer Flags
+
+### `NO_FLAGS`
+This is a macro which expands to `0`. This is a semantic choice to show in `argInit()` that an argument has no custom 
+flags.
+
+### `NAMELESS_ARG`
+This macro should be passed in to the flags section of `argInit()` to specify an argument should be 
+given a value without any sort of flag preceding it.
+
+### `BOOLEAN_ARG`
+When specifying an argument should simply be a flag which toggles some variable on or off, two things must be done. The 
+argument must be initialized as a boolean, which is what this flag is for. Pass this flag into `argInit()` and later 
+reference the generated argument in `setFlagsFromNamedArgs()` with `bool` to create a boolean argument. Boolean arguments
+are always flags, and they can therefore never appear as a nameless argument.
+
+### `HEAP_ALLOCATED`
+This is a flag for declaring an argument as heap-allocated. In practice, this should never be used. This library 
+automatically handles setting this flag when using the `heapArgInit()` function-style macro.
+
+### `NO_DEFAULT_VALUE`
+This macro expands to `{0}`, and any argument initialized with it in `argInit()` will be zero-initialized. To enforce 
+this argument should have no default value, or in other words must be given a value by the user, use `argAssert()` in 
+combination with this.
+
+### `NONE`
+This macro expands to nothing, and its purpose is for declaring empty type information in `argInit()` or `heapArgInit()`.
+For example, declaring a char in `argInit()` is as follows:
+
+`arginit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS)`
+
+A char variable has no type information on the right side of it, so right-side type information should be omitted. This 
+macro does precisely that.
+

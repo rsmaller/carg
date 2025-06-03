@@ -40,7 +40,7 @@ int namelessArgCount = 0;
 char usageString[1024] = "Please specify a usage message in your client code.";
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Flags and Flag Checkers
+//  SECTION: Flags, Flag Checkers, and Initializer Macros
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #define NO_FLAGS (0)
@@ -53,6 +53,12 @@ char usageString[1024] = "Please specify a usage message in your client code.";
 
 #define hasFlag(item, flag)\
     (item & flag)
+
+// Set default argument to 0, for readability purposes.
+#define NO_DEFAULT_VALUE {0}
+
+// Empty and does nothing. For semantics.
+#define NONE
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
@@ -87,7 +93,7 @@ int isFlag(const char *formatter, const char *toCheck) {
         internalFormatter = savePointer;
         if (!flagItem) {
             break;
-        } else
+        }
         if (compareFlag(toCheck, flagItem)) {
             return 1;
         }
@@ -191,7 +197,7 @@ void usage() {
 //  Make sure to free the pointer in the varName##Value variable when finished using this argument.
 //  Keep in mind that heap-allocated arguments cannot be directly initialized with a default value in this macro.
 #define heapArgInit(leftType, varName, rightType, flagsArg, size)\
-    argInit(leftType, varName, rightType, NO_DEFAULT_VALUE, flagsArg)\
+    argInit(leftType, varName, rightType, NO_DEFAULT_VALUE, flagsArg | HEAP_ALLOCATED)\
     void *varName##Ptr = malloc(size);\
     memset(varName##Ptr, 0, size);\
     varName##Value = varName##Ptr;\
@@ -275,7 +281,7 @@ void argAssert(const int assertionCount, ...) {
     for (int i=0; i<assertionCount; i++) {
         const int expression = va_arg(args, int);
         char *message = va_arg(args, char *);
-        if (!(expression)) {
+        if (!expression) {
             if (message) {
                 printf("%s\n", message);
                 exitFlag = 1;
@@ -288,6 +294,10 @@ void argAssert(const int assertionCount, ...) {
     va_end(args);
 }
 
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  SECTION: Assertion Macros
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 //  This is designed to be used in the argAssert() function to assert that an argument cannot have a default value.
 #define REQUIRED_ARGUMENT(varName)\
     varName.hasValue
@@ -295,12 +305,6 @@ void argAssert(const int assertionCount, ...) {
 //  Assert that two arguments cannot be declared by the user at the same time.
 #define MUTUALLY_EXCLUSIVE(varName1, varName2)\
     !(varName1.hasValue && varName2.hasValue)
-
-// Set default argument to 0, for readability purposes.
-#define NO_DEFAULT_VALUE {0}
-
-// Empty and does nothing. For semantics.
-#define NONE
 
 // For use in argAssert.
 #define USAGE_MESSAGE NULL
