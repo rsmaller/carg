@@ -33,8 +33,6 @@ void usage(void);
 //  SECTION: Global Variables and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#define maxFormatterSize 2048
-
 int namelessArgCount = 0;
 
 char usageString[1024] = "Please specify a usage message in your client code.";
@@ -81,12 +79,9 @@ int getArgCountFromFormatter(char *argFormatter) {
 }
 
 int isFlag(const char *formatter, const char *toCheck) {
-    assert(((void)"Formatter must be smaller than the max formatter size", strlen(formatter) < maxFormatterSize));
-    char internalFormatterArray[maxFormatterSize];
-    char *internalFormatter = internalFormatterArray;
+    char *internalFormatter = strdup(formatter);
+    void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
-    strncpy_s(internalFormatter, maxFormatterSize, formatter, maxFormatterSize - 1);
-    internalFormatter[maxFormatterSize - 1] = '\0';
     while (1) {
         char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
         strtok_r(NULL, ": ", &savePointer); // Discard formatter item
@@ -98,22 +93,17 @@ int isFlag(const char *formatter, const char *toCheck) {
             return 1;
         }
     }
+    free(internalFormatterAllocation);
     return 0;
 }
 
 //  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
 void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex, const char *argFormatter, va_list outerArgs) {
-    assert(((void)"Formatter must be smaller than the max formatter size.", strlen(argFormatter) < maxFormatterSize));
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
-    char internalFormatterArray[maxFormatterSize];
-    char argCountArray[maxFormatterSize];
-    char *internalFormatter = internalFormatterArray;
-    strncpy_s(internalFormatter, maxFormatterSize, argFormatter, maxFormatterSize - 1);
-    strncpy_s(argCountArray, maxFormatterSize, argFormatter, maxFormatterSize - 1);
-    internalFormatter[maxFormatterSize - 1] = '\0';
-    argCountArray[maxFormatterSize - 1] = '\0';
+    char *internalFormatter = strdup(argFormatter);
+    void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     void *flagCopierPointer = NULL;
     while (1) {
@@ -145,6 +135,7 @@ void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex,
             break;
         }
     }
+    free(internalFormatterAllocation);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -153,9 +144,7 @@ void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex,
 
 //  Fetches the basename of a file from a path.
 char *basename(char * const filePath) {
-    char *valueToTokenize = (char *)malloc(strlen(filePath) + 1);
-    strncpy(valueToTokenize, filePath, strlen(filePath));
-    valueToTokenize[strlen(filePath)] = '\0';
+    char *valueToTokenize = strdup(filePath);
     char *valueCursor = valueToTokenize;
     char *savePointer = NULL;
     while (strtok_s(valueCursor, "\\/", &savePointer) && *savePointer != '\0') {
@@ -224,22 +213,22 @@ GCC_FORMAT_STRING void setFlagsFromNamedArgs(const int argc, char *argv[], MSVC_
 //  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
 GCC_FORMAT_STRING void setFlagsFromNamelessArgs(const int argc, char *argv[], MSVC_FORMAT_STRING const char *argFormatter, ...) {
     if (argc <= namelessArgCount) usage();
-    char internalFormatter[maxFormatterSize];
-    char *internalFormatterPointer = internalFormatter;
+    char *internalFormatter = strdup(argFormatter);
+    void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
-    strncpy_s(internalFormatter, maxFormatterSize, argFormatter, maxFormatterSize-1);
     const char *currentFormatter = NULL;
     void *flagCopierPointer = NULL;
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     for (int i=1; i<namelessArgCount+1; i++) {
-        currentFormatter = strtok_r(internalFormatterPointer, " ", &savePointer);
-        internalFormatterPointer = savePointer;
+        currentFormatter = strtok_r(internalFormatter, " ", &savePointer);
+        internalFormatter = savePointer;
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         flagCopierPointer = currentArg -> value;
         currentArg -> hasValue = 1;
         sscanf(argv[i], currentFormatter, flagCopierPointer);
     }
+    free(internalFormatterAllocation);
     va_end(formatterArgs);
 }
 
@@ -249,17 +238,16 @@ GCC_FORMAT_STRING void setFlagsFromNamelessArgs(const int argc, char *argv[], MS
 //  These arguments will override any other arguments passed in.
 void argumentOverrideCallbacks(const int argc, char *argv[], const char *argFormatter, ...) {
     if (argc < 2) return;
-    char internalFormatter[maxFormatterSize];
-    strncpy_s(internalFormatter, maxFormatterSize, argFormatter, maxFormatterSize-1);
-    char *internalFormatterPointer = internalFormatter;
+    char *internalFormatter = strdup(argFormatter);
+    void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     const char *currentFlag = NULL;
     voidFuncPtr functionCursor = NULL;
     va_list args;
     va_start(args, argFormatter);
     for (int i=1; i<argc; i++) {
-        while ((currentFlag = strtok_r(internalFormatterPointer, " ", &savePointer))) {
-            internalFormatterPointer = savePointer;
+        while ((currentFlag = strtok_r(internalFormatter, " ", &savePointer))) {
+            internalFormatter = savePointer;
             functionCursor = va_arg (args, voidFuncPtr);
             if (compareFlag(currentFlag, argv[i])) {
                 functionCursor();
@@ -267,6 +255,7 @@ void argumentOverrideCallbacks(const int argc, char *argv[], const char *argForm
             }
         }
     }
+    free(internalFormatterAllocation);
     va_end(args);
 }
 
