@@ -129,7 +129,7 @@ void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex,
                 } else if (*argIndex == argc - 1) {
                     usage();
                 } else {
-                    sscanf(argv[(*argIndex) + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
+                    sscanf(argv[*argIndex + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
                 }
             }
             break;
