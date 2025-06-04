@@ -1,5 +1,7 @@
 #include "args.h"
 
+int globalIntArgValue = 0;
+
 void help(void) {
     printf("Help message here\n");
 }
@@ -13,6 +15,7 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS);
+    adjustArgumentCursor(&intArg, &globalIntArgValue);
     basicArgInit(float, floatArg, 0.5f, NO_FLAGS);
     basicArgInit(char, boolArg1, 0, BOOLEAN_ARG);
     basicArgInit(char, boolArg2, 1, BOOLEAN_ARG);
@@ -29,7 +32,7 @@ int main(const int argc, char *argv[]) { // Example code
         MUTUALLY_EXCLUSIVE(boolArg1, boolArg2), "Both booleans can't be toggled at the same time",
         namelessArgValue > 0, "Nameless int 1 must be positive"
     );
-    printf("nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d, stringArg: %s, stringArg2: %s, float: %f, bool1: %d, bool2: %d\n", namelessArgCount, namelessArgValue, namelessArg2Value, namelessStringArgValue, intArgValue, stringArgValue, stringArg2Value, floatArgValue, boolArg1Value, boolArg2Value);
+    printf("nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d, stringArg: %s, stringArg2: %s, float: %f, bool1: %d, bool2: %d\n", namelessArgCount, namelessArgValue, namelessArg2Value, namelessStringArgValue, globalIntArgValue, stringArgValue, stringArg2Value, floatArgValue, boolArg1Value, boolArg2Value);
     free(stringArgValue); // Free heap strings.
     free(namelessStringArgValue);
     return 0;

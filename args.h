@@ -196,6 +196,15 @@ void usage() {
 #define basicArgInit(type, varName, value, flagsArg)\
     argInit(type, varName, NONE, value, flagsArg)
 
+//  Changes where the value of an argument is saved to. Ensure the readjusted pointer is of the correct type.
+//  This is useful for saving an argument value in a global variable.
+//  If a heap-allocated argument is readjusted, the old memory it pointed to will be freed.
+//  This will only change the variable where the argument is saved, meaning the save variable will not follow the "Value" convention the rest of this code follows unless you name it accordingly.
+void adjustArgumentCursor(argStruct *arg, void *newItem) {
+    if (hasFlag(arg->flags, HEAP_ALLOCATED)) free(arg -> value);
+    arg -> value = newItem;
+}
+
 //  Pass in the argument count, argument vector, and all argument structs generated from the argInit()
 //  and basicArgInit() functions to set them based on the argument vector.
 GCC_FORMAT_STRING void setFlagsFromNamedArgs(const int argc, char *argv[], MSVC_FORMAT_STRING const char * const argFormatter, ...) {
