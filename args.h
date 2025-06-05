@@ -268,10 +268,13 @@ GCC_FORMAT_STRING void setFlagsFromNamelessArgs(const int argc, char *argv[], MS
 //  Creates boolean flags, which should be individual characters, that can be grouped under one flag in any order.
 //  Ex: -b and -c can be grouped as -bc or -cb to toggle both flags.
 //  To make a non-groupable boolean flag, use the setFlagsFromNamedArgs() function with the bool formatter.
-//  This function takes a prefix (usually a dash), a string containing all the flag characters, and the argument structs to set.
+//  This function takes a string containing a one-character prefix and each flag represented by a single character.
+//  This function also takes in the argument structs to set, like the other string formatter-esque functions.
 //  The argument structs each correspond to a character in the flag string, so the order matters!
-void setFlagsFromGroupedBooleanArgs(const int argc, char *argv[], const char prefixChar, const char *argFormatter, ...) {
+void setFlagsFromGroupedBooleanArgs(const int argc, char *argv[], const char *argFormatter, ...) {
     if (argc < 2) usage();
+    const char prefixChar = argFormatter[0];
+    const char *noPrefixArgFormatter = argFormatter + 1;
     va_list formatterArgs;
     va_list formatterArgsSaveCopy;
     va_start(formatterArgs, argFormatter);
@@ -280,12 +283,14 @@ void setFlagsFromGroupedBooleanArgs(const int argc, char *argv[], const char pre
     argStruct* currentArg = NULL;
     for (int i=1; i<argc; i++) {
         if (argv[i][0] != prefixChar) continue;
-        for (int j=0; j<strlen(argFormatter); j++) {
-            if (charInString(argv[i], argFormatter[j]) >= 0) {
+        for (int j=0; j<strlen(noPrefixArgFormatter); j++) {
+            if (charInString(argv[i], noPrefixArgFormatter[j]) >= 0) {
+                printf("Found char %c in string %s at index %d\n", noPrefixArgFormatter[j], argv[i], j);
                 for (int k=0; k<=j; k++) {
                     currentArg = va_arg(formatterArgs, argStruct *);
                     flagCopierPointer = (char *)currentArg -> value;
                 }
+                va_end(formatterArgs);
                 va_copy(formatterArgs, formatterArgsSaveCopy);
                 if (flagCopierPointer && currentArg) {
                     currentArg -> hasValue = 1;
@@ -293,8 +298,9 @@ void setFlagsFromGroupedBooleanArgs(const int argc, char *argv[], const char pre
                 }
             }
         }
-        va_end(formatterArgs);
     }
+    va_end(formatterArgs);
+    va_end(formatterArgsSaveCopy);
 }
 
 //  Call this before any other argument setter functions. 
