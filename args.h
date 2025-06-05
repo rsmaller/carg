@@ -24,7 +24,17 @@ typedef struct argStruct {
     void *value;
     char hasValue;
     int flags;
+    char *nestedArgString;
+    struct nestedArgStruct *nestedArgs[128];
 } argStruct;
+
+typedef struct nestedArgStruct {
+    void *value;
+    char hasValue;
+    int flags;
+    char *nestedArgString;
+    struct nestedArgStruct *nestedArgs[128];
+} nestedArgStruct;
 
 typedef void(*voidFuncPtr)(void); // Some syntax highlighters don't like seeing function pointer parentheses in a macro.
 
@@ -72,6 +82,8 @@ uint64_t libcargInternalFlags = 0;
 #define BOOLEAN_ARG (1ULL<<1ULL)
 
 #define HEAP_ALLOCATED (1ULL<<2ULL)
+
+#define NESTED_ARG (1ULL<<3ULL)
 
 //  Getters and Setters.
 #define hasFlag(item, flag) (item & flag)
@@ -239,7 +251,8 @@ void libcargInit(const int argc, char **argv){
     argStruct varName = (argStruct) {\
             .value = &varName##Value,\
             .hasValue = 0,\
-            .flags = flagsArg\
+            .flags = flagsArg,\
+            .nestedArgString = NULL\
     };\
     if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;
 
