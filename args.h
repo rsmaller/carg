@@ -11,10 +11,11 @@
     #define GCC_FORMAT_STRING
 #elif defined(__GNUC__) || defined(__clang__)
     #define MSVC_FORMAT_STRING
-    #define GCC_FORMAT_STRING __attribute__((format(scanf, 3, 4)))
+    #define GCC_FORMAT_STRING __attribute__((format(scanf, 1, 2)))
 #endif
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
@@ -33,30 +34,47 @@ void usage(void);
 //  SECTION: Global Variables and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+int argCount = 1;
+
+char **argVector = NULL;
+
 int namelessArgCount = 0;
 
 char usageString[1024] = "Please specify a usage message in your client code.";
+
+uint64_t libcargInternalFlags = 0;
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Flags, Flag Checkers, and Initializer Macros
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#define NO_FLAGS (0)
+//  Generic Flags.
+#define NO_FLAGS (0ULL)
 
-#define NAMELESS_ARG (1<<0)
+//  Function Initializer Flags.
+#define NAMED_ARGS_SET (1ULL<<0ULL)
 
-#define BOOLEAN_ARG (1<<1)
+#define NAMELESS_ARGS_SET (1ULL<<1ULL)
 
-#define HEAP_ALLOCATED (1<<2)
+#define GROUPED_ARGS_SET (1ULL<<2ULL)
+
+#define OVERRIDE_CALLBACKS_SET (1ULL<<3ULL)
+
+#define ASSERTIONS_SET (1ULL<<4ULL)
+
+//  Argument Flags.
+#define NAMELESS_ARG (1ULL<<0ULL)
+
+#define BOOLEAN_ARG (1ULL<<1ULL)
+
+#define HEAP_ALLOCATED (1ULL<<2ULL)
 
 #define hasFlag(item, flag)\
     (item & flag)
 
-// Set default argument to 0, for readability purposes.
-#define NO_DEFAULT_VALUE {0}
+#define NO_DEFAULT_VALUE {0} // Set default argument to 0, for readability purposes.
 
-// Empty and does nothing. For semantics.
-#define NONE
+#define NONE // Empty and does nothing. For semantics.
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
@@ -121,9 +139,16 @@ int isFlag(const char *formatter, const char *toCheck) {
     return 0;
 }
 
+#define checkForAssertion() do {\
+    if (hasFlag(libcargInternalFlags, ASSERTIONS_SET)) {\
+        printf("Error: Assertion initializer called before args are initialized. Please fix this!\n");\
+        exit(1);\
+    }\
+} while (0)
+
 //  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
-void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex, const char *argFormatter, va_list outerArgs) {
+void checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va_list outerArgs) {
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
     char *internalFormatter = strdup(argFormatter);
@@ -138,7 +163,7 @@ void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex,
         if (!flagItem) {
             break;
         }
-        if (compareFlag(flagItem, argv[*argIndex])) {
+        if (compareFlag(flagItem, argVector[*argIndex])) {
             if (!currentArg) return;
             flagCopierPointer = currentArg -> value;
             if (!flagCopierPointer) return;
@@ -148,12 +173,12 @@ void checkArgAgainstFormatter(const int argc, char *argv[], const int *argIndex,
                         hasFlag(currentArg -> flags, BOOLEAN_ARG)));
                 *(char *)flagCopierPointer = !*(char *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
             } else {
-                if (*argIndex < argc - 1 && isFlag(argFormatter, argv[(*argIndex)+1])) {
+                if (*argIndex < argCount - 1 && isFlag(argFormatter, argVector[*argIndex+1])) {
                     usage();
-                } else if (*argIndex == argc - 1) {
+                } else if (*argIndex == argCount - 1) {
                     usage();
                 } else {
-                    sscanf(argv[*argIndex + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
+                    sscanf(argVector[*argIndex + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
                 }
             }
             break;
@@ -174,7 +199,7 @@ char *basename(char * const filePath) {
     while (strtok_s(valueCursor, "\\/", &savePointer) && *savePointer != '\0') {
         valueCursor = savePointer;
     }
-    const char * const returnArithmetic = valueToTokenize; // Prevent IDEs from complaining about using local pointers in return arithmetic.
+    const char * const returnArithmetic = valueToTokenize; // Prevent IDEs from complaining about using freed pointers in return arithmetic.
     free(valueToTokenize);
     return filePath + (valueCursor - returnArithmetic);
 }
@@ -190,6 +215,12 @@ void usage() {
     snprintf(usageString, 1023, __VA_ARGS__);\
     usageString[1023] = '\0';\
 } while (0)
+
+void libcargInit(const int argc, char **argv){
+    argCount = argc;
+    argVector = argv;
+    if (argCount < 2) usage();
+}
 
 //  This macro creates a struct that contains the variable information as well as whether the argument has already been specified or not.
 //  It is designed to take the name of a variable which it uses to make a struct containing the variable type.
@@ -231,21 +262,31 @@ void adjustArgumentCursor(argStruct *arg, void *newItem) {
 
 //  Pass in the argument count, argument vector, and all argument structs generated from the argInit()
 //  and basicArgInit() functions to set them based on the argument vector.
-GCC_FORMAT_STRING void setFlagsFromNamedArgs(const int argc, char *argv[], MSVC_FORMAT_STRING const char * const argFormatter, ...) {
-    if (argc < 2) usage();
+GCC_FORMAT_STRING void setFlagsFromNamedArgs(MSVC_FORMAT_STRING const char * const argFormatter, ...) {
+    if (hasFlag(libcargInternalFlags, NAMED_ARGS_SET)) {
+        printf("Error: Named args initializer called multiple times. Please fix this!\n");
+        exit(1);
+    }
+    checkForAssertion();
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     int i;
-    for (i=namelessArgCount + 1; i<argc; i++) {
-        checkArgAgainstFormatter(argc, argv, &i, argFormatter, formatterArgs);
+    for (i=namelessArgCount + 1; i<argCount; i++) {
+        checkArgAgainstFormatter(&i, argFormatter, formatterArgs);
     }
     va_end(formatterArgs);
+    libcargInternalFlags |= NAMED_ARGS_SET;
 }
 
 //  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().
 //  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
-GCC_FORMAT_STRING void setFlagsFromNamelessArgs(const int argc, char *argv[], MSVC_FORMAT_STRING const char *argFormatter, ...) {
-    if (argc <= namelessArgCount) usage();
+GCC_FORMAT_STRING void setFlagsFromNamelessArgs(MSVC_FORMAT_STRING const char *argFormatter, ...) {
+    if (hasFlag(libcargInternalFlags, NAMELESS_ARGS_SET)) {
+        printf("Error: Nameless args initializer called multiple times. Please fix this!\n");
+        exit(1);
+    }
+    checkForAssertion();
+    if (argCount <= namelessArgCount) usage();
     char *internalFormatter = strdup(argFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
@@ -259,10 +300,11 @@ GCC_FORMAT_STRING void setFlagsFromNamelessArgs(const int argc, char *argv[], MS
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         flagCopierPointer = currentArg -> value;
         currentArg -> hasValue = 1;
-        sscanf(argv[i], currentFormatter, flagCopierPointer);
+        sscanf(argVector[i], currentFormatter, flagCopierPointer);
     }
     free(internalFormatterAllocation);
     va_end(formatterArgs);
+    libcargInternalFlags |= NAMELESS_ARGS_SET;
 }
 
 //  Creates boolean flags, which should be individual characters, that can be grouped under one flag in any order.
@@ -271,8 +313,12 @@ GCC_FORMAT_STRING void setFlagsFromNamelessArgs(const int argc, char *argv[], MS
 //  This function takes a string containing a one-character prefix and each flag represented by a single character.
 //  This function also takes in the argument structs to set, like the other string formatter-esque functions.
 //  The argument structs each correspond to a character in the flag string, so the order matters!
-void setFlagsFromGroupedBooleanArgs(const int argc, char *argv[], const char *argFormatter, ...) {
-    if (argc < 2) usage();
+void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
+    if (hasFlag(libcargInternalFlags, GROUPED_ARGS_SET)) {
+        printf("Error: Grouped args initializer called multiple times. Please fix this!\n");
+        exit(1);
+    }
+    checkForAssertion();
     const char prefixChar = argFormatter[0];
     const char *noPrefixArgFormatter = argFormatter + 1;
     va_list formatterArgs;
@@ -281,11 +327,10 @@ void setFlagsFromGroupedBooleanArgs(const int argc, char *argv[], const char *ar
     va_copy(formatterArgsSaveCopy, formatterArgs);
     char *flagCopierPointer = NULL;
     argStruct* currentArg = NULL;
-    for (int i=1; i<argc; i++) {
-        if (argv[i][0] != prefixChar) continue;
+    for (int i=1; i<argCount; i++) {
+        if (argVector[i][0] != prefixChar) continue;
         for (int j=0; j<strlen(noPrefixArgFormatter); j++) {
-            if (charInString(argv[i], noPrefixArgFormatter[j]) >= 0) {
-                printf("Found char %c in string %s at index %d\n", noPrefixArgFormatter[j], argv[i], j);
+            if (charInString(argVector[i], noPrefixArgFormatter[j]) >= 0) {
                 for (int k=0; k<=j; k++) {
                     currentArg = va_arg(formatterArgs, argStruct *);
                     flagCopierPointer = (char *)currentArg -> value;
@@ -301,14 +346,20 @@ void setFlagsFromGroupedBooleanArgs(const int argc, char *argv[], const char *ar
     }
     va_end(formatterArgs);
     va_end(formatterArgsSaveCopy);
+    libcargInternalFlags |= GROUPED_ARGS_SET;
 }
 
 //  Call this before any other argument setter functions. 
 //  This accepts the argument count and vector, a set of flags, and a series of functions to call corresponding with each flag.
 //  If one of these functions is called, the program will terminate.
 //  These arguments will override any other arguments passed in.
-void argumentOverrideCallbacks(const int argc, char *argv[], const char *argFormatter, ...) {
-    if (argc < 2) return;
+void argumentOverrideCallbacks(const char *argFormatter, ...) {
+    if (hasFlag(libcargInternalFlags, OVERRIDE_CALLBACKS_SET)) {
+        printf("Error: Override callback args initializer called multiple times. Please fix this!\n");
+        exit(1);
+    }
+    checkForAssertion();
+    if (argCount < 2) return;
     char *internalFormatter = strdup(argFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
@@ -316,11 +367,11 @@ void argumentOverrideCallbacks(const int argc, char *argv[], const char *argForm
     voidFuncPtr functionCursor = NULL;
     va_list args;
     va_start(args, argFormatter);
-    for (int i=1; i<argc; i++) {
+    for (int i=1; i<argCount; i++) {
         while ((currentFlag = strtok_r(internalFormatter, " ", &savePointer))) {
             internalFormatter = savePointer;
             functionCursor = va_arg (args, voidFuncPtr);
-            if (compareFlag(currentFlag, argv[i])) {
+            if (compareFlag(currentFlag, argVector[i])) {
                 functionCursor();
                 exit(0);
             }
@@ -328,6 +379,7 @@ void argumentOverrideCallbacks(const int argc, char *argv[], const char *argForm
     }
     free(internalFormatterAllocation);
     va_end(args);
+    libcargInternalFlags |= OVERRIDE_CALLBACKS_SET;
 }
 
 //  Pass in the number of assertions, followed by sets of test cases and messages to print if the assertion fails.
@@ -335,6 +387,10 @@ void argumentOverrideCallbacks(const int argc, char *argv[], const char *argForm
 //  Be sure to call this after calling setFlagsFromNamedArgs() to get data from the user.
 //  This function is designed to validate command line arguments.
 void argAssert(const int assertionCount, ...) {
+    if (hasFlag(libcargInternalFlags, ASSERTIONS_SET)) {
+        printf("Error: Assertion args initializer called multiple times. Please fix this!\n");
+        exit(1);
+    }
     va_list args;                         
     va_start(args, assertionCount);
     int exitFlag = 0;
@@ -352,6 +408,7 @@ void argAssert(const int assertionCount, ...) {
     }
     if (exitFlag) exit(0);
     va_end(args);
+    libcargInternalFlags |= ASSERTIONS_SET;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

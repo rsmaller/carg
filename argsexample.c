@@ -11,6 +11,7 @@ void help2(void) {
 }
 
 int main(const int argc, char *argv[]) { // Example code
+    libcargInit(argc, argv);
     setUsageMessage("USAGE: %s [number] [number] [string] -n [number] -t [string] <-b|c> <--xarg> <-ff [string]> <-z [float]>", basename(argv[0]));
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);
@@ -23,10 +24,10 @@ int main(const int argc, char *argv[]) { // Example code
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100 * sizeof(char)); // Heap string.
     heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
     argInit(char, stringArg2, [100], "default", NO_FLAGS); // Stack string.
-    argumentOverrideCallbacks(argc, argv, "-h -h2", &help, &help2);
-    setFlagsFromNamelessArgs(argc, argv, "%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
-    setFlagsFromNamedArgs(argc, argv, "-n:%d -t:%10s --term:%20[^\n] -ff:%10s -z:%f --xarg:bool", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3);
-    setFlagsFromGroupedBooleanArgs(argc, argv, "-bc", &boolArg1, &boolArg2);
+    argumentOverrideCallbacks("-h -h2", &help, &help2);
+    setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
+    setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20[^\n] -ff:%10s -z:%f --xarg:bool", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3);
+    setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
     argAssert(5,
         intArgValue > -1, "Int 1 must be at least 0",
         REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
