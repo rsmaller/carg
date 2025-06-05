@@ -7,11 +7,11 @@
 #ifdef _MSC_VER
     #define strtok_r strtok_s
     #define _CRT_SECURE_NO_WARNINGS // sscanf() is required for this project.
-    #define MSVC_FORMAT_STRING _Printf_format_string_
+    #define MSVC_FORMAT_STRING
     #define GCC_FORMAT_STRING
 #elif defined(__GNUC__) || defined(__clang__)
     #define MSVC_FORMAT_STRING
-    #define GCC_FORMAT_STRING __attribute__((format(scanf, 1, 2)))
+    #define GCC_FORMAT_STRING
 #endif
 #include <string.h>
 #include <stdio.h>
@@ -110,7 +110,7 @@ int compareFlag(const char *argument, const char *parameter) {
 //  Returns a pointer to where the substring starts in the string.
 //  If the substring does not exist in the parent string, return NULL.
 char *contains(char *testString, const char *substring) {
-    while (*testString) {
+    while (strlen(testString) >= strlen(substring)) {
         if (!strncmp(testString, substring, strlen(substring))) {
             return testString;
         }
@@ -216,7 +216,7 @@ char *basename(char * const filePath) {
     char *valueToTokenize = strdup(filePath);
     char *valueCursor = valueToTokenize;
     char *savePointer = NULL;
-    while (strtok_s(valueCursor, "\\/", &savePointer) && *savePointer != '\0') {
+    while (strtok_r(valueCursor, "\\/", &savePointer) && savePointer && *savePointer != '\0') {
         valueCursor = savePointer;
     }
     const char * const returnArithmetic = valueToTokenize; // Prevent IDEs from complaining about using freed pointers in return arithmetic.
