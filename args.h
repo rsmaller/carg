@@ -68,6 +68,30 @@ int compareFlag(const char *argument, const char *parameter) {
     return !strcmp(argument, parameter);
 }
 
+//  Check if a substring is present in a string.
+//  Returns a pointer to where the substring starts in the string.
+//  If the substring does not exist in the parent string, return NULL.
+char *contains(char *testString, const char *substring) {
+    while (*testString) {
+        if (!strncmp(testString, substring, strlen(substring))) {
+            return testString;
+        }
+        testString++;
+    }
+    return NULL;
+}
+
+//  Returns the index where a character is present in a string.
+//  Returns -1 if the character is not present in the string.
+int charInString(const char *testString, const char subchar) {
+    for (int i=0; i<strlen(testString); i++) {
+        if (testString[i] == subchar) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 //  Fetches how many arguments are expected based on string formatter tokenization.
 //  For internal use only.
 int getArgCountFromFormatter(char *argFormatter) {
@@ -239,6 +263,38 @@ GCC_FORMAT_STRING void setFlagsFromNamelessArgs(const int argc, char *argv[], MS
     }
     free(internalFormatterAllocation);
     va_end(formatterArgs);
+}
+
+//  Creates boolean flags, which should be individual characters, that can be grouped under one flag in any order.
+//  Ex: -b and -c can be grouped as -bc or -cb to toggle both flags.
+//  To make a non-groupable boolean flag, use the setFlagsFromNamedArgs() function with the bool formatter.
+//  This function takes a prefix (usually a dash), a string containing all the flag characters, and the argument structs to set.
+//  The argument structs each correspond to a character in the flag string, so the order matters!
+void setFlagsFromGroupedBooleanArgs(const int argc, char *argv[], const char prefixChar, const char *argFormatter, ...) {
+    if (argc < 2) usage();
+    va_list formatterArgs;
+    va_list formatterArgsSaveCopy;
+    va_start(formatterArgs, argFormatter);
+    va_copy(formatterArgsSaveCopy, formatterArgs);
+    char *flagCopierPointer = NULL;
+    argStruct* currentArg = NULL;
+    for (int i=1; i<argc; i++) {
+        if (argv[i][0] != prefixChar) continue;
+        for (int j=0; j<strlen(argFormatter); j++) {
+            if (charInString(argv[i], argFormatter[j]) >= 0) {
+                for (int k=0; k<=j; k++) {
+                    currentArg = va_arg(formatterArgs, argStruct *);
+                    flagCopierPointer = (char *)currentArg -> value;
+                }
+                va_copy(formatterArgs, formatterArgsSaveCopy);
+                if (flagCopierPointer && currentArg) {
+                    currentArg -> hasValue = 1;
+                    *flagCopierPointer = !*flagCopierPointer;
+                }
+            }
+        }
+        va_end(formatterArgs);
+    }
 }
 
 //  Call this before any other argument setter functions. 
