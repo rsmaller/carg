@@ -49,7 +49,11 @@ uint64_t libcargInternalFlags = 0;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //  Generic Flags.
-#define NO_FLAGS (0ULL)
+#define NO_FLAGS (0ULL) // Set no flags when creating an argument.
+
+#define NO_DEFAULT_VALUE {0} // Set default argument to 0 in arg initializers, for readability purposes.
+
+#define NONE // Empty and does nothing. For semantics.
 
 //  Function Initializer Flags.
 #define NAMED_ARGS_SET (1ULL<<0ULL)
@@ -69,12 +73,14 @@ uint64_t libcargInternalFlags = 0;
 
 #define HEAP_ALLOCATED (1ULL<<2ULL)
 
-#define hasFlag(item, flag)\
-    (item & flag)
+//  Getters and Setters.
+#define hasFlag(item, flag) (item & flag)
 
-#define NO_DEFAULT_VALUE {0} // Set default argument to 0, for readability purposes.
+#define setFlag(item, flag) (item |= flag)
 
-#define NONE // Empty and does nothing. For semantics.
+#define clearFlag(item, flag) (item &= ~flag)
+
+#define toggleFlag(item, flag) (item ^= flag)
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
@@ -275,7 +281,7 @@ GCC_FORMAT_STRING void setFlagsFromNamedArgs(MSVC_FORMAT_STRING const char * con
         checkArgAgainstFormatter(&i, argFormatter, formatterArgs);
     }
     va_end(formatterArgs);
-    libcargInternalFlags |= NAMED_ARGS_SET;
+    setFlag(libcargInternalFlags, NAMED_ARGS_SET);
 }
 
 //  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().
@@ -304,7 +310,7 @@ GCC_FORMAT_STRING void setFlagsFromNamelessArgs(MSVC_FORMAT_STRING const char *a
     }
     free(internalFormatterAllocation);
     va_end(formatterArgs);
-    libcargInternalFlags |= NAMELESS_ARGS_SET;
+    setFlag(libcargInternalFlags, NAMELESS_ARGS_SET);
 }
 
 //  Creates boolean flags, which should be individual characters, that can be grouped under one flag in any order.
@@ -346,7 +352,7 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     }
     va_end(formatterArgs);
     va_end(formatterArgsSaveCopy);
-    libcargInternalFlags |= GROUPED_ARGS_SET;
+    setFlag(libcargInternalFlags, GROUPED_ARGS_SET);
 }
 
 //  Call this before any other argument setter functions. 
@@ -379,7 +385,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
     }
     free(internalFormatterAllocation);
     va_end(args);
-    libcargInternalFlags |= OVERRIDE_CALLBACKS_SET;
+    setFlag(libcargInternalFlags, OVERRIDE_CALLBACKS_SET);
 }
 
 //  Pass in the number of assertions, followed by sets of test cases and messages to print if the assertion fails.
@@ -408,7 +414,7 @@ void argAssert(const int assertionCount, ...) {
     }
     if (exitFlag) exit(0);
     va_end(args);
-    libcargInternalFlags |= ASSERTIONS_SET;
+    setFlag(libcargInternalFlags, ASSERTIONS_SET);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
