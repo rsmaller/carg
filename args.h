@@ -29,15 +29,6 @@ typedef struct argStruct {
     struct argStruct *nestedArgs[128];
 } argStruct;
 
-// typedef struct nestedArgStruct {
-//     void *value;
-//     char hasValue;
-//     int flags;
-//     char *nestedArgString;
-//     int nestedArgFillIndex;
-//     struct nestedArgStruct *nestedArgs[128];
-// } nestedArgStruct;
-
 typedef void(*voidFuncPtr)(void); // Some syntax highlighters don't like seeing function pointer parentheses in a macro.
 
 void usage(void);
@@ -207,6 +198,18 @@ void checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va_
     free(internalFormatterAllocation);
 }
 
+//  For creating functionality to do something like "program.exe cleanup all", with "cleanup" and "all" referring to
+//  nested booleans.
+argStruct *nestArgument(argStruct *nestIn, char *nestedArgString, argStruct *argToNest) {
+    if (!hasFlag(nestIn -> flags, BOOLEAN_ARG) || !hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
+        printf("Error: only boolean arguments can be safely nested. Fix this!\n");
+        exit(1);
+    }
+    argToNest -> nestedArgString = nestedArgString;
+    nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
+    return argToNest;
+}
+
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: User-Facing Functions and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -255,7 +258,8 @@ void libcargInit(const int argc, char **argv){
             .hasValue = 0,\
             .flags = flagsArg,\
             .nestedArgString = NULL,\
-            .nestedArgFillIndex = -1\
+            .nestedArgFillIndex = -1,\
+            .nestedArgs = {0}\
     };\
     if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;
 
