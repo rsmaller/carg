@@ -7,11 +7,6 @@
 #ifdef _MSC_VER
     #define strtok_r strtok_s
     #define _CRT_SECURE_NO_WARNINGS // sscanf() is required for this project.
-    #define MSVC_FORMAT_STRING
-    #define GCC_FORMAT_STRING
-#elif defined(__GNUC__) || defined(__clang__)
-    #define MSVC_FORMAT_STRING
-    #define GCC_FORMAT_STRING
 #endif
 #include <string.h>
 #include <stdio.h>
@@ -20,13 +15,15 @@
 #include <stdarg.h>
 #include <assert.h>
 
+#define MAX_ARG_NESTING 256
+
 typedef struct argStruct {
     void *value;
     char hasValue;
     int flags;
     char *nestedArgString;
     int nestedArgFillIndex;
-    struct argStruct *nestedArgs[128];
+    struct argStruct *nestedArgs[MAX_ARG_NESTING];
 } argStruct;
 
 typedef void(*voidFuncPtr)(void); // Some syntax highlighters don't like seeing function pointer parentheses in a macro.
@@ -78,6 +75,8 @@ uint64_t libcargInternalFlags = 0;
 
 #define NESTED_ARG (1ULL<<3ULL)
 
+#define NESTED_ARG_ROOT (1ULL<<4ULL)
+
 //  Getters and Setters.
 #define hasFlag(item, flag) (item & flag)
 
@@ -90,6 +89,13 @@ uint64_t libcargInternalFlags = 0;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#define checkForAssertion() do {\
+    if (hasFlag(libcargInternalFlags, ASSERTIONS_SET)) {\
+    printf("Error: Assertion initializer called before args are initialized. Please fix this!\n");\
+    exit(1);\
+    }\
+} while (0)
 
 //  A semantic wrapper to compare flags against their parameters.
 //  For internal use only.
@@ -121,16 +127,6 @@ int charInString(const char *testString, const char subchar) {
     return -1;
 }
 
-//  Fetches how many arguments are expected based on string formatter tokenization.
-//  For internal use only.
-int getArgCountFromFormatter(char *argFormatter) {
-    int returnVal = 1;
-    char *savePointer = NULL;
-    strtok_r(argFormatter, " ", &savePointer);
-    while (strtok_r(NULL, " ", &savePointer)) returnVal++;
-    return returnVal;
-}
-
 int isFlag(const char *formatter, const char *toCheck) {
     char *internalFormatter = strdup(formatter);
     void *internalFormatterAllocation = internalFormatter;
@@ -150,16 +146,19 @@ int isFlag(const char *formatter, const char *toCheck) {
     return 0;
 }
 
-#define checkForAssertion() do {\
-    if (hasFlag(libcargInternalFlags, ASSERTIONS_SET)) {\
-        printf("Error: Assertion initializer called before args are initialized. Please fix this!\n");\
-        exit(1);\
-    }\
-} while (0)
+//  Fetches how many arguments are expected based on string formatter tokenization.
+//  For internal use only.
+int _getArgCountFromFormatter(char *argFormatter) {
+    int returnVal = 1;
+    char *savePointer = NULL;
+    strtok_r(argFormatter, " ", &savePointer);
+    while (strtok_r(NULL, " ", &savePointer)) returnVal++;
+    return returnVal;
+}
 
 //  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
-void checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va_list outerArgs) {
+void _checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va_list outerArgs) {
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
     char *internalFormatter = strdup(argFormatter);
@@ -198,16 +197,18 @@ void checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va_
     free(internalFormatterAllocation);
 }
 
-//  For creating functionality to do something like "program.exe cleanup all", with "cleanup" and "all" referring to
-//  nested booleans.
-argStruct *nestArgument(argStruct *nestIn, char *nestedArgString, argStruct *argToNest) {
-    if (!hasFlag(nestIn -> flags, BOOLEAN_ARG) || !hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
-        printf("Error: only boolean arguments can be safely nested. Fix this!\n");
+int _setFlagFromNestedArgInternal(const argStruct *arg) {
+    if (!hasFlag(arg -> flags, NESTED_ARG)) {
+        printf("Error: Nested flag setter called on non-nested argument. Fix this!\n");
         exit(1);
     }
-    argToNest -> nestedArgString = nestedArgString;
-    nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
-    return argToNest;
+    for (int i=1; i<argCount; i++) {
+        if (!strcmp(arg -> nestedArgString, argVector[i])) {
+            *(char *)arg -> value = !*(char *)arg -> value;
+            return 1;
+        }
+    }
+    return 0;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -288,7 +289,7 @@ void adjustArgumentCursor(argStruct *arg, void *newItem) {
 
 //  Pass in the argument count, argument vector, and all argument structs generated from the argInit()
 //  and basicArgInit() functions to set them based on the argument vector.
-GCC_FORMAT_STRING void setFlagsFromNamedArgs(MSVC_FORMAT_STRING const char * const argFormatter, ...) {
+void setFlagsFromNamedArgs(const char * const argFormatter, ...) {
     if (hasFlag(libcargInternalFlags, NAMED_ARGS_SET)) {
         printf("Error: Named args initializer called multiple times. Please fix this!\n");
         exit(1);
@@ -298,7 +299,7 @@ GCC_FORMAT_STRING void setFlagsFromNamedArgs(MSVC_FORMAT_STRING const char * con
     va_start(formatterArgs, argFormatter);
     int i;
     for (i=namelessArgCount + 1; i<argCount; i++) {
-        checkArgAgainstFormatter(&i, argFormatter, formatterArgs);
+        _checkArgAgainstFormatter(&i, argFormatter, formatterArgs);
     }
     va_end(formatterArgs);
     setFlag(libcargInternalFlags, NAMED_ARGS_SET);
@@ -306,7 +307,7 @@ GCC_FORMAT_STRING void setFlagsFromNamedArgs(MSVC_FORMAT_STRING const char * con
 
 //  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().
 //  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
-GCC_FORMAT_STRING void setFlagsFromNamelessArgs(MSVC_FORMAT_STRING const char *argFormatter, ...) {
+void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
     if (hasFlag(libcargInternalFlags, NAMELESS_ARGS_SET)) {
         printf("Error: Nameless args initializer called multiple times. Please fix this!\n");
         exit(1);
@@ -373,6 +374,63 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     va_end(formatterArgs);
     va_end(formatterArgsSaveCopy);
     setFlag(libcargInternalFlags, GROUPED_ARGS_SET);
+}
+
+//  For creating functionality to do something like "program.exe cleanup all", with "cleanup" and "all" referring to
+//  nested booleans.
+argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString) {
+    if (!hasFlag(nestIn -> flags, BOOLEAN_ARG) || !hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
+        printf("Error: only boolean arguments can be safely nested. Fix this!\n");
+        exit(1);
+    }
+    if (nestIn -> nestedArgFillIndex >= MAX_ARG_NESTING - 1) {
+        printf("Error: too many arguments have been nested into this option!\n");
+        exit(1);
+    }
+    argToNest -> nestedArgString = nestedArgString;
+    setFlag(argToNest -> flags, NESTED_ARG);
+    nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
+    return argToNest;
+}
+
+//  Use this with an argument struct to declare it as the root of a series of nested arguments.
+//  This only works for boolean flags!
+argStruct *nestedArgumentInit(argStruct *arg, char *argString) {
+    if (!hasFlag(arg -> flags, BOOLEAN_ARG)) {
+        printf("Error: Nested argument initializer called on non-boolean flag. Fix this!\n");
+        exit(1);
+    }
+    setFlag(arg -> flags, NESTED_ARG);
+    setFlag(arg -> flags, NESTED_ARG_ROOT);
+    arg -> nestedArgString = argString;
+    return arg;
+}
+
+//  Uses nested arguments to set flags. Only use this with nested argument roots.
+//  Note that this is not designed to handle multiple arguments with the same level of nesting from one root node.
+//  A logical line must follow from a graph of options for the flags to be toggled accordingly.
+void setFlagsFromNestedArgs(const int argumentCount, ...) {
+    va_list args;
+    va_start(args, argumentCount);
+    for (int x=0; x<argumentCount; x++) {
+        const argStruct *argRoot = va_arg(args, argStruct *);
+        if (!hasFlag(argRoot -> flags, NESTED_ARG)) {
+            printf("Error: Nested flag setter called on non-nested argument. Fix this!\n");
+            exit(1);
+        }
+        if (!hasFlag(argRoot -> flags, NESTED_ARG_ROOT)) {
+            printf("Error: Nested flag setter called on non-root nested argument. Fix this!\n");
+            exit(1);
+        }
+        const argStruct *argCursor = argRoot;
+        if (_setFlagFromNestedArgInternal(argRoot)) {
+            for (int i=0; i <= argCursor -> nestedArgFillIndex; i++) {
+                if (_setFlagFromNestedArgInternal(argCursor -> nestedArgs[i])) {
+                    argCursor = argCursor -> nestedArgs[i];
+                }
+            }
+        }
+    }
 }
 
 //  Call this before any other argument setter functions. 

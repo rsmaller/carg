@@ -13,6 +13,7 @@ void help2(void) {
 int main(const int argc, char *argv[]) { // Example code
     libcargInit(argc, argv);
     setUsageMessage("USAGE: %s [number] [number] [string] -n [number] -t [string] <-b|c> <--xarg> <-ff [string]> <-z [float]>", basename(argv[0]));
+
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS);
@@ -21,10 +22,26 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(char, boolArg1, 0, BOOLEAN_ARG);
     basicArgInit(char, boolArg2, 1, BOOLEAN_ARG);
     basicArgInit(char, boolArg3, 0, BOOLEAN_ARG);
+
+    basicArgInit(char, thing1, 0, BOOLEAN_ARG);
+    basicArgInit(char, thing2, 0, BOOLEAN_ARG);
+    basicArgInit(char, thing3, 0, BOOLEAN_ARG);
+    basicArgInit(char, thing4, 0, BOOLEAN_ARG);
+    basicArgInit(char, thing5, 0, BOOLEAN_ARG);
+    nestedArgumentInit(&thing1, "thing1");
+    nestedArgumentInit(&thing3, "thing3");
+    nestArgument(&thing1, &thing2, "thing2");
+    nestArgument(&thing1, &thing4, "thing4");
+    nestArgument(&thing3, &thing5, "thing5");
+    //  thing1 -> thing2 and thing4
+    //  thing3 -> thing5
+
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100 * sizeof(char)); // Heap string.
     heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
     argInit(char, stringArg2, [100], "default", NO_FLAGS); // Stack string.
+
     argumentOverrideCallbacks("-h -h2", &help, &help2);
+    setFlagsFromNestedArgs(2, &thing1, &thing3);
     setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
     setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20[^\n] -ff:%10s -z:%f --xarg:bool", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
@@ -35,9 +52,10 @@ int main(const int argc, char *argv[]) { // Example code
         MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "Booleans -b and --xarg can't be toggled at the same time",
         namelessArgValue > 0, "Nameless int 1 must be positive"
     );
-    printf("nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d, stringArg: %s, stringArg2: %s, float: %f, bool1: %d, bool2: %d, bool3: %d\n",
+    printf("Basic arguments - nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d, stringArg: %s, stringArg2: %s, float: %f, bool1: %d, bool2: %d, bool3: %d\n",
         namelessArgCount, namelessArgValue, namelessArg2Value, namelessStringArgValue, globalIntArgValue, stringArgValue, stringArg2Value, floatArgValue, boolArg1Value, boolArg2Value,
         boolArg3Value);
+    printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value);
     free(stringArgValue); // Free heap strings.
     free(namelessStringArgValue);
     return 0;
