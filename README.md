@@ -154,7 +154,20 @@ Nameless arguments can be used in assertions the same way as named arguments.
 
 ## Function Implementations
 
-### `basename()`
+### Generic Functions
+
+#### libcargInit()
+Pass `argc` and `argv` into this to initialize the library to use the command line arguments passed in to your program.
+
+#### contains()
+The `contains()` function will return the pointer where a substring starts in another string. If the substring is not 
+a part of the greater string, it returns `NULL`.
+
+#### charInString()
+The `charInString()` function returns the index of the first occurrence of a character in a string. If the character is 
+not in the string, it returns -1.
+
+#### basename()
 The `basename()` function is similar to the function often included in `libgen.h` in POSIX systems; considering this 
 header is not officially supported on other compilers, a basic implementation of `basename` is included in this 
 argument library.
@@ -162,14 +175,16 @@ A basename function takes a full file path string and returns the very last item
 the substring following all forward or backward slashes. For example, `basename("C:\Users\User1\test.exe")` will return 
 `test.exe`. This is useful for truncating the name of your program as it appears in the argument vector.
 
-### `usage()`
+#### usage()
 This simply prints out the usage message and terminates the program.
 
-### `setUsageMessage()`
+#### setUsageMessage()
 This function-style macro accepts a string formatter and variadic arguments. It uses both of those pieces of information 
 to generate and set a usage message for your program.
 
-### `argInit()`
+### Argument Initialization
+
+#### argInit()
 This function-style macro initializes an argument via a variable where the result goes and a struct which contains a 
 void pointer to that variable. It accepts split type information, a variable name, a default value, and flags.
 For example, to initialize a simple character argument, the following might be used:
@@ -183,19 +198,25 @@ To initialize an array of 100 characters, that would look like:
 These arguments could later be accessed with `charArgValue` and `charArrayArgValue` respectively.
 For use in argument setting functions, however, `charArg` and `charArrayArg` should be used.
 
-### `basicArgInit()`
+#### basicArgInit()
 This macro is a wrapper for `argInit()` which only specifies basic type information; arrays and function pointers cannot 
 be declared with this macro. To declare the char argument like in `argInit()`, but with a default value of 2,
 do the following:
 
 `basicArginit(char, charArg, 2, NO_FLAGS)`
 
-### `heapArgInit()`
+#### heapArgInit()
 This function-style macro will heap-allocate a variable for which an argument's value will be copied into. It takes the 
 same arguments as `argInit()`, except it has no default value argument and a memory allocation size must be given as the 
 last argument to the macro.
 
-### `setFlagsFromNamedArgs()`
+#### adjustArgumentCursor()
+This function can change what variable an argument struct points to. This is useful if you would like to rename a 
+variable, use a global variable, or do some pointer abstractions.
+
+### Argument Setting
+
+#### setFlagsFromNamedArgs()
 This function is variadic; it accepts the argument count, the argument vector, a string formatter, and a sequence of
 arguments which are the addresses of argument structs. This data is used to set arguments based on what is passed from 
 the command line. The argument structs should correspond to flags in the string formatter. Each argument should be a 
@@ -208,7 +229,7 @@ example:
 - Will use the `-t` flag plus a string value to set the `stringArg` argument and subsequently the `stringArgValue` variable.
 - Will use the `-b` flag to toggle the boolean `boolArg` argument and subsequently the `boolArgValue` variable.
 
-### `setFlagsFromNamelessArgs()`
+#### setFlagsFromNamelessArgs()
 This function works similarly to `setFlagsFromNamedArgs()`, but it has a few key differences:
 - Arguments are "nameless", meaning they are defined based on their order and not any flags.
 - The string formatter passed in should not have any flags in it as a result.
@@ -221,7 +242,60 @@ For example:
  - Will use a digit formatter to set `namelessArg2` to the value passed in as the second command line argument.
  - Will use a string formatter to set `namelessStringArg` to the value passed in as the third command line argument.
 
-### `argumentOverrideCallbacks()`
+#### setFlagsFromGroupedBooleanArgs()
+This function takes in a string, which should be a prefix plus a series of characters, each one representing a boolean
+flag in order. The order of the characters in the string match up to the boolean argument structs passed in to this 
+function. This function gives similar functionality to `getopt()` on UNIX systems because it allows for different
+permutations of flags like -bc, -cb, and -b -c from the command line.
+
+Keep in mind when using this function that it will try to match any arguments which begin with the prefix, '-' in this
+example, that have characters which match those in the boolean grouped flags string. This function will check to see if 
+the second character in the string is the same as the first, in which case it will not match that argument. It is 
+highly recommended to use a double copy of the prefix (--test) or no prefix at all (test) for keyword arguments you 
+would like to avoid matching to the grouped boolean arguments.
+
+### Argument Nesting
+
+Argument nesting can be a little tricky, and to use it, create a few boolean arguments using something like `argInit()`.
+At least one of these booleans will serve as a root node, meaning the node where a tree of boolean options starts.
+
+For the sake of clarification, nested arguments are meant to give options conditional to other options passed in. For
+example:
+
+```
+mycommand push now
+```
+
+might be configured via a nested argument. The push option could be stored as a root nested node that has now nested
+inside of it. In this case, the keyword `now` would only have meaning if `push` is supplied alongside it.
+
+#### nestedArgumentInit()
+This function will initialize a boolean argument as a nested argument root node. This function takes the argument and a 
+string; the string is the argument the program will search for to match and toggle that boolean argument.
+
+#### nestArgument()
+This function will nest a boolean argument in another nested argument, whether it is a root node or not. As of now, each 
+individual nested boolean argument can only directly nest 256 other arguments. Since arguments will always end up nested
+inside a root node, the nest macro is available to make the nesting a little easier to read. On a basic level, it looks
+like:
+
+```
+nestedArgumentInit(&arg1, "arg"); nest
+        nestArgument(&arg1, &arg2, "thing2");
+        nestArgument(&arg1, &arg3, "thing3");
+nest
+```
+
+Note that the nest macro does not serve any functional purpose outside declaring a nesting pseudocode block.
+
+#### setFlagsFromNestedArgs()
+This function accepts a variable number of root nested nodes after an integer representing the number of root nested 
+nodes passed into it. It will then look through the argument vector to initialize the boolean flags in accordance with 
+the nesting logic.
+
+### Control Flow Interrupts
+
+#### argumentOverrideCallbacks()
 This function accepts the argument count and vector, plus a series of variadic arguments, mainly a formatter and 
 function pointers which accept no arguments and return nothing. This function type is referred to as `voidFuncPtr` in
 the `args.h` header. It will set flags where, when passed by the user, will run a specific function and terminate the 
@@ -234,7 +308,7 @@ For example:
  - Means the `-h` flag will run the `help()` function and then terminate the program.
  - Means the `-h2` flag will run the `help2()` function and then terminate the program.
 
-### `argAssert()`
+#### argAssert()
 This function accepts variadic arguments for assertions plus assertion messages. `argAssert()` keeps track of this via 
 an assertion count, which is the first argument this function accepts. Each assertion should test some value
 for an argument, like `intArgValue > 0` for example. Assertion messages are what gets printed when the assertion fails.
@@ -248,43 +322,43 @@ can also be used; it exists for readability purposes.
 
 ## Assertion Macros
 
-### `REQUIRED_ARGUMENT()`
+### REQUIRED_ARGUMENT()
 This is a function-style macro which accepts an argument struct as an argument. This is an assertion which will fail if 
 an argument is not given a value by the user. This should be used in `argAssert()`:
 
 `argAssert(1, REQUIRED_ARGUMENT(charArg), "Char argument is required")`
 
-### `MUTUALLY_EXCLUSIVE()`
+### MUTUALLY_EXCLUSIVE()
 This is another assertion macro. This one accepts two argument structs, and the assertion will fail if both arguments 
 have been provided a value by the user. In other words, this assertion forces the user to pick at most one of two 
 arguments.
 
 ## Initializer Flags
 
-### `NO_FLAGS`
+### NO_FLAGS
 This is a macro which expands to `0`. This is a semantic choice to show in `argInit()` that an argument has no custom 
 flags.
 
-### `NAMELESS_ARG`
+### NAMELESS_ARG
 This macro should be passed in to the flags section of `argInit()` to specify an argument should be 
 given a value without any sort of flag preceding it.
 
-### `BOOLEAN_ARG`
+### BOOLEAN_ARG
 When specifying an argument should simply be a flag which toggles some variable on or off, two things must be done. The 
 argument must be initialized as a boolean, which is what this flag is for. Pass this flag into `argInit()` and later 
 reference the generated argument in `setFlagsFromNamedArgs()` with `bool` to create a boolean argument. Boolean arguments
 are always flags, and they can therefore never appear as a nameless argument.
 
-### `HEAP_ALLOCATED`
+### HEAP_ALLOCATED
 This is a flag for declaring an argument as heap-allocated. In practice, this should never be used. This library 
 automatically handles setting this flag when using the `heapArgInit()` function-style macro.
 
-### `NO_DEFAULT_VALUE`
+### NO_DEFAULT_VALUE
 This macro expands to `{0}`, and any argument initialized with it in `argInit()` will be zero-initialized. To enforce 
 this argument should have no default value, or in other words must be given a value by the user, use `argAssert()` in 
 combination with this.
 
-### `NONE`
+### NONE
 This macro expands to nothing, and its purpose is for declaring empty type information in `argInit()` or `heapArgInit()`.
 For example, declaring a char in `argInit()` is as follows:
 

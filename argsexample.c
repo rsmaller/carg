@@ -19,20 +19,24 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS);
     adjustArgumentCursor(&intArg, &globalIntArgValue);
     basicArgInit(float, floatArg, 0.5f, NO_FLAGS);
-    basicArgInit(char, boolArg1, 0, BOOLEAN_ARG);
-    basicArgInit(char, boolArg2, 1, BOOLEAN_ARG);
-    basicArgInit(char, boolArg3, 0, BOOLEAN_ARG);
+    basicArgInit(bool, boolArg1, 0, BOOLEAN_ARG);
+    basicArgInit(bool, boolArg2, 1, BOOLEAN_ARG);
+    basicArgInit(bool, boolArg3, 0, BOOLEAN_ARG);
 
-    basicArgInit(char, thing1, 0, BOOLEAN_ARG);
-    basicArgInit(char, thing2, 0, BOOLEAN_ARG);
-    basicArgInit(char, thing3, 0, BOOLEAN_ARG);
-    basicArgInit(char, thing4, 0, BOOLEAN_ARG);
-    basicArgInit(char, thing5, 0, BOOLEAN_ARG);
-    nestedArgumentInit(&thing1, "thing1");
-    nestedArgumentInit(&thing3, "thing3");
-    nestArgument(&thing1, &thing2, "thing2");
-    nestArgument(&thing1, &thing4, "thing4");
-    nestArgument(&thing3, &thing5, "thing5");
+    basicArgInit(bool, thing1, 0, BOOLEAN_ARG);
+    basicArgInit(bool, thing2, 0, BOOLEAN_ARG);
+    basicArgInit(bool, thing3, 0, BOOLEAN_ARG);
+    basicArgInit(bool, thing4, 0, BOOLEAN_ARG);
+    basicArgInit(bool, thing5, 0, BOOLEAN_ARG);
+
+    nestedArgumentInit(&thing1, "thing1"); nest
+        nestArgument(&thing1, &thing2, "thing2");
+        nestArgument(&thing1, &thing4, "thing4");
+    nest
+
+    nestedArgumentInit(&thing3, "thing3"); nest
+        nestArgument(&thing3, &thing5, "thing5");
+    nest
     //  thing1 -> thing2 and thing4
     //  thing3 -> thing5
 

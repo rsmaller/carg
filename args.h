@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #define MAX_ARG_NESTING 256
 
@@ -55,7 +56,7 @@ uint64_t libcargInternalFlags = 0;
 
 #define NONE // Empty and does nothing. For semantics.
 
-//  Function Initializer Flags.
+//  Function Initializer Flags. (Do not set these manually; they are here to give warnings when something goes wrong!)
 #define NAMED_ARGS_SET (1ULL<<0ULL)
 
 #define NAMELESS_ARGS_SET (1ULL<<1ULL)
@@ -66,16 +67,17 @@ uint64_t libcargInternalFlags = 0;
 
 #define ASSERTIONS_SET (1ULL<<4ULL)
 
-//  Argument Flags.
-#define NAMELESS_ARG (1ULL<<0ULL)
-
-#define BOOLEAN_ARG (1ULL<<1ULL)
-
+//  Internal Argument Flags. (These should be set by functions and not the user.)
 #define HEAP_ALLOCATED (1ULL<<2ULL)
 
 #define NESTED_ARG (1ULL<<3ULL)
 
 #define NESTED_ARG_ROOT (1ULL<<4ULL)
+
+//  Argument Flags. (These should be set by the user.)
+#define NAMELESS_ARG (1ULL<<0ULL)
+
+#define BOOLEAN_ARG (1ULL<<1ULL)
 
 //  Getters and Setters.
 #define hasFlag(item, flag) (item & flag)
@@ -85,6 +87,23 @@ uint64_t libcargInternalFlags = 0;
 #define clearFlag(item, flag) (item &= ~flag)
 
 #define toggleFlag(item, flag) (item ^= flag)
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  SECTION: Assertion Macros
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#define nest
+
+//  This is designed to be used in the argAssert() function to assert that an argument cannot have a default value.
+#define REQUIRED_ARGUMENT(varName)\
+varName.hasValue
+
+//  Assert that two arguments cannot be declared by the user at the same time.
+#define MUTUALLY_EXCLUSIVE(varName1, varName2)\
+!(varName1.hasValue && varName2.hasValue)
+
+// For use in argAssert.
+#define USAGE_MESSAGE NULL
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
@@ -101,30 +120,6 @@ uint64_t libcargInternalFlags = 0;
 //  For internal use only.
 int compareFlag(const char *argument, const char *parameter) {
     return !strcmp(argument, parameter);
-}
-
-//  Check if a substring is present in a string.
-//  Returns a pointer to where the substring starts in the string.
-//  If the substring does not exist in the parent string, return NULL.
-char *contains(char *testString, const char *substring) {
-    while (strlen(testString) >= strlen(substring)) {
-        if (!strncmp(testString, substring, strlen(substring))) {
-            return testString;
-        }
-        testString++;
-    }
-    return NULL;
-}
-
-//  Returns the index where a character is present in a string.
-//  Returns -1 if the character is not present in the string.
-int charInString(const char *testString, const char subchar) {
-    for (int i=0; i<strlen(testString); i++) {
-        if (testString[i] == subchar) {
-            return i;
-        }
-    }
-    return -1;
 }
 
 int isFlag(const char *formatter, const char *toCheck) {
@@ -181,7 +176,7 @@ void _checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va
             if (compareFlag(formatterItem, "bool")) {
                 assert(((void)"Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.",
                         hasFlag(currentArg -> flags, BOOLEAN_ARG)));
-                *(char *)flagCopierPointer = !*(char *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
+                *(bool *)flagCopierPointer = !*(bool *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
             } else {
                 if (*argIndex < argCount - 1 && isFlag(argFormatter, argVector[*argIndex+1])) {
                     usage();
@@ -197,14 +192,16 @@ void _checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va
     free(internalFormatterAllocation);
 }
 
-int _setFlagFromNestedArgInternal(const argStruct *arg) {
+int _setFlagFromNestedArgInternal(argStruct *arg) {
     if (!hasFlag(arg -> flags, NESTED_ARG)) {
         printf("Error: Nested flag setter called on non-nested argument. Fix this!\n");
         exit(1);
     }
+    if (arg -> hasValue) return 0;
     for (int i=1; i<argCount; i++) {
         if (!strcmp(arg -> nestedArgString, argVector[i])) {
-            *(char *)arg -> value = !*(char *)arg -> value;
+            *(bool *)arg -> value = !*(bool *)arg -> value;
+            arg -> hasValue = 1;
             return 1;
         }
     }
@@ -214,6 +211,30 @@ int _setFlagFromNestedArgInternal(const argStruct *arg) {
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: User-Facing Functions and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//  Check if a substring is present in a string.
+//  Returns a pointer to where the substring starts in the string.
+//  If the substring does not exist in the parent string, return NULL.
+char *contains(char *testString, const char *substring) {
+    while (strlen(testString) >= strlen(substring)) {
+        if (!strncmp(testString, substring, strlen(substring))) {
+            return testString;
+        }
+        testString++;
+    }
+    return NULL;
+}
+
+//  Returns the index where a character is present in a string.
+//  Returns -1 if the character is not present in the string.
+int charInString(const char *testString, const char subchar) {
+    for (int i=0; i<strlen(testString); i++) {
+        if (testString[i] == subchar) {
+            return i;
+        }
+    }
+    return -1;
+}
 
 //  Fetches the basename of a file from a path.
 char *basename(char * const filePath) {
@@ -352,15 +373,15 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     va_list formatterArgsSaveCopy;
     va_start(formatterArgs, argFormatter);
     va_copy(formatterArgsSaveCopy, formatterArgs);
-    char *flagCopierPointer = NULL;
+    bool *flagCopierPointer = NULL;
     argStruct* currentArg = NULL;
     for (int i=1; i<argCount; i++) {
-        if (argVector[i][0] != prefixChar) continue;
+        if (argVector[i][0] != prefixChar || argVector[i][1] == prefixChar) continue;
         for (int j=0; j<strlen(noPrefixArgFormatter); j++) {
             if (charInString(argVector[i], noPrefixArgFormatter[j]) >= 0) {
                 for (int k=0; k<=j; k++) {
                     currentArg = va_arg(formatterArgs, argStruct *);
-                    flagCopierPointer = (char *)currentArg -> value;
+                    flagCopierPointer = (bool *)currentArg -> value;
                 }
                 va_end(formatterArgs);
                 va_copy(formatterArgs, formatterArgsSaveCopy);
@@ -376,8 +397,7 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     setFlag(libcargInternalFlags, GROUPED_ARGS_SET);
 }
 
-//  For creating functionality to do something like "program.exe cleanup all", with "cleanup" and "all" referring to
-//  nested booleans.
+//  Use this to nest an argument within a root argument or another nested argument.
 argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString) {
     if (!hasFlag(nestIn -> flags, BOOLEAN_ARG) || !hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
         printf("Error: only boolean arguments can be safely nested. Fix this!\n");
@@ -393,8 +413,8 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
     return argToNest;
 }
 
-//  Use this with an argument struct to declare it as the root of a series of nested arguments.
-//  This only works for boolean flags!
+//  Use this with a boolean argument struct to declare it as the root of a series of nested arguments.
+//  Every nested element, including the root, must use a plain string to identify its flag.
 argStruct *nestedArgumentInit(argStruct *arg, char *argString) {
     if (!hasFlag(arg -> flags, BOOLEAN_ARG)) {
         printf("Error: Nested argument initializer called on non-boolean flag. Fix this!\n");
@@ -407,13 +427,16 @@ argStruct *nestedArgumentInit(argStruct *arg, char *argString) {
 }
 
 //  Uses nested arguments to set flags. Only use this with nested argument roots.
+//  To make a nested argument, first declare a few boolean arguments with one of the argument initializer functions.
+//  Select one of them to be the root of the nesting and call nestedArgumentInit() on it.
+//  Then, call nestArgument() with the root argument and another argument.
 //  Note that this is not designed to handle multiple arguments with the same level of nesting from one root node.
 //  A logical line must follow from a graph of options for the flags to be toggled accordingly.
 void setFlagsFromNestedArgs(const int argumentCount, ...) {
     va_list args;
     va_start(args, argumentCount);
     for (int x=0; x<argumentCount; x++) {
-        const argStruct *argRoot = va_arg(args, argStruct *);
+        argStruct *argRoot = va_arg(args, argStruct *);
         if (!hasFlag(argRoot -> flags, NESTED_ARG)) {
             printf("Error: Nested flag setter called on non-nested argument. Fix this!\n");
             exit(1);
@@ -494,18 +517,3 @@ void argAssert(const int assertionCount, ...) {
     va_end(args);
     setFlag(libcargInternalFlags, ASSERTIONS_SET);
 }
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Assertion Macros
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-//  This is designed to be used in the argAssert() function to assert that an argument cannot have a default value.
-#define REQUIRED_ARGUMENT(varName)\
-    varName.hasValue
-
-//  Assert that two arguments cannot be declared by the user at the same time.
-#define MUTUALLY_EXCLUSIVE(varName1, varName2)\
-    !(varName1.hasValue && varName2.hasValue)
-
-// For use in argAssert.
-#define USAGE_MESSAGE NULL
