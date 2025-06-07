@@ -32,12 +32,12 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(bool, thing7, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing8, 0, BOOLEAN_ARG);
 
-    nestedArgumentInit(&thing1, "thing1"); nest
+    nestedArgumentInit(&thing1, "thing1", NO_FLAGS); nest
         nestArgument(&thing1, &thing2, "thing2");
         nestArgument(&thing1, &thing4, "thing4");
     nest
 
-    nestedArgumentInit(&thing3, "thing3"); nest
+    nestedArgumentInit(&thing3, "thing3", ENFORCE_NESTING_ORDER); nest
         nestArgument(&thing3, &thing4, "thing4");
         nestArgument(&thing3, &thing5, "thing5"); nest
             nestArgument(&thing5, &thing6, "thing6"); nest
@@ -66,9 +66,13 @@ int main(const int argc, char *argv[]) { // Example code
         MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "Booleans -b and --xarg can't be toggled at the same time",
         namelessArgValue > 0, "Nameless int 1 must be positive"
     );
-    printf("Basic arguments - nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d, stringArg: %s, stringArg2: %s, float: %f, bool1: %d, bool2: %d, bool3: %d\n",
-        namelessArgCount, namelessArgValue, namelessArg2Value, namelessStringArgValue, globalIntArgValue, stringArgValue, stringArg2Value, floatArgValue, boolArg1Value, boolArg2Value,
-        boolArg3Value);
+    printf("Basic arguments - nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
+        namelessArgCount, namelessArgValue, namelessArg2Value,
+        namelessStringArgValue, globalIntArgValue, intArg.argvIndexFound,
+        stringArgValue, stringArg.argvIndexFound, stringArg2Value,
+        stringArg2.argvIndexFound, floatArgValue, floatArg.argvIndexFound,
+        boolArg1Value, boolArg1.argvIndexFound, boolArg2Value, boolArg2.argvIndexFound,
+        boolArg3Value, boolArg3.argvIndexFound);
     printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d, thing8: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value);
     free(stringArgValue); // Free heap strings.
     free(namelessStringArgValue);

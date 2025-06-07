@@ -270,8 +270,8 @@ might be configured via a nested argument. The push option could be stored as a 
 inside of it. In this case, the keyword `now` would only have meaning if `push` is supplied alongside it.
 
 #### nestedArgumentInit()
-This function will initialize a boolean argument as a nested argument root node. This function takes the argument and a 
-string; the string is the argument the program will search for to match and toggle that boolean argument.
+This function will initialize a boolean argument as a nested argument root node. This function takes the argument, a 
+string, and new flags; the string is the argument the program will search for to match and toggle that boolean argument.
 
 #### nestArgument()
 This function will nest a boolean argument in another nested argument, whether it is a root node or not. As of now, each 
@@ -384,6 +384,11 @@ are always flags, and they can therefore never appear as a nameless argument.
 ### HEAP_ALLOCATED
 This is a flag for declaring an argument as heap-allocated. In practice, this should never be used. This library 
 automatically handles setting this flag when using the `heapArgInit()` function-style macro.
+
+### ENFORCE_NESTING_ORDER
+This is a flag for declaring the root of a nested argument as not order-agnostic; this flag should be set in
+`nestedArgumentInit()`, and the library will do runtime checks in `setFlagsFromNestedArgs()` to ensure arguments nested
+within other arguments come after their parent arguments in the argument vector.
 
 ### NO_DEFAULT_VALUE
 This macro expands to `{0}`, and any argument initialized with it in `argInit()` will be zero-initialized. To enforce 

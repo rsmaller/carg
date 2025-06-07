@@ -21,9 +21,11 @@
 typedef struct argStruct {
     void *value;
     char hasValue;
+    int argvIndexFound; // The index where an argument is found. This stores the argv index of the flag, not the value associated with it. Set to -1 when not found.
     int flags;
     char *nestedArgString;
     int nestedArgFillIndex;
+    struct argStruct *parentArg;
     struct argStruct *nestedArgs[MAX_ARG_NESTING];
 } argStruct;
 
@@ -56,7 +58,7 @@ uint64_t libcargInternalFlags = 0;
 
 #define NONE // Empty and does nothing. For semantics.
 
-//  Function Initializer Flags. (Do not set these manually; they are here to give warnings when something goes wrong!)
+//  Function Initializer Flags for libcargInternalFlags. (Do not set these manually; they are here to give warnings when something goes wrong!)
 #define NAMED_ARGS_SET (1ULL<<0ULL)
 
 #define NAMELESS_ARGS_SET (1ULL<<1ULL)
@@ -78,6 +80,8 @@ uint64_t libcargInternalFlags = 0;
 #define NAMELESS_ARG (1ULL<<0ULL)
 
 #define BOOLEAN_ARG (1ULL<<1ULL)
+
+#define ENFORCE_NESTING_ORDER (1ULL<5ULL)
 
 //  Getters and Setters.
 #define hasFlag(item, flag) (item & flag)
@@ -186,6 +190,7 @@ void _checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va
                     sscanf(argVector[*argIndex + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
                 }
             }
+            currentArg -> argvIndexFound = *argIndex;
             break;
         }
     }
@@ -203,6 +208,10 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
         if (!strcmp(arg -> nestedArgString, argVector[i])) {
             *(bool *)arg -> value = !*(bool *)arg -> value;
             arg -> hasValue = 1;
+            arg -> argvIndexFound = i;
+            if (hasFlag(arg -> flags, ENFORCE_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound) {
+                usage();
+            }
             return 1;
         }
     }
@@ -279,8 +288,10 @@ void libcargInit(const int argc, char **argv){
             .value = &varName##Value,\
             .hasValue = 0,\
             .flags = flagsArg,\
+            .argvIndexFound = -1,\
             .nestedArgString = NULL,\
             .nestedArgFillIndex = -1,\
+            .parentArg = NULL,\
             .nestedArgs = {0}\
     };\
     if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;
@@ -348,6 +359,7 @@ void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         flagCopierPointer = currentArg -> value;
         currentArg -> hasValue = 1;
+        currentArg -> argvIndexFound = i;
         sscanf(argVector[i], currentFormatter, flagCopierPointer);
     }
     free(internalFormatterAllocation);
@@ -387,6 +399,7 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
                 va_copy(formatterArgs, formatterArgsSaveCopy);
                 if (flagCopierPointer && currentArg) {
                     currentArg -> hasValue = 1;
+                    currentArg -> argvIndexFound = i;
                     *flagCopierPointer = !*flagCopierPointer;
                 }
             }
@@ -408,20 +421,21 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
         exit(0);
     }
     argToNest -> nestedArgString = nestedArgString;
+    argToNest -> flags = nestIn -> flags;
     setFlag(argToNest -> flags, NESTED_ARG);
     nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
+    argToNest -> parentArg = nestIn;
     return argToNest;
 }
 
 //  Use this with a boolean argument struct to declare it as the root of a series of nested arguments.
 //  Every nested element, including the root, must use a plain string to identify its flag.
-argStruct *nestedArgumentInit(argStruct *arg, char *argString) {
+argStruct *nestedArgumentInit(argStruct *arg, char *argString, int flagsArg) {
     if (!hasFlag(arg -> flags, BOOLEAN_ARG)) {
         printf("Error: Nested argument initializer called on non-boolean flag. Fix this!\n");
         exit(0);
     }
-    setFlag(arg -> flags, NESTED_ARG);
-    setFlag(arg -> flags, NESTED_ARG_ROOT);
+    setFlag(arg -> flags, NESTED_ARG | NESTED_ARG_ROOT | flagsArg);
     arg -> nestedArgString = argString;
     return arg;
 }
@@ -432,10 +446,10 @@ argStruct *nestedArgumentInit(argStruct *arg, char *argString) {
 //  Then, call nestArgument() with the root argument and another argument.
 //  Note that this is not designed to handle multiple arguments with the same level of nesting from one root node.
 //  A logical line must follow from a graph of options for the flags to be toggled accordingly.
-void setFlagsFromNestedArgs(const int argumentCount, ...) {
+void setFlagsFromNestedArgs(const int nestedArgumentCount, ...) {
     va_list args;
-    va_start(args, argumentCount);
-    for (int x=0; x<argumentCount; x++) {
+    va_start(args, nestedArgumentCount);
+    for (int x=0; x<nestedArgumentCount; x++) {
         argStruct *argRoot = va_arg(args, argStruct *);
         if (!hasFlag(argRoot -> flags, NESTED_ARG)) {
             printf("Error: Nested flag setter called on non-nested argument. Fix this!\n");
