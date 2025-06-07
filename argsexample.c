@@ -28,6 +28,9 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(bool, thing3, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing4, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing5, 0, BOOLEAN_ARG);
+    basicArgInit(bool, thing6, 0, BOOLEAN_ARG);
+    basicArgInit(bool, thing7, 0, BOOLEAN_ARG);
+    basicArgInit(bool, thing8, 0, BOOLEAN_ARG);
 
     nestedArgumentInit(&thing1, "thing1"); nest
         nestArgument(&thing1, &thing2, "thing2");
@@ -35,10 +38,17 @@ int main(const int argc, char *argv[]) { // Example code
     nest
 
     nestedArgumentInit(&thing3, "thing3"); nest
-        nestArgument(&thing3, &thing5, "thing5");
+        nestArgument(&thing3, &thing4, "thing4");
+        nestArgument(&thing3, &thing5, "thing5"); nest
+            nestArgument(&thing5, &thing6, "thing6"); nest
+                nestArgument(&thing6, &thing7, "thing7");
+                nestArgument(&thing6, &thing8, "thing8");
+            nest
+        nest
     nest
-    //  thing1 -> thing2 and thing4
-    //  thing3 -> thing5
+    //  thing1 -> thing2 or thing4 (not both)
+    //  thing3 -> thing4 or thing5 (not both)
+        // thing5 -> thing6
 
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100 * sizeof(char)); // Heap string.
     heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
@@ -59,7 +69,7 @@ int main(const int argc, char *argv[]) { // Example code
     printf("Basic arguments - nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d, stringArg: %s, stringArg2: %s, float: %f, bool1: %d, bool2: %d, bool3: %d\n",
         namelessArgCount, namelessArgValue, namelessArg2Value, namelessStringArgValue, globalIntArgValue, stringArgValue, stringArg2Value, floatArgValue, boolArg1Value, boolArg2Value,
         boolArg3Value);
-    printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value);
+    printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d, thing8: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value);
     free(stringArgValue); // Free heap strings.
     free(namelessStringArgValue);
     return 0;

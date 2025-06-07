@@ -193,6 +193,7 @@ void _checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va
 }
 
 int _setFlagFromNestedArgInternal(argStruct *arg) {
+    if (!arg) return 0;
     if (!hasFlag(arg -> flags, NESTED_ARG)) {
         printf("Error: Nested flag setter called on non-nested argument. Fix this!\n");
         exit(0);
@@ -444,12 +445,16 @@ void setFlagsFromNestedArgs(const int argumentCount, ...) {
             printf("Error: Nested flag setter called on non-root nested argument. Fix this!\n");
             exit(0);
         }
+        if (argRoot -> hasValue) {
+            printf("Error: Root nested element is set multiple times. Fix this!\n");
+            exit(0);
+        }
         const argStruct *argCursor = argRoot;
-        if (_setFlagFromNestedArgInternal(argRoot)) {
-            for (int i=0; i <= argCursor -> nestedArgFillIndex; i++) {
-                if (_setFlagFromNestedArgInternal(argCursor -> nestedArgs[i])) {
-                    argCursor = argCursor -> nestedArgs[i];
-                }
+        if (!_setFlagFromNestedArgInternal(argRoot)) continue;
+        for (int i=0; i <= argCursor -> nestedArgFillIndex; i++) {
+            if (_setFlagFromNestedArgInternal(argCursor -> nestedArgs[i])) {
+                argCursor = argCursor -> nestedArgs[i];
+                i=-1; // i will get incremented to 0 right after this iteration.
             }
         }
     }

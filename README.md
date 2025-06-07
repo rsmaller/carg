@@ -290,8 +290,40 @@ Note that the nest macro does not serve any functional purpose outside declaring
 
 #### setFlagsFromNestedArgs()
 This function accepts a variable number of root nested nodes after an integer representing the number of root nested 
-nodes passed into it. It will then look through the argument vector to initialize the boolean flags in accordance with 
-the nesting logic.
+nodes passed into it. It will then look through the argument vector to initialize boolean flags in accordance with 
+implemented nesting logic.
+
+Note that nesting in this library is order-agnostic, which is a little different from how it is implemented in other
+libraries. If multiple sibling nested arguments are supplied by the user, the index which they exist internally in the 
+graph data structure is used for argument precedence.
+
+Nested arguments in this library are meant to be simple, lightweight, and intuitive; while they are programmatically 
+implemented as a graph, they can simply be imagined as booleans which rely on other booleans to be set, but in any 
+order.
+
+For example, a random flag titled `flag1` might have a flag nested in it named `flag2`. If `flag2` is supplied to the 
+command line, it will only be toggled if `flag1` is also supplied on the command line. However, `flag1` does not need to 
+come before `flag2`.
+
+```
+program.exe flag1 flag2
+```
+- This will set both `flag1` and `flag2`.
+
+```
+program.exe flag2 flag1
+```
+- So will this.
+
+```
+program.exe flag1
+```
+- This will only toggle `flag1`.
+
+```
+program.exe flag2
+```
+- This will toggle nothing.
 
 ### Control Flow Interrupts
 
