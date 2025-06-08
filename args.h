@@ -161,7 +161,7 @@ int _getArgCountFromFormatter(char *argFormatter) {
 
 //  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
-void _checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va_list outerArgs) {
+void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_list outerArgs) {
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
     char *internalFormatter = strdup(argFormatter);
@@ -176,7 +176,7 @@ void _checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va
         if (!flagItem) {
             break;
         }
-        if (compareFlag(flagItem, argVector[*argIndex])) {
+        if (compareFlag(flagItem, argVector[argIndex])) {
             if (!currentArg) return;
             flagCopierPointer = currentArg -> value;
             if (!flagCopierPointer) return;
@@ -186,11 +186,11 @@ void _checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va
                         hasFlag(currentArg -> flags, BOOLEAN_ARG)));
                 *(bool *)flagCopierPointer = !*(bool *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
             } else {
-                if (*argIndex < argCount - 1 && isFlag(argFormatter, argVector[*argIndex+1])) usage();
-                else if (*argIndex == argCount - 1) usage();
-                else sscanf(argVector[*argIndex + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
+                if (argIndex < argCount - 1 && isFlag(argFormatter, argVector[argIndex+1])) usage();
+                else if (argIndex == argCount - 1) usage();
+                else sscanf(argVector[argIndex + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
             }
-            currentArg -> argvIndexFound = *argIndex;
+            currentArg -> argvIndexFound = argIndex;
             break;
         }
     }
@@ -199,7 +199,7 @@ void _checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va
 
 //  Checks a va_list passed in from setFlagsFromKeywordArgs() to set arguments accordingly.
 //  For internal use only.
-void _checkKeywordArgAgainstFormatter(const int *argIndex, const char * const argFormatter, va_list outerArgs) {
+void _checkKeywordArgAgainstFormatter(const int argIndex, const char * const argFormatter, va_list outerArgs) {
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
     char *internalFormatter = strdup(argFormatter);
@@ -209,19 +209,23 @@ void _checkKeywordArgAgainstFormatter(const int *argIndex, const char * const ar
     while (1) {
         const char *flagItem = strtok_r(internalFormatter, "=", &savePointer);
         const char *formatterItem = strtok_r(NULL, "= ", &savePointer);
-        internalFormatter = savePointer;
-        argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         if (!flagItem) {
             break;
         }
-        if (contains(argVector[*argIndex], flagItem)) {
-            if (*(argVector[*argIndex] + strlen(flagItem)) != '=') usage();
+        if (!flagItem[0] || !formatterItem || formatterItem[0] != '%') {
+            printf("Error fetching formatter data from keyword arguments. Is the string in the correct format?\n");
+            exit(0);
+        }
+        internalFormatter = savePointer;
+        argStruct *currentArg = va_arg(formatterArgs, argStruct *);
+        if (contains(argVector[argIndex], flagItem)) {
+            if (*(argVector[argIndex] + strlen(flagItem)) != '=') usage();
             if (!currentArg) return;
             flagCopierPointer = currentArg -> value;
             if (!flagCopierPointer) return;
             currentArg -> hasValue = 1;
-            sscanf(argVector[*argIndex] + strlen(flagItem) + 1U, formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
-            currentArg -> argvIndexFound = *argIndex;
+            sscanf(argVector[argIndex] + strlen(flagItem) + 1U, formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
+            currentArg -> argvIndexFound = argIndex;
             break;
         }
     }
@@ -361,12 +365,15 @@ void setFlagsFromNamedArgs(const char * const argFormatter, ...) {
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     for (int i=namelessArgCount + 1; i<argCount; i++) {
-        _checkArgAgainstFormatter(&i, argFormatter, formatterArgs);
+        _checkArgAgainstFormatter(i, argFormatter, formatterArgs);
     }
     va_end(formatterArgs);
     setFlag(libcargInternalFlags, NAMED_ARGS_SET);
 }
 
+//  This function expects a flag and value in a single argument, separated by an equals sign (i.e. -k=32).
+//  The format string this function takes should format the argument as a scanf() formatter like in setFlagsFromNamedArgs().
+//  This might look like -k=%d.
 void setFlagsFromKeywordArgs(const char *const argFormatter, ...) {
     if (hasFlag(libcargInternalFlags, KEYWORD_ARGS_SET)) {
         printf("Error: Keyword args initializer called multiple times. Please fix this!\n");
@@ -376,7 +383,7 @@ void setFlagsFromKeywordArgs(const char *const argFormatter, ...) {
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     for (int i=namelessArgCount + 1; i<argCount; i++) {
-        _checkKeywordArgAgainstFormatter(&i, argFormatter, formatterArgs);
+        _checkKeywordArgAgainstFormatter(i, argFormatter, formatterArgs);
     }
     va_end(formatterArgs);
     setFlag(libcargInternalFlags, KEYWORD_ARGS_SET);
