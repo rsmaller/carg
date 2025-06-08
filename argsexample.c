@@ -32,20 +32,20 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(bool, thing7, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing8, 0, BOOLEAN_ARG);
 
-    nestedArgumentInit(&thing1, "thing1", NO_FLAGS); nest
+    nestedArgumentInit(&thing1, "thing1", NO_FLAGS); {
         nestArgument(&thing1, &thing2, "thing2");
         nestArgument(&thing1, &thing4, "thing4");
-    nest
+    }
 
-    nestedArgumentInit(&thing3, "thing3", ENFORCE_NESTING_ORDER); nest
+    nestedArgumentInit(&thing3, "thing3", ENFORCE_NESTING_ORDER); {
         nestArgument(&thing3, &thing4, "thing4");
-        nestArgument(&thing3, &thing5, "thing5"); nest
-            nestArgument(&thing5, &thing6, "thing6"); nest
+        nestArgument(&thing3, &thing5, "thing5"); {
+            nestArgument(&thing5, &thing6, "thing6"); {
                 nestArgument(&thing6, &thing7, "thing7");
                 nestArgument(&thing6, &thing8, "thing8");
-            nest
-        nest
-    nest
+            }
+        }
+    }
     //  thing1 -> thing2 or thing4 (not both)
     //  thing3 -> thing4 or thing5 (not both)
         // thing5 -> thing6

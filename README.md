@@ -276,17 +276,15 @@ string, and new flags; the string is the argument the program will search for to
 #### nestArgument()
 This function will nest a boolean argument in another nested argument, whether it is a root node or not. As of now, each 
 individual nested boolean argument can only directly nest 256 other arguments. Since arguments will always end up nested
-inside a root node, the nest macro is available to make the nesting a little easier to read. On a basic level, it looks
+inside a root node, you can use curly braces to make the nesting a little easier to read. On a basic level, it looks
 like:
 
 ```
-nestedArgumentInit(&arg1, "arg"); nest
+nestedArgumentInit(&arg1, "arg"); {
         nestArgument(&arg1, &arg2, "thing2");
         nestArgument(&arg1, &arg3, "thing3");
-nest
+}
 ```
-
-Note that the nest macro does not serve any functional purpose outside declaring a nesting pseudocode block.
 
 #### setFlagsFromNestedArgs()
 This function accepts a variable number of root nested nodes after an integer representing the number of root nested 

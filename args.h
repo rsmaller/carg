@@ -20,7 +20,7 @@
 
 typedef struct argStruct {
     void *value;
-    char hasValue;
+    bool hasValue;
     int argvIndexFound; // The index where an argument is found. This stores the argv index of the flag, not the value associated with it. Set to -1 when not found.
     int flags;
     char *nestedArgString;
@@ -65,9 +65,11 @@ uint64_t libcargInternalFlags = 0;
 
 #define GROUPED_ARGS_SET (1ULL<<2ULL)
 
-#define OVERRIDE_CALLBACKS_SET (1ULL<<3ULL)
+#define NESTED_ARGS_SET (1ULL<<3ULL)
 
-#define ASSERTIONS_SET (1ULL<<4ULL)
+#define OVERRIDE_CALLBACKS_SET (1ULL<<4ULL)
+
+#define ASSERTIONS_SET (1ULL<<5ULL)
 
 //  Internal Argument Flags. (These should be set by functions and not the user.)
 #define HEAP_ALLOCATED (1ULL<<2ULL)
@@ -96,8 +98,6 @@ uint64_t libcargInternalFlags = 0;
 //  SECTION: Assertion Macros
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#define nest
-
 //  This is designed to be used in the argAssert() function to assert that an argument cannot have a default value.
 #define REQUIRED_ARGUMENT(varName)\
 varName.hasValue
@@ -115,8 +115,8 @@ varName.hasValue
 
 #define checkForAssertion() do {\
     if (hasFlag(libcargInternalFlags, ASSERTIONS_SET)) {\
-    printf("Error: Assertion initializer called before args are initialized. Please fix this!\n");\
-    exit(0);\
+        printf("Error: Assertion initializer called before args are initialized. Please fix this!\n");\
+        exit(0);\
     }\
 } while (0)
 
@@ -204,7 +204,7 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
         exit(0);
     }
     if (arg -> hasValue) return 0;
-    for (int i=1; i<argCount; i++) {
+    for (int i=namelessArgCount; i<argCount; i++) {
         if (!strcmp(arg -> nestedArgString, argVector[i])) {
             *(bool *)arg -> value = !*(bool *)arg -> value;
             arg -> hasValue = 1;
@@ -447,6 +447,10 @@ argStruct *nestedArgumentInit(argStruct *arg, char *argString, int flagsArg) {
 //  Note that this is not designed to handle multiple arguments with the same level of nesting from one root node.
 //  A logical line must follow from a graph of options for the flags to be toggled accordingly.
 void setFlagsFromNestedArgs(const int nestedArgumentCount, ...) {
+    if (hasFlag(libcargInternalFlags, NESTED_ARGS_SET)) {
+        printf("Error: Nested args initializer called multiple times. Please fix this!\n");
+        exit(0);
+    }
     va_list args;
     va_start(args, nestedArgumentCount);
     for (int x=0; x<nestedArgumentCount; x++) {
@@ -472,6 +476,7 @@ void setFlagsFromNestedArgs(const int nestedArgumentCount, ...) {
             }
         }
     }
+    setFlag(libcargInternalFlags, NESTED_ARGS_SET);
 }
 
 //  Call this before any other argument setter functions. 
