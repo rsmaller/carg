@@ -50,6 +50,8 @@ int main(const int argc, char *argv[]) { // Example code
     //  thing1 -> thing2 or thing4 (not both)
     //  thing3 -> thing4 or thing5 (not both)
         // thing5 -> thing6
+            // thing6 -> thing7
+            // thing6 -> thing8
 
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100 * sizeof(char)); // Heap string.
     heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
