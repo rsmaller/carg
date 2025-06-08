@@ -33,6 +33,8 @@ typedef void(*voidFuncPtr)(void); // Some syntax highlighters don't like seeing 
 
 void usage(void);
 
+char *contains(char *, const char *);
+
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Global Variables and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -70,6 +72,8 @@ uint64_t libcargInternalFlags = 0;
 #define OVERRIDE_CALLBACKS_SET (1ULL<<4ULL)
 
 #define ASSERTIONS_SET (1ULL<<5ULL)
+
+#define KEYWORD_ARGS_SET (1ULL<<6ULL)
 
 //  Internal Argument Flags. (These should be set by functions and not the user.)
 #define HEAP_ALLOCATED (1ULL<<2ULL)
@@ -182,14 +186,41 @@ void _checkArgAgainstFormatter(const int *argIndex, const char *argFormatter, va
                         hasFlag(currentArg -> flags, BOOLEAN_ARG)));
                 *(bool *)flagCopierPointer = !*(bool *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
             } else {
-                if (*argIndex < argCount - 1 && isFlag(argFormatter, argVector[*argIndex+1])) {
-                    usage();
-                } else if (*argIndex == argCount - 1) {
-                    usage();
-                } else {
-                    sscanf(argVector[*argIndex + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
-                }
+                if (*argIndex < argCount - 1 && isFlag(argFormatter, argVector[*argIndex+1])) usage();
+                else if (*argIndex == argCount - 1) usage();
+                else sscanf(argVector[*argIndex + 1], formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
             }
+            currentArg -> argvIndexFound = *argIndex;
+            break;
+        }
+    }
+    free(internalFormatterAllocation);
+}
+
+//  Checks a va_list passed in from setFlagsFromKeywordArgs() to set arguments accordingly.
+//  For internal use only.
+void _checkKeywordArgAgainstFormatter(const int *argIndex, const char * const argFormatter, va_list outerArgs) {
+    va_list formatterArgs;
+    va_copy(formatterArgs, outerArgs);
+    char *internalFormatter = strdup(argFormatter);
+    void *internalFormatterAllocation = internalFormatter;
+    char *savePointer = NULL;
+    void *flagCopierPointer = NULL;
+    while (1) {
+        const char *flagItem = strtok_r(internalFormatter, "=", &savePointer);
+        const char *formatterItem = strtok_r(NULL, "= ", &savePointer);
+        internalFormatter = savePointer;
+        argStruct *currentArg = va_arg(formatterArgs, argStruct *);
+        if (!flagItem) {
+            break;
+        }
+        if (contains(argVector[*argIndex], flagItem)) {
+            if (*(argVector[*argIndex] + strlen(flagItem)) != '=') usage();
+            if (!currentArg) return;
+            flagCopierPointer = currentArg -> value;
+            if (!flagCopierPointer) return;
+            currentArg -> hasValue = 1;
+            sscanf(argVector[*argIndex] + strlen(flagItem) + 1U, formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
             currentArg -> argvIndexFound = *argIndex;
             break;
         }
@@ -329,12 +360,26 @@ void setFlagsFromNamedArgs(const char * const argFormatter, ...) {
     checkForAssertion();
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
-    int i;
-    for (i=namelessArgCount + 1; i<argCount; i++) {
+    for (int i=namelessArgCount + 1; i<argCount; i++) {
         _checkArgAgainstFormatter(&i, argFormatter, formatterArgs);
     }
     va_end(formatterArgs);
     setFlag(libcargInternalFlags, NAMED_ARGS_SET);
+}
+
+void setFlagsFromKeywordArgs(const char *const argFormatter, ...) {
+    if (hasFlag(libcargInternalFlags, KEYWORD_ARGS_SET)) {
+        printf("Error: Keyword args initializer called multiple times. Please fix this!\n");
+        exit(0);
+    }
+    checkForAssertion();
+    va_list formatterArgs;
+    va_start(formatterArgs, argFormatter);
+    for (int i=namelessArgCount + 1; i<argCount; i++) {
+        _checkKeywordArgAgainstFormatter(&i, argFormatter, formatterArgs);
+    }
+    va_end(formatterArgs);
+    setFlag(libcargInternalFlags, KEYWORD_ARGS_SET);
 }
 
 //  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().

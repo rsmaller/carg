@@ -18,6 +18,7 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS);
     adjustArgumentCursor(&intArg, &globalIntArgValue);
+    basicArgInit(int, keywordIntArg, NO_DEFAULT_VALUE, NO_FLAGS);
     basicArgInit(float, floatArg, 0.5f, NO_FLAGS);
     basicArgInit(bool, boolArg1, 0, BOOLEAN_ARG);
     basicArgInit(bool, boolArg2, 1, BOOLEAN_ARG);
@@ -59,6 +60,7 @@ int main(const int argc, char *argv[]) { // Example code
     setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
     setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20[^\n] -ff:%10s -z:%f --xarg:bool", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
+    setFlagsFromKeywordArgs("-k=%d", &keywordIntArg);
     argAssert(5,
         intArgValue > -1, "Int 1 must be at least 0",
         REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
@@ -66,9 +68,10 @@ int main(const int argc, char *argv[]) { // Example code
         MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "Booleans -b and --xarg can't be toggled at the same time",
         namelessArgValue > 0, "Nameless int 1 must be positive"
     );
-    printf("Basic arguments - nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
+    printf("Basic arguments - nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
         namelessArgCount, namelessArgValue, namelessArg2Value,
         namelessStringArgValue, globalIntArgValue, intArg.argvIndexFound,
+        keywordIntArgValue, keywordIntArg.argvIndexFound,
         stringArgValue, stringArg.argvIndexFound, stringArg2Value,
         stringArg2.argvIndexFound, floatArgValue, floatArg.argvIndexFound,
         boolArg1Value, boolArg1.argvIndexFound, boolArg2Value, boolArg2.argvIndexFound,

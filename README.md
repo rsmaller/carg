@@ -229,6 +229,14 @@ example:
 - Will use the `-t` flag plus a string value to set the `stringArg` argument and subsequently the `stringArgValue` variable.
 - Will use the `-b` flag to toggle the boolean `boolArg` argument and subsequently the `boolArgValue` variable.
 
+#### setFlagsFromKeywordArgs()
+This function is used almost identically to `setFlagsFromNamedArgs()`, except the delimiter between each flag and the 
+formatter connected to it is a `=` instead of a `:`. This function will accept a format string which might look like 
+`-k=%d`, meaning the flag is `-k` and the formatter is `%d`; of course, `%d` should match to an argument struct in the 
+variadic arguments. While the function is initialized almost identically, the format of argument it parses is a bit 
+different. This function looks for arguments in the format `-k=5`, for example, which will set the argument associated 
+with `-k` to `5`. The flag and argument value are passed in as a single argument instead of two.
+
 #### setFlagsFromNamelessArgs()
 This function works similarly to `setFlagsFromNamedArgs()`, but it has a few key differences:
 - Arguments are "nameless", meaning they are defined based on their order and not any flags.
