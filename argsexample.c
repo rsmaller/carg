@@ -60,9 +60,8 @@ int main(const int argc, char *argv[]) { // Example code
     argumentOverrideCallbacks("-h -h2", &help, &help2);
     setFlagsFromNestedArgs(2, &thing1, &thing3);
     setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
-    setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20[^\n] -ff:%10s -z:%f --xarg:bool", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3);
+    setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20[^\n] -ff:%10s -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
-    setFlagsFromKeywordArgs("-k=%d", &keywordIntArg);
     argAssert(5,
         intArgValue > -1, "Int 1 must be at least 0",
         REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
