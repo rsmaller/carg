@@ -24,6 +24,7 @@ typedef struct argStruct {
     int argvIndexFound; // The index where an argument is found. This stores the argv index of the flag, not the value associated with it. Set to -1 when not found.
     int flags;
     char *nestedArgString;
+    const char * const type;
     int nestedArgFillIndex;
     struct argStruct *parentArg;
     struct argStruct *nestedArgs[MAX_ARG_NESTING];
@@ -298,7 +299,8 @@ void libcargInit(const int argc, char **argv){
             .nestedArgString = NULL,\
             .nestedArgFillIndex = -1,\
             .parentArg = NULL,\
-            .nestedArgs = {0}\
+            .nestedArgs = {0},\
+            .type = #leftType #rightType\
     };\
     if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;
 
