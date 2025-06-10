@@ -62,11 +62,12 @@ int main(const int argc, char *argv[]) { // Example code
     setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
     setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20[^\n] -ff:%10s -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
-    argAssert(5,
+    argAssert(6,
         intArgValue > -1, "Int 1 must be at least 0",
         REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
         REQUIRED_ARGUMENT(stringArg), USAGE_MESSAGE,
         MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "Booleans -b and --xarg can't be toggled at the same time",
+        MUTUALLY_REQUIRED(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
         namelessArgValue > 0, "Nameless int 1 must be positive"
     );
     printf("Basic arguments - nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",

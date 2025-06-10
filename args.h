@@ -102,12 +102,13 @@ uint64_t libcargInternalFlags = 0;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //  This is designed to be used in the argAssert() function to assert that an argument cannot have a default value.
-#define REQUIRED_ARGUMENT(varName)\
-varName.hasValue
+#define REQUIRED_ARGUMENT(varName) varName.hasValue
 
 //  Assert that two arguments cannot be declared by the user at the same time.
-#define MUTUALLY_EXCLUSIVE(varName1, varName2)\
-!(varName1.hasValue && varName2.hasValue)
+#define MUTUALLY_EXCLUSIVE(varName1, varName2) !(varName1.hasValue && varName2.hasValue)
+
+//  Assert that if the first argument is used, the second must also be used.
+#define MUTUALLY_REQUIRED(varName1, varName2) varName1.hasValue ? varName2.hasValue : 1
 
 // For use in argAssert.
 #define USAGE_MESSAGE NULL
