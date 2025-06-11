@@ -65,6 +65,7 @@ int main(const int argc, char *argv[]) { // Example code
     setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20[^\n] -ff:%999s -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
     setDefaultFlagsFromEnv("OS:%[^\n] PATH:%7s", &stringArg2, &stringArg);
+    libcargTerminate();
 
     //  Assertion, previews, and termination
     argAssert(5,
@@ -85,6 +86,6 @@ int main(const int argc, char *argv[]) { // Example code
     printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d, thing8: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value);
     free(stringArgValue); // Free heap strings.
     free(namelessStringArgValue);
-    libcargTerminate();
+
     return 0;
 }

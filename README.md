@@ -184,7 +184,13 @@ to manually generate and set a usage message for your program.
 
 #### usageMessageAutoGenerate()
 This function will automatically generate a usage message based on initialized arguments. As such, it should be called 
-after all arguments have been initialized, and it should not be called alongside `setUsageMessage()`.
+after all arguments have been initialized, and it should not be called alongside `setUsageMessage()`. Furthermore, the
+usage message should be set before running any assertions.
+
+#### libcargTerminate()
+This function will clean up heap allocations this library uses to parse and set arguments, particularly for automatic 
+usage message generation. This should be called after all arguments have been set and after automatic usage message 
+generation, or at the end of the program's runtime. It can be called before or after assertions, however.
 
 ### Argument Initialization
 
