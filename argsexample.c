@@ -11,8 +11,9 @@ void help2(void) {
 }
 
 int main(const int argc, char *argv[]) { // Example code
-    libcargInit(argc, argv);
 
+    //  Argument Initialization
+    libcargInit(argc, argv);
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n");
@@ -54,17 +55,21 @@ int main(const int argc, char *argv[]) { // Example code
 
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100 * sizeof(char), "-t|--term"); // Heap string.
     heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
-    argInit(char, stringArg2, [100], "default", NO_FLAGS, "-ff"); // Stack string.
+    argInit(char, stringArg2, [1000], "default", NO_FLAGS, "-ff"); // Stack string.
     usageMessageAutoGenerate();
+
+    //  Argument Setting
     argumentOverrideCallbacks("-h -h2", &help, &help2);
     setFlagsFromNestedArgs(2, &thing1, &thing3);
     setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
-    setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20[^\n] -ff:%10s -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
+    setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20[^\n] -ff:%999s -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
-    argAssert(6,
+    setDefaultFlagsFromEnv("OS:%[^\n] PATH:%7s", &stringArg2, &stringArg);
+
+    //  Assertion, previews, and termination
+    argAssert(5,
         intArgValue > -1, "Int 1 must be at least 0",
         REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
-        REQUIRED_ARGUMENT(stringArg), USAGE_MESSAGE,
         MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "Booleans -b and --xarg can't be toggled at the same time",
         MUTUALLY_REQUIRED(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
         namelessArgValue > 0, "Nameless int 1 must be positive"

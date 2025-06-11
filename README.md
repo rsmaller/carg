@@ -180,7 +180,11 @@ This simply prints out the usage message and terminates the program.
 
 #### setUsageMessage()
 This function-style macro accepts a string formatter and variadic arguments. It uses both of those pieces of information 
-to generate and set a usage message for your program.
+to manually generate and set a usage message for your program.
+
+#### usageMessageAutoGenerate()
+This function will automatically generate a usage message based on initialized arguments. As such, it should be called 
+after all arguments have been initialized, and it should not be called alongside `setUsageMessage()`.
 
 ### Argument Initialization
 
@@ -256,6 +260,18 @@ example, that have characters which match those in the boolean grouped flags str
 the second character in the string is the same as the first, in which case it will not match that argument. It is 
 highly recommended to use a double copy of the prefix (--test) or no prefix at all (test) for keyword arguments you 
 would like to avoid matching to the grouped boolean arguments.
+
+#### setDefaultFlagsFromEnv()
+This function takes in a string with flags and formatters in it, like the other setters in this library. This function
+expects the flags to contain the name of an environment variable, which it will then fetch and `sscanf()` into an 
+argument value using the corresponding formatter. The environment variable is only copied into the argument if the 
+argument is not set; if setting an argument value to an environment variable unconditionally is not desirable, be sure 
+to call this function after any other setter functions.
+
+```
+setDefaultFlagsFromEnv("PATH:%s", &string1);
+```
+-   This will copy the value contained in the `$PATH` variable into the string `string1`.
 
 ### Argument Nesting
 

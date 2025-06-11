@@ -583,6 +583,34 @@ void setFlagsFromNestedArgs(const int nestedArgumentCount, ...) {
     setFlag(libcargInternalFlags, NESTED_ARGS_SET);
 }
 
+//  This function will set named args based on environment variables assuming their values have not been set elsewhere.
+//  Pass in a formatter with environment variable names and scanf() formatters, separated by a colon.
+//  Each pair should be separated by a space.
+//  Lastly, the function should be given variadic argument structs (Ex. "PATH:%s OS:%s", &string1, &string2)
+void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
+    va_list args;
+    va_start(args, argFormatter);
+    char *argFormatterTokenCopy = strdup(argFormatter);
+    void *argFormatterTokenAllocation = argFormatterTokenCopy;
+    char *savePointer = NULL;
+    argStruct *currentArg = NULL;
+    while (1) {
+        char *envVarName = strtok_r(argFormatterTokenCopy, ": ", &savePointer);
+        char *formatter = strtok_r(NULL, ": ", &savePointer);
+        argFormatterTokenCopy = savePointer;
+        if (!envVarName || !formatter) break;
+        const char *envVarValue = getenv(envVarName);
+        if (!envVarValue) break;
+        currentArg = va_arg(args, argStruct *);
+        if (!currentArg -> hasValue) {
+            sscanf(envVarValue, formatter, currentArg -> value);
+            currentArg -> hasValue = 1;
+        }
+    }
+    va_end(args);
+    free(argFormatterTokenAllocation);
+}
+
 //  Call this before any other argument setter functions. 
 //  This accepts the argument count and vector, a set of flags, and a series of functions to call corresponding with each flag.
 //  If one of these functions is called, the program will terminate.
