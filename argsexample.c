@@ -12,17 +12,16 @@ void help2(void) {
 
 int main(const int argc, char *argv[]) { // Example code
     libcargInit(argc, argv);
-    setUsageMessage("USAGE: %s [number] [number] [string] -n [number] -t [string] <-b|c> <--xarg> <-ff [string]> <-z [float]>", basename(argv[0]));
 
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
     basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);
-    basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS);
+    basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n");
     adjustArgumentCursor(&intArg, &globalIntArgValue);
-    basicArgInit(int, keywordIntArg, NO_DEFAULT_VALUE, NO_FLAGS);
-    basicArgInit(float, floatArg, 0.5f, NO_FLAGS);
-    basicArgInit(bool, boolArg1, 0, BOOLEAN_ARG);
-    basicArgInit(bool, boolArg2, 1, BOOLEAN_ARG);
-    basicArgInit(bool, boolArg3, 0, BOOLEAN_ARG);
+    basicArgInit(int, keywordIntArg, NO_DEFAULT_VALUE, NO_FLAGS, "-k");
+    basicArgInit(float, floatArg, 0.5f, NO_FLAGS, "-z");
+    basicArgInit(bool, boolArg1, 0, BOOLEAN_ARG, "-b");
+    basicArgInit(bool, boolArg2, 1, BOOLEAN_ARG, "-c");
+    basicArgInit(bool, boolArg3, 0, BOOLEAN_ARG, "--xarg");
 
     basicArgInit(bool, thing1, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing2, 0, BOOLEAN_ARG);
@@ -53,10 +52,10 @@ int main(const int argc, char *argv[]) { // Example code
             // thing6 -> thing7
             // thing6 -> thing8
 
-    heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100 * sizeof(char)); // Heap string.
+    heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100 * sizeof(char), "-t|--term"); // Heap string.
     heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
-    argInit(char, stringArg2, [100], "default", NO_FLAGS); // Stack string.
-
+    argInit(char, stringArg2, [100], "default", NO_FLAGS, "-ff"); // Stack string.
+    usageMessageAutoGenerate();
     argumentOverrideCallbacks("-h -h2", &help, &help2);
     setFlagsFromNestedArgs(2, &thing1, &thing3);
     setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
@@ -81,5 +80,6 @@ int main(const int argc, char *argv[]) { // Example code
     printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d, thing8: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value);
     free(stringArgValue); // Free heap strings.
     free(namelessStringArgValue);
+    libcargTerminate();
     return 0;
 }

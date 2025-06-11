@@ -25,15 +25,28 @@ typedef struct argStruct {
     int flags;
     char *nestedArgString;
     const char * const type;
+    const char * const usageString;
     int nestedArgFillIndex;
     struct argStruct *parentArg;
     struct argStruct *nestedArgs[MAX_ARG_NESTING];
 } argStruct;
 
+typedef struct argArray {
+    int fillIndex;
+    argStruct **array;
+} argArray;
+
 typedef void(*voidFuncPtr)(void); // Some syntax highlighters don't like seeing function pointer parentheses in a macro.
 
-void usage(void);
+void _usageDefault(void);
+
+//  Prints the usage message.
+void (*usage)(void) = _usageDefault;
+
 char *contains(char *, const char *);
+
+char *basename(char *);
+
 int charInString(const char *, char);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -43,6 +56,8 @@ int charInString(const char *, char);
 int argCount = 1;
 
 char **argVector = NULL;
+
+argArray allArgs = (argArray) {.fillIndex = -1, .array = NULL};
 
 int namelessArgCount = 0;
 
@@ -74,17 +89,19 @@ uint64_t libcargInternalFlags = 0;
 
 #define ASSERTIONS_SET (1ULL<<5ULL)
 
+#define USAGE_MESSAGE_SET (1ULL<<6ULL)
+
 //  Internal Argument Flags. (These should be set by functions and not the user.)
-#define HEAP_ALLOCATED (1ULL<<2ULL)
+#define HEAP_ALLOCATED (1ULL<<0ULL)
 
-#define NESTED_ARG (1ULL<<3ULL)
+#define NESTED_ARG (1ULL<<1ULL)
 
-#define NESTED_ARG_ROOT (1ULL<<4ULL)
+#define NESTED_ARG_ROOT (1ULL<<2ULL)
 
 //  Argument Flags. (These should be set by the user.)
-#define NAMELESS_ARG (1ULL<<0ULL)
+#define NAMELESS_ARG (1ULL<<3ULL)
 
-#define BOOLEAN_ARG (1ULL<<1ULL)
+#define BOOLEAN_ARG (1ULL<<4ULL)
 
 #define ENFORCE_NESTING_ORDER (1ULL<5ULL)
 
@@ -112,6 +129,20 @@ uint64_t libcargInternalFlags = 0;
 
 // For use in argAssert.
 #define USAGE_MESSAGE NULL
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  SECTION: Internal Macros
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#define VA_ARG_1(arg1, ...) arg1
+
+#define VA_ARG_2(arg1, arg2 ...) arg2
+
+#define EXPAND(x) x
+
+#define EXPAND_R(x) EXPAND(x)
+
+#define TOKEN_TO_STRING(x) #x
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
@@ -147,6 +178,12 @@ int isFlag(const char *formatter, const char *toCheck) {
     }
     free(internalFormatterAllocation);
     return 0;
+}
+
+//  Prints the usage message.
+void _usageDefault(void) {
+    printf("%s\n", usageString);
+    exit(0);
 }
 
 //  Fetches how many arguments are expected based on string formatter tokenization.
@@ -226,6 +263,44 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
     return 0;
 }
 
+void _printAllNamelessArgs(void) {
+    for (int i=0; i<=allArgs.fillIndex; i++) {
+        if (!hasFlag(allArgs.array[i] -> flags, NAMELESS_ARG)) continue;
+        if (allArgs.array[i] -> usageString[0]) printf("%s ", allArgs.array[i]->usageString);
+        else if (allArgs.array[i] -> nestedArgString[0]) printf("%s ", allArgs.array[i]->nestedArgString);
+        printf("%s ",allArgs.array[i]->type);
+    }
+}
+
+void _printAllNonNamelessArgs(void) {
+    for (int i=0; i<=allArgs.fillIndex; i++) {
+        if (hasFlag(allArgs.array[i] -> flags, NAMELESS_ARG)) continue;
+        if (hasFlag(allArgs.array[i] -> flags, BOOLEAN_ARG) && !allArgs.array[i] -> nestedArgString[0]) {
+            printf("%s ", allArgs.array[i]->usageString);
+        } else if (allArgs.array[i] -> usageString[0]) {
+            printf("%s ", allArgs.array[i]->usageString);
+            printf("%s ",allArgs.array[i]->type);
+        }
+        else if (allArgs.array[i] -> nestedArgString[0]) {
+            if (hasFlag(allArgs.array[i] -> flags, NESTED_ARG_ROOT)) printf("%s ", allArgs.array[i]->nestedArgString);
+        } else {
+            printf("%s ",allArgs.array[i]->type);
+        }
+    }
+}
+
+void _printAllArgs(void) {
+    _printAllNamelessArgs();
+    _printAllNonNamelessArgs();
+    printf("\n");
+}
+
+void _usageAutoGen(void) {
+    printf("Usage: %s ", basename(argVector[0]));
+    _printAllArgs();
+    exit(0);
+}
+
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: User-Facing Functions and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -267,14 +342,13 @@ char *basename(char * const filePath) {
     return filePath + (valueCursor - returnArithmetic);
 }
 
-//  Prints the usage message.
-void usage() {
-    printf("%s\n", usageString);
-    exit(0);
-}
-
 //  This function uses a string formatter to generate a usage message to be used when usage() is called.
 #define setUsageMessage(...) do { \
+    if (hasFlag(libcargInternalFlags, USAGE_MESSAGE_SET)) {\
+        printf("Error: usage message set by user twice. Please fix this!\n");\
+        exit(0);\
+    }\
+    setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);\
     snprintf(usageString, 1023, __VA_ARGS__);\
     usageString[1023] = '\0';\
 } while (0)
@@ -290,6 +364,7 @@ void libcargInit(const int argc, char **argv){
 //  Note that when doing so, the name arg1 means a struct that contains an array of 100 char **.
 //  The value can later be accessed via the name arg1Value. This is achieved with token pasting.
 //  For variables with basic types, they can be declared with basicArgInit(type, name, value) instead.
+//  Finally, a variadic string argument may be passed to this macro to set a usage string with the usageMesasgeAutoGenerate() function.
 #define argInit(leftType, varName, rightType, val, flagsArg, ...)\
     leftType varName##Value rightType = val;\
     argStruct varName = (argStruct) {\
@@ -297,27 +372,47 @@ void libcargInit(const int argc, char **argv){
             .hasValue = 0,\
             .flags = flagsArg,\
             .argvIndexFound = -1,\
-            .nestedArgString = NULL,\
+            .nestedArgString = "",\
             .nestedArgFillIndex = -1,\
+            .usageString = "" VA_ARG_1(__VA_ARGS__),\
             .parentArg = NULL,\
             .nestedArgs = {0},\
-            .type = #leftType #rightType\
+            .type = "<" TOKEN_TO_STRING(leftType) TOKEN_TO_STRING(rightType) ">"\
     };\
-    if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;
+    if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;\
+    if (allArgs.array) {\
+        void *argArrayReallocation = realloc(allArgs.array, (++allArgs.fillIndex + 1) * sizeof(argStruct *));\
+        if (!argArrayReallocation) {\
+            printf("Heap allocation failure. Terminating\n");\
+            free(allArgs.array);\
+            exit(0);\
+        }\
+        allArgs.array = (argStruct **)argArrayReallocation;\
+        allArgs.array[allArgs.fillIndex] = &varName;\
+    } else {\
+        allArgs.array = (argStruct **)malloc(sizeof(argStruct *));\
+        if (!allArgs.array) {\
+            printf("Heap allocation failure. Terminating\n");\
+            exit(0);\
+        }\
+        allArgs.array[0] = &varName;\
+        allArgs.fillIndex++;\
+    }
+
 
 //  This macro is for initializing arguments which point to heap-allocated memory.
 //  Make sure to free the pointer in the varName##Value variable when finished using this argument.
 //  Keep in mind that heap-allocated arguments cannot be directly initialized with a default value in this macro.
-#define heapArgInit(leftType, varName, rightType, flagsArg, size)\
-    argInit(leftType, varName, rightType, NO_DEFAULT_VALUE, flagsArg | HEAP_ALLOCATED)\
+#define heapArgInit(leftType, varName, rightType, flagsArg, size, ...)\
+    argInit(leftType, varName, rightType, NO_DEFAULT_VALUE, flagsArg | HEAP_ALLOCATED, __VA_ARGS__)\
     void *varName##Ptr = malloc(size);\
     memset(varName##Ptr, 0, size);\
     varName##Value = varName##Ptr;\
     varName.value = varName##Ptr;
 
 //  A wrapper for argInit().
-#define basicArgInit(type, varName, value, flagsArg)\
-    argInit(type, varName, NONE, value, flagsArg)
+#define basicArgInit(type, varName, value, flagsArg, ...)\
+    argInit(type, varName, NONE, value, flagsArg, __VA_ARGS__)
 
 //  Changes where the value of an argument is saved to. Ensure the readjusted pointer is of the correct type.
 //  This is useful for saving an argument value in a global variable.
@@ -431,6 +526,7 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
     argToNest -> nestedArgString = nestedArgString;
     argToNest -> flags = nestIn -> flags;
     setFlag(argToNest -> flags, NESTED_ARG);
+    clearFlag(argToNest -> flags, NESTED_ARG_ROOT);
     nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
     argToNest -> parentArg = nestIn;
     return argToNest;
@@ -547,4 +643,19 @@ void argAssert(const int assertionCount, ...) {
     if (exitFlag) exit(0);
     va_end(args);
     setFlag(libcargInternalFlags, ASSERTIONS_SET);
+}
+
+//  Generates a usage message automatically based on data entered to argument constructors. Make sure to call this after all arguments have been initialized.
+//  setUsageMessage() should not be used alongside this function, otherwise it would obfuscate the generated usage message generated here.
+void usageMessageAutoGenerate(void) {
+    if (hasFlag(libcargInternalFlags, USAGE_MESSAGE_SET)) {\
+        printf("Error: usage message set by user twice. Please fix this!\n");\
+        exit(0);\
+    }\
+    setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);\
+    usage = _usageAutoGen;
+}
+
+void libcargTerminate(void) {
+    if (allArgs.array) free(allArgs.array);
 }
