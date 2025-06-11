@@ -226,13 +226,16 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
             if (!currentArg) return;
             flagCopierPointer = currentArg -> value;
             if (!flagCopierPointer) return;
-            currentArg -> hasValue = 1;
             if (compareFlag(formatterItem, "bool")) {
                 assert(((void)"Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.",
                         hasFlag(currentArg -> flags, BOOLEAN_ARG)));
                 *(bool *)flagCopierPointer = !*(bool *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
+                currentArg -> hasValue = 1;
             } else {
-                sscanf(formatItemToCopy, formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
+                currentArg -> hasValue = sscanf(formatItemToCopy, formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
+                if (!currentArg -> hasValue) {
+                    usage();
+                }
             }
             currentArg -> argvIndexFound = argIndex;
             break;
@@ -265,6 +268,7 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
 
 void _printAllNamelessArgs(void) {
     for (int i=0; i<=allArgs.fillIndex; i++) {
+        if (!allArgs.array[i]) break;
         if (!hasFlag(allArgs.array[i] -> flags, NAMELESS_ARG)) continue;
         if (allArgs.array[i] -> usageString[0]) printf("%s ", allArgs.array[i]->usageString);
         else if (allArgs.array[i] -> nestedArgString[0]) printf("%s ", allArgs.array[i]->nestedArgString);
@@ -274,15 +278,21 @@ void _printAllNamelessArgs(void) {
 
 void _printAllNonNamelessArgs(void) {
     for (int i=0; i<=allArgs.fillIndex; i++) {
+        if (hasFlag(allArgs.array[i] -> flags, BOOLEAN_ARG && allArgs.array[i] -> usageString[0])) printf("%s ", allArgs.array[i]->usageString);
+    }
+    for (int i=0; i<=allArgs.fillIndex; i++) {
+        if (hasFlag(allArgs.array[i] -> flags, NESTED_ARG_ROOT)) printf("%s ", allArgs.array[i]->nestedArgString);
+    }
+    for (int i=0; i<=allArgs.fillIndex; i++) {
         if (hasFlag(allArgs.array[i] -> flags, NAMELESS_ARG)) continue;
         if (hasFlag(allArgs.array[i] -> flags, BOOLEAN_ARG) && !allArgs.array[i] -> nestedArgString[0]) {
-            printf("%s ", allArgs.array[i]->usageString);
-        } else if (allArgs.array[i] -> usageString[0]) {
+            continue;
+        }
+        if (allArgs.array[i] -> usageString[0]) {
             printf("%s ", allArgs.array[i]->usageString);
             printf("%s ",allArgs.array[i]->type);
         }
         else if (allArgs.array[i] -> nestedArgString[0]) {
-            if (hasFlag(allArgs.array[i] -> flags, NESTED_ARG_ROOT)) printf("%s ", allArgs.array[i]->nestedArgString);
         } else {
             printf("%s ",allArgs.array[i]->type);
         }
@@ -461,9 +471,11 @@ void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
         internalFormatter = savePointer;
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         flagCopierPointer = currentArg -> value;
-        currentArg -> hasValue = 1;
+        currentArg -> hasValue = sscanf(argVector[i], currentFormatter, flagCopierPointer);
+        if (!currentArg -> hasValue) {
+            usage();
+        }
         currentArg -> argvIndexFound = i;
-        sscanf(argVector[i], currentFormatter, flagCopierPointer);
     }
     free(internalFormatterAllocation);
     va_end(formatterArgs);
@@ -603,8 +615,10 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
         if (!envVarValue) break;
         currentArg = va_arg(args, argStruct *);
         if (!currentArg -> hasValue) {
-            sscanf(envVarValue, formatter, currentArg -> value);
-            currentArg -> hasValue = 1;
+            currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> value);
+        }
+        if (!currentArg -> hasValue) {
+            usage();
         }
     }
     va_end(args);
@@ -655,20 +669,18 @@ void argAssert(const int assertionCount, ...) {
     }
     va_list args;                         
     va_start(args, assertionCount);
-    int exitFlag = 0;
     for (int i=0; i<assertionCount; i++) {
         const int expression = va_arg(args, int);
         char *message = va_arg(args, char *);
         if (!expression) {
             if (message) {
                 printf("%s\n", message);
-                exitFlag = 1;
-            } else {
-                usage();
+                exit(0);
             }
+            va_end(args);
+            usage();
         }
     }
-    if (exitFlag) exit(0);
     va_end(args);
     setFlag(libcargInternalFlags, ASSERTIONS_SET);
 }

@@ -189,8 +189,8 @@ usage message should be set before running any assertions.
 
 #### libcargTerminate()
 This function will clean up heap allocations this library uses to parse and set arguments, particularly for automatic 
-usage message generation. This should be called after all arguments have been set and after automatic usage message 
-generation, or at the end of the program's runtime. It can be called before or after assertions, however.
+usage message generation. This should be called after all arguments have been set and after any usage message can be 
+generated or printed, or at the end of the program's runtime. Therefore, it should be called after assertions are made.
 
 ### Argument Initialization
 

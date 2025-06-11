@@ -62,18 +62,17 @@ int main(const int argc, char *argv[]) { // Example code
     argumentOverrideCallbacks("-h -h2", &help, &help2);
     setFlagsFromNestedArgs(2, &thing1, &thing3);
     setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
-    setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20[^\n] -ff:%999s -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
+    setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
     setDefaultFlagsFromEnv("OS:%[^\n] PATH:%7s", &stringArg2, &stringArg);
-    libcargTerminate();
 
     //  Assertion, previews, and termination
     argAssert(5,
-        intArgValue > -1, "Int 1 must be at least 0",
+        globalIntArgValue > -1, "-n arg must be greater than or equal to 0",
         REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
-        MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "Booleans -b and --xarg can't be toggled at the same time",
+        MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "-b and --xarg cannot be toggled at the same time",
         MUTUALLY_REQUIRED(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
-        namelessArgValue > 0, "Nameless int 1 must be positive"
+        namelessArgValue > 0, "First argument must be positive"
     );
     printf("Basic arguments - nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
         namelessArgCount, namelessArgValue, namelessArg2Value,
@@ -86,6 +85,6 @@ int main(const int argc, char *argv[]) { // Example code
     printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d, thing8: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value);
     free(stringArgValue); // Free heap strings.
     free(namelessStringArgValue);
-
+    libcargTerminate();
     return 0;
 }
