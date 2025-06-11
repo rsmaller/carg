@@ -187,12 +187,28 @@ This function will automatically generate a usage message based on initialized a
 after all arguments have been initialized, and it should not be called alongside `setUsageMessage()`. Furthermore, the
 usage message should be set before running any assertions.
 
+This function works by combining the usage string set via `argInit()` variadic arguments with the auto-generated type 
+string of the argument, which may be something like `<int>` or `<char *>`. It displays nameless arguments first, then 
+boolean arguments, nested argument roots, then named arguments. Keep in mind that only nested argument roots will be 
+shown in the usage message to avoid clutter; non-root nested arguments are not shown in the usage message.
+
+For example, calling `basicArgInit()` as follows:
+
+```
+basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n");
+```
+
+Will add `-n <int>` to the usage message.
+
 #### libcargTerminate()
 This function will clean up heap allocations this library uses to parse and set arguments, particularly for automatic 
 usage message generation. This should be called after all arguments have been set and after any usage message can be 
 generated or printed, or at the end of the program's runtime. Therefore, it should be called after assertions are made.
 
 ### Argument Initialization
+
+- As a short side note, all initialized arguments accept a variadic argument for a usage string. It is most helpful to 
+put the expected flag both here and in the setter functions. This argument is not required, however. 
 
 #### argInit()
 This function-style macro initializes an argument via a variable where the result goes and a struct which contains a 
