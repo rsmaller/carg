@@ -199,6 +199,7 @@ int _getArgCountFromFormatter(char *argFormatter) {
 //  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
 void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_list outerArgs) {
+    if (isFlag(argFormatter, argVector[argIndex]) && argIndex == argCount - 1) usage();
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
     char *internalFormatter = strdup(argFormatter);
@@ -612,7 +613,7 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
         argFormatterTokenCopy = savePointer;
         if (!envVarName || !formatter) break;
         const char *envVarValue = getenv(envVarName);
-        if (!envVarValue) break;
+        if (!envVarValue) continue;
         currentArg = va_arg(args, argStruct *);
         if (!currentArg -> hasValue) {
             currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> value);
