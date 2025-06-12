@@ -227,6 +227,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
             if (!currentArg) return;
             flagCopierPointer = currentArg -> value;
             if (!flagCopierPointer) return;
+            if (currentArg -> hasValue) usage();
             if (compareFlag(formatterItem, "bool")) {
                 assert(((void)"Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.",
                         hasFlag(currentArg -> flags, BOOLEAN_ARG)));
@@ -451,7 +452,7 @@ void setFlagsFromNamedArgs(const char * const argFormatter, ...) {
     setFlag(libcargInternalFlags, NAMED_ARGS_SET);
 }
 
-//  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().
+//  This sets values for nameless arguments in mostly the same formats as setFlagsFromNamedArgs().
 //  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
 void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
     if (hasFlag(libcargInternalFlags, NAMELESS_ARGS_SET)) {
@@ -611,10 +612,10 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
         char *envVarName = strtok_r(argFormatterTokenCopy, ": ", &savePointer);
         char *formatter = strtok_r(NULL, ": ", &savePointer);
         argFormatterTokenCopy = savePointer;
+        currentArg = va_arg(args, argStruct *);
         if (!envVarName || !formatter) break;
         const char *envVarValue = getenv(envVarName);
         if (!envVarValue) continue;
-        currentArg = va_arg(args, argStruct *);
         if (!currentArg -> hasValue) {
             currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> value);
         }
