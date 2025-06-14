@@ -27,8 +27,8 @@ To enforce that an argument must be given a value, see `argAssert()` below.
 `argInit()`, `basicArgInit()` and `heapArgInit()` will create a struct from the variable name entered into them.
 Keep in mind the resulting struct uses a void pointer to reference the variable where the argument data will be stored.
 To access the data the user entered, add "Value" to the end of the struct's name.
-For arguments initialized with `heapArgInit()`, the "Value" variable contains the pointer to the heap-allocated memory
-and should be freed when it is no longer needed.
+For arguments initialized with `heapArgInit()`, the "Value" variable contains a pointer to the heap-allocated memory.
+This pointer will be freed automatically via `libcargTerminate()`.
 For example, when declaring an int argument via:
 
 ```

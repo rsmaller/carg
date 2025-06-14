@@ -18,6 +18,8 @@
 
 #define MAX_ARG_NESTING 256
 
+#define MAX_FORMATTER_SIZE 128
+
 typedef struct argStruct {
     void *value;
     bool hasValue;
@@ -26,6 +28,7 @@ typedef struct argStruct {
     char *nestedArgString;
     const char * const type;
     const char * const usageString;
+    char formatterUsed[MAX_FORMATTER_SIZE];
     int nestedArgFillIndex;
     struct argStruct *parentArg;
     struct argStruct *nestedArgs[MAX_ARG_NESTING];
@@ -116,7 +119,7 @@ uint64_t libcargInternalFlags = 0;
 
 #define BOOLEAN_ARG (1ULL<<4ULL)
 
-#define ENFORCE_NESTING_ORDER (1ULL<5ULL)
+#define ENFORCE_NESTING_ORDER (1ULL<<5ULL)
 
 //  Getters and Setters.
 #define hasFlag(item, flag) (item & flag)
@@ -286,6 +289,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
                 }
             }
             currentArg -> argvIndexFound = argIndex;
+            if (formatterItem) strncpy(currentArg -> formatterUsed, formatterItem, MAX_FORMATTER_SIZE - 1);
             break;
         }
     }
@@ -445,6 +449,7 @@ void libcargInit(const int argc, char **argv){
             .argvIndexFound = -1,\
             .nestedArgString = "",\
             .nestedArgFillIndex = -1,\
+            .formatterUsed = {0},\
             .usageString = "" VA_ARG_1(__VA_ARGS__),\
             .parentArg = NULL,\
             .nestedArgs = {0},\
@@ -546,6 +551,9 @@ void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
             usage();
         }
         currentArg -> argvIndexFound = i;
+        if (currentFormatter) {
+            strncpy(currentArg -> formatterUsed, currentFormatter, MAX_FORMATTER_SIZE - 1);
+        }
     }
     free(internalFormatterAllocation);
     va_end(formatterArgs);
@@ -695,6 +703,7 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
         if (!currentArg -> hasValue) {
             usage();
         }
+        strncpy(currentArg -> formatterUsed, formatter, MAX_FORMATTER_SIZE - 1);
     }
     va_end(args);
     free(argFormatterTokenAllocation);
@@ -760,7 +769,16 @@ void argAssert(const int assertionCount, ...) {
     setFlag(libcargInternalFlags, ASSERTIONS_SET);
 }
 
+//  This function will clear all heap allocations this library uses, including heap-allocated arguments.
+//  Call this after arguments have been fully parsed to avoid memory leaks.
 void libcargTerminate(void) {
-    if (allArgs.array) free(allArgs.array);
+    if (allArgs.array) {
+        for (int i=0; i<=allArgs.fillIndex; i++) {
+            if (allArgs.array[i] -> value && hasFlag(allArgs.array[i] -> flags, HEAP_ALLOCATED)) {
+                free(allArgs.array[i] -> value);
+            }
+        }
+        free(allArgs.array);
+    }
     if (setArgs) free(setArgs);
 }

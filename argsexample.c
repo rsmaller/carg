@@ -83,8 +83,6 @@ int main(const int argc, char *argv[]) { // Example code
         boolArg1Value, boolArg1.argvIndexFound, boolArg2Value, boolArg2.argvIndexFound,
         boolArg3Value, boolArg3.argvIndexFound);
     printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d, thing8: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value);
-    free(stringArgValue); // Free heap strings.
-    free(namelessStringArgValue);
     libcargTerminate();
     return 0;
 }
