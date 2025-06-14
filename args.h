@@ -38,10 +38,15 @@ typedef struct argArray {
 
 typedef void(*voidFuncPtr)(void); // Some syntax highlighters don't like seeing function pointer parentheses in a macro.
 
+//  Prints the usage message.
 void _usageDefault(void);
 
-//  Prints the usage message.
-void (*usage)(void) = _usageDefault;
+void (*usagePointer)(void) = _usageDefault;
+
+void usage(void) {
+    usagePointer();
+    exit(0);
+}
 
 char *contains(char *, const char *);
 
@@ -53,6 +58,8 @@ int charInString(const char *, char);
 //  SECTION: Global Variables and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+#define usageStringSize 2048U
+
 int argCount = 1;
 
 char **argVector = NULL;
@@ -61,7 +68,11 @@ argArray allArgs = (argArray) {.fillIndex = -1, .array = NULL};
 
 int namelessArgCount = 0;
 
-char usageString[1024] = "Please specify a usage message in your client code.";
+char usageString[usageStringSize] = "Please specify a usage message in your client code. You can do this via setUsageMessage() or usageMessageAutoGenerate().";
+
+char *usageStringCursor = usageString; // The default usage message should be immediately overwritten when a usage message setter is called.
+
+char *usageStringEnd = usageString + usageStringSize;
 
 uint64_t libcargInternalFlags = 0;
 
@@ -180,10 +191,42 @@ int isFlag(const char *formatter, const char *toCheck) {
     return 0;
 }
 
+//  This function will return the number of characters that would be written from a series of string formatters.
+//  However, it will not write to anything.
+int test_printf(char *formatter, ...) {
+    va_list args;
+    va_start(args, formatter);
+    const int returnValue = vsnprintf(NULL, 0, formatter, args);
+    va_end(args);
+    return returnValue;
+}
+
+//  This function will return the number of characters that would be written from a series of string formatters.
+int test_vsnprintf(const char *formatter, const va_list args) {
+    const int returnValue = vsnprintf(NULL, 0, formatter, args);
+    return returnValue;
+}
+
+//  This function keeps track of a start and end pointer of a string. The end pointer of the string should be the start
+//  of the string plus the size of the string, or in other words, the index right after the expected location of the
+//  null terminator in a string.
+int secure_sprintf(char *startPointer, char *endPointer, char **cursor, char *formatter, ...) {
+    va_list args;
+    va_start(args, formatter);
+    const int returnValue = vsnprintf(startPointer, endPointer - startPointer, formatter, args);
+    if (*cursor + returnValue > endPointer) {
+        *cursor = endPointer;
+    } else {
+        *cursor += returnValue;
+    }
+    *(endPointer - 1) = '\0';
+    va_end(args);
+    return returnValue;
+}
+
 //  Prints the usage message.
 void _usageDefault(void) {
     printf("%s\n", usageString);
-    exit(0);
 }
 
 //  Fetches how many arguments are expected based on string formatter tokenization.
@@ -199,7 +242,6 @@ int _getArgCountFromFormatter(char *argFormatter) {
 //  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
 void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_list outerArgs) {
-    if (isFlag(argFormatter, argVector[argIndex]) && argIndex == argCount - 1) usage();
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
     char *internalFormatter = strdup(argFormatter);
@@ -227,7 +269,6 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
             if (!currentArg) return;
             flagCopierPointer = currentArg -> value;
             if (!flagCopierPointer) return;
-            if (currentArg -> hasValue) usage();
             if (compareFlag(formatterItem, "bool")) {
                 assert(((void)"Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.",
                         hasFlag(currentArg -> flags, BOOLEAN_ARG)));
@@ -268,22 +309,22 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
     return 0;
 }
 
-void _printAllNamelessArgs(void) {
+void _printAllNamelessArgsToUsageBuffer(void) {
     for (int i=0; i<=allArgs.fillIndex; i++) {
         if (!allArgs.array[i]) break;
         if (!hasFlag(allArgs.array[i] -> flags, NAMELESS_ARG)) continue;
-        if (allArgs.array[i] -> usageString[0]) printf("%s ", allArgs.array[i]->usageString);
-        else if (allArgs.array[i] -> nestedArgString[0]) printf("%s ", allArgs.array[i]->nestedArgString);
-        printf("%s ",allArgs.array[i]->type);
+        if (allArgs.array[i] -> usageString[0]) secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ", allArgs.array[i]->usageString);
+        else if (allArgs.array[i] -> nestedArgString[0]) secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ", allArgs.array[i]->nestedArgString);
+        secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ",allArgs.array[i]->type);
     }
 }
 
-void _printAllNonNamelessArgs(void) {
+void _printAllNonNamelessArgsToUsageBuffer(void) {
     for (int i=0; i<=allArgs.fillIndex; i++) {
-        if (hasFlag(allArgs.array[i] -> flags, BOOLEAN_ARG && allArgs.array[i] -> usageString[0])) printf("%s ", allArgs.array[i]->usageString);
+        if (hasFlag(allArgs.array[i] -> flags, BOOLEAN_ARG && allArgs.array[i] -> usageString[0])) secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ", allArgs.array[i]->usageString);
     }
     for (int i=0; i<=allArgs.fillIndex; i++) {
-        if (hasFlag(allArgs.array[i] -> flags, NESTED_ARG_ROOT)) printf("%s ", allArgs.array[i]->nestedArgString);
+        if (hasFlag(allArgs.array[i] -> flags, NESTED_ARG_ROOT)) secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ", allArgs.array[i]->nestedArgString);
     }
     for (int i=0; i<=allArgs.fillIndex; i++) {
         if (hasFlag(allArgs.array[i] -> flags, NAMELESS_ARG)) continue;
@@ -291,26 +332,14 @@ void _printAllNonNamelessArgs(void) {
             continue;
         }
         if (allArgs.array[i] -> usageString[0]) {
-            printf("%s ", allArgs.array[i]->usageString);
-            printf("%s ",allArgs.array[i]->type);
+            secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ", allArgs.array[i]->usageString);
+            secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ",allArgs.array[i]->type);
         }
         else if (allArgs.array[i] -> nestedArgString[0]) {
         } else {
-            printf("%s ",allArgs.array[i]->type);
+            secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ",allArgs.array[i]->type);
         }
     }
-}
-
-void _printAllArgs(void) {
-    _printAllNamelessArgs();
-    _printAllNonNamelessArgs();
-    printf("\n");
-}
-
-void _usageAutoGen(void) {
-    printf("Usage: %s ", basename(argVector[0]));
-    _printAllArgs();
-    exit(0);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -360,10 +389,33 @@ char *basename(char * const filePath) {
         printf("Error: usage message set by user twice. Please fix this!\n");\
         exit(0);\
     }\
+    secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, __VA_ARGS__);\
     setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);\
-    snprintf(usageString, 1023, __VA_ARGS__);\
-    usageString[1023] = '\0';\
 } while (0)
+
+//  Generates a usage message automatically based on data entered to argument constructors. Make sure to call this after all arguments have been initialized.
+//  setUsageMessage() should not be used alongside this function, otherwise it would obfuscate the generated usage message generated here.
+void usageMessageAutoGenerate(void) {
+    if (hasFlag(libcargInternalFlags, USAGE_MESSAGE_SET)) {
+        printf("Error: usage message set by user twice. Please fix this!\n");
+        exit(0);
+    }
+    secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s%s ", "Usage: ", basename(argVector[0]));
+    _printAllNamelessArgsToUsageBuffer();
+    _printAllNonNamelessArgsToUsageBuffer();
+    setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);
+}
+
+//  This function will set a function to call for the usage message. This function is implemented for versatility.
+//  However, using it is not recommended unless there is some requisite functionality to the client code which the usage message generation in this library does not provide.
+void setUsageFunction(void (*funcArg)(void)) {
+    if (hasFlag(libcargInternalFlags, USAGE_MESSAGE_SET)) {
+        printf("Error: usage message set by user twice. Please fix this!\n");
+        exit(0);
+    }
+    usagePointer = funcArg;
+    setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);
+}
 
 void libcargInit(const int argc, char **argv){
     argCount = argc;
@@ -376,7 +428,7 @@ void libcargInit(const int argc, char **argv){
 //  Note that when doing so, the name arg1 means a struct that contains an array of 100 char **.
 //  The value can later be accessed via the name arg1Value. This is achieved with token pasting.
 //  For variables with basic types, they can be declared with basicArgInit(type, name, value) instead.
-//  Finally, a variadic string argument may be passed to this macro to set a usage string with the usageMesasgeAutoGenerate() function.
+//  Finally, a variadic string argument may be passed to this macro to set a usage string with the usageMessageAutoGenerate() function.
 #define argInit(leftType, varName, rightType, val, flagsArg, ...)\
     leftType varName##Value rightType = val;\
     argStruct varName = (argStruct) {\
@@ -452,7 +504,7 @@ void setFlagsFromNamedArgs(const char * const argFormatter, ...) {
     setFlag(libcargInternalFlags, NAMED_ARGS_SET);
 }
 
-//  This sets values for nameless arguments in mostly the same formats as setFlagsFromNamedArgs().
+//  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().
 //  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
 void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
     if (hasFlag(libcargInternalFlags, NAMELESS_ARGS_SET)) {
@@ -612,10 +664,10 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
         char *envVarName = strtok_r(argFormatterTokenCopy, ": ", &savePointer);
         char *formatter = strtok_r(NULL, ": ", &savePointer);
         argFormatterTokenCopy = savePointer;
-        currentArg = va_arg(args, argStruct *);
         if (!envVarName || !formatter) break;
         const char *envVarValue = getenv(envVarName);
-        if (!envVarValue) continue;
+        if (!envVarValue) break;
+        currentArg = va_arg(args, argStruct *);
         if (!currentArg -> hasValue) {
             currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> value);
         }
@@ -685,17 +737,6 @@ void argAssert(const int assertionCount, ...) {
     }
     va_end(args);
     setFlag(libcargInternalFlags, ASSERTIONS_SET);
-}
-
-//  Generates a usage message automatically based on data entered to argument constructors. Make sure to call this after all arguments have been initialized.
-//  setUsageMessage() should not be used alongside this function, otherwise it would obfuscate the generated usage message generated here.
-void usageMessageAutoGenerate(void) {
-    if (hasFlag(libcargInternalFlags, USAGE_MESSAGE_SET)) {\
-        printf("Error: usage message set by user twice. Please fix this!\n");\
-        exit(0);\
-    }\
-    setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);\
-    usage = _usageAutoGen;
 }
 
 void libcargTerminate(void) {

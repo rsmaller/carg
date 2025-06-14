@@ -182,6 +182,11 @@ This simply prints out the usage message and terminates the program.
 This function-style macro accepts a string formatter and variadic arguments. It uses both of those pieces of information 
 to manually generate and set a usage message for your program.
 
+#### setUsageFunc()
+This function will set a function to use for showing the usage message. If you want a custom usage message, it is 
+recommended to use setUsageMessage() instead, though this function can be used if special functionality is required for 
+your usage messages.
+
 #### usageMessageAutoGenerate()
 This function will automatically generate a usage message based on initialized arguments. As such, it should be called 
 after all arguments have been initialized, and it should not be called alongside `setUsageMessage()`. Furthermore, the
@@ -189,7 +194,7 @@ usage message should be set before running any assertions.
 
 This function works by combining the usage string set via `argInit()` variadic arguments with the auto-generated type 
 string of the argument, which may be something like `<int>` or `<char *>`. It displays nameless arguments first, then 
-boolean arguments, nested argument roots, then named arguments. Keep in mind that only nested argument roots will be 
+boolean arguments, nested argument roots, then named arguments. Keep in mind that *only* nested argument roots will be 
 shown in the usage message to avoid clutter; non-root nested arguments are not shown in the usage message.
 
 For example, calling `basicArgInit()` as follows:
