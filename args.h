@@ -216,6 +216,7 @@ int test_vsnprintf(const char *formatter, const va_list args) {
 //  of the string plus the size of the string, or in other words, the index right after the expected location of the
 //  null terminator in a string.
 int secure_sprintf(char *startPointer, char *endPointer, char **cursor, char *formatter, ...) {
+    if (startPointer > endPointer) return 0;
     va_list args;
     va_start(args, formatter);
     const int returnValue = vsnprintf(startPointer, endPointer - startPointer, formatter, args);
@@ -281,6 +282,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
                 currentArg -> hasValue = 1;
                 setArgs[argIndex] = currentArg -> hasValue;
             } else {
+                if (argIndex >= argCount - 1) usage();
                 currentArg -> hasValue = sscanf(formatItemToCopy, formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
                 setArgs[argIndex] = currentArg -> hasValue;
                 setArgs[argIndex + 1] = currentArg -> hasValue;
