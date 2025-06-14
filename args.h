@@ -244,6 +244,7 @@ int _getArgCountFromFormatter(char *argFormatter) {
 //  Checks a va_list passed in from setFlagsFromNamedArgs() to set arguments accordingly.
 //  For internal use only.
 void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_list outerArgs) {
+    if (setArgs[argIndex]) return;
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
     char *internalFormatter = strdup(argFormatter);
@@ -257,9 +258,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
         const char *formatterItem = strtok_r(NULL, ": ", &savePointer);
         internalFormatter = savePointer;
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
-        if (!flagItem) {
-            break;
-        }
+        if (!flagItem) break;
         if (charInString(argVector[argIndex], '=') >= 0 && strcmp(formatterItem, "bool")) {
             int ncompare = 0;
             while (argVector[argIndex][ncompare] != '=') ncompare++;
@@ -269,6 +268,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
         }
         if (!strcmp(flagItem, argumentFlagToCompare)) {
             if (!currentArg) return;
+            if (currentArg -> hasValue) usage(); // Duplicate named arguments
             flagCopierPointer = currentArg -> value;
             if (!flagCopierPointer) return;
             if (compareFlag(formatterItem, "bool")) {
@@ -522,6 +522,10 @@ void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
         printf("Error: Nameless args initializer called multiple times. Please fix this!\n");
         exit(0);
     }
+    if (hasFlag(libcargInternalFlags, GROUPED_ARGS_SET)) {
+        printf("Error: Grouped args initializer called before nameless args initializer. Please fix this!\n");
+        exit(0);
+    }
     checkForAssertion();
     if (argCount <= namelessArgCount) usage();
     char *internalFormatter = strdup(argFormatter);
@@ -632,6 +636,10 @@ argStruct *nestedArgumentInit(argStruct *arg, char *argString, int flagsArg) {
 void setFlagsFromNestedArgs(const int nestedArgumentCount, ...) {
     if (hasFlag(libcargInternalFlags, NESTED_ARGS_SET)) {
         printf("Error: Nested args initializer called multiple times. Please fix this!\n");
+        exit(0);
+    }
+    if (hasFlag(libcargInternalFlags, GROUPED_ARGS_SET)) {
+        printf("Error: Grouped args initializer called before nested args initializer. Please fix this!\n");
         exit(0);
     }
     va_list args;

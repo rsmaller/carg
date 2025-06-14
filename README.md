@@ -280,12 +280,12 @@ For example:
 This function takes in a string, which should be a prefix plus a series of characters, each one representing a boolean
 flag in order. The order of the characters in the string match up to the boolean argument structs passed in to this 
 function. This function gives similar functionality to `getopt()` on UNIX systems because it allows for different
-permutations of flags like -bc, -cb, and -b -c from the command line.
+permutations of flags like `-bc`, `-cb`, and `-b -c` from the command line.
 
 Keep in mind when using this function that it will try to match any arguments which begin with the prefix, '-' in this
 example, that have characters which match those in the boolean grouped flags string. Fortunately, argument vectors which 
 have been grabbed by named arguments will be marked as such and skipped by this function. Therefore, this function must
-be called after named arguments are initialized.
+be called after all other non-default arguments are initialized.
 
 #### setDefaultFlagsFromEnv()
 This function takes in a string with flags and formatters in it, like the other setters in this library. This function
