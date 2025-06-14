@@ -283,10 +283,9 @@ function. This function gives similar functionality to `getopt()` on UNIX system
 permutations of flags like -bc, -cb, and -b -c from the command line.
 
 Keep in mind when using this function that it will try to match any arguments which begin with the prefix, '-' in this
-example, that have characters which match those in the boolean grouped flags string. This function will check to see if 
-the second character in the string is the same as the first, in which case it will not match that argument. It is 
-highly recommended to use a double copy of the prefix (--test) or no prefix at all (test) for keyword arguments you 
-would like to avoid matching to the grouped boolean arguments.
+example, that have characters which match those in the boolean grouped flags string. Fortunately, argument vectors which 
+have been grabbed by named arguments will be marked as such and skipped by this function. Therefore, this function must
+be called after named arguments are initialized.
 
 #### setDefaultFlagsFromEnv()
 This function takes in a string with flags and formatters in it, like the other setters in this library. This function

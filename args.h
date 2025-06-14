@@ -66,6 +66,8 @@ char **argVector = NULL;
 
 argArray allArgs = (argArray) {.fillIndex = -1, .array = NULL};
 
+int *setArgs = NULL;
+
 int namelessArgCount = 0;
 
 char usageString[usageStringSize] = "Please specify a usage message in your client code. You can do this via setUsageMessage() or usageMessageAutoGenerate().";
@@ -274,8 +276,11 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
                         hasFlag(currentArg -> flags, BOOLEAN_ARG)));
                 *(bool *)flagCopierPointer = !*(bool *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
                 currentArg -> hasValue = 1;
+                setArgs[argIndex] = currentArg -> hasValue;
             } else {
                 currentArg -> hasValue = sscanf(formatItemToCopy, formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
+                setArgs[argIndex] = currentArg -> hasValue;
+                setArgs[argIndex + 1] = currentArg -> hasValue;
                 if (!currentArg -> hasValue) {
                     usage();
                 }
@@ -299,6 +304,7 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
         if (!strcmp(arg -> nestedArgString, argVector[i])) {
             *(bool *)arg -> value = !*(bool *)arg -> value;
             arg -> hasValue = 1;
+            setArgs[i] = arg -> hasValue;
             arg -> argvIndexFound = i;
             if (hasFlag(arg -> flags, ENFORCE_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound) {
                 usage();
@@ -420,6 +426,7 @@ void setUsageFunction(void (*funcArg)(void)) {
 void libcargInit(const int argc, char **argv){
     argCount = argc;
     argVector = argv;
+    setArgs = (int *)calloc(argCount, sizeof(int));
 }
 
 //  This macro creates a struct that contains the variable information as well as whether the argument has already been specified or not.
@@ -494,6 +501,10 @@ void setFlagsFromNamedArgs(const char * const argFormatter, ...) {
         printf("Error: Named args initializer called multiple times. Please fix this!\n");
         exit(0);
     }
+    if (hasFlag(libcargInternalFlags, GROUPED_ARGS_SET)) {
+        printf("Error: Grouped args initializer called before named args initializer. Please fix this!\n");
+        exit(0);
+    }
     checkForAssertion();
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
@@ -526,6 +537,7 @@ void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         flagCopierPointer = currentArg -> value;
         currentArg -> hasValue = sscanf(argVector[i], currentFormatter, flagCopierPointer);
+        setArgs[i] = currentArg -> hasValue;
         if (!currentArg -> hasValue) {
             usage();
         }
@@ -557,7 +569,7 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     bool *flagCopierPointer = NULL;
     argStruct* currentArg = NULL;
     for (int i=1; i<argCount; i++) {
-        if (argVector[i][0] != prefixChar || argVector[i][1] == prefixChar) continue;
+        if (argVector[i][0] != prefixChar || setArgs[i]) continue;
         for (int j=0; j<strlen(noPrefixArgFormatter); j++) {
             if (charInString(argVector[i], noPrefixArgFormatter[j]) >= 0) {
                 for (int k=0; k<=j; k++) {
@@ -568,6 +580,7 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
                 va_copy(formatterArgs, formatterArgsSaveCopy);
                 if (flagCopierPointer && currentArg) {
                     currentArg -> hasValue = 1;
+                    setArgs[i] = currentArg -> hasValue;
                     currentArg -> argvIndexFound = i;
                     *flagCopierPointer = !*flagCopierPointer;
                 }
@@ -741,4 +754,5 @@ void argAssert(const int assertionCount, ...) {
 
 void libcargTerminate(void) {
     if (allArgs.array) free(allArgs.array);
+    if (setArgs) free(setArgs);
 }
