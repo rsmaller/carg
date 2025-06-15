@@ -710,7 +710,7 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
             currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> value);
         }
         if (!currentArg -> hasValue) {
-            fprintf(stderr, "Error: unable to grab environment variable %s", envVarName);
+            fprintf(stderr, "Error: unable to grab environment variable %s\n", envVarName);
         }
         strncpy(currentArg -> formatterUsed, formatter, MAX_FORMATTER_SIZE - 1);
     }
