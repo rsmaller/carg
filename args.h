@@ -738,7 +738,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
     for (int i=1; i<argCount; i++) {
         while ((currentFlag = strtok_r(internalFormatter, " ", &savePointer))) {
             internalFormatter = savePointer;
-            functionCursor = va_arg (args, voidFuncPtr);
+            functionCursor = va_arg(args, voidFuncPtr);
             if (compareFlag(currentFlag, argVector[i])) {
                 functionCursor();
                 exit(EXIT_SUCCESS);
