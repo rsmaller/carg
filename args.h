@@ -49,7 +49,7 @@ void (*usagePointer)(void) = _usageDefault;
 
 void usage(void) {
     usagePointer();
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 char *contains(char *, const char *);
@@ -277,8 +277,10 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
             flagCopierPointer = currentArg -> value;
             if (!flagCopierPointer) return;
             if (compareFlag(formatterItem, "bool")) {
-                assert(((void)"Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.",
-                        hasFlag(currentArg -> flags, BOOLEAN_ARG)));
+                if (!hasFlag(currentArg -> flags, BOOLEAN_ARG)) {
+                    fprintf(stderr, "Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.\n");
+                    exit(EXIT_FAILURE);
+                }
                 *(bool *)flagCopierPointer = !*(bool *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
                 currentArg -> hasValue = 1;
                 setArgs[argIndex] = currentArg -> hasValue;
@@ -741,7 +743,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
             functionCursor = va_arg (args, voidFuncPtr);
             if (compareFlag(currentFlag, argVector[i])) {
                 functionCursor();
-                exit(0);
+                exit(EXIT_SUCCESS);
             }
         }
     }
@@ -767,7 +769,7 @@ void argAssert(const int assertionCount, ...) {
         if (!expression) {
             if (message) {
                 printf("%s\n", message);
-                exit(0);
+                exit(EXIT_SUCCESS);
             }
             va_end(args);
             usage();

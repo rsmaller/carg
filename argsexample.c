@@ -74,6 +74,8 @@ int main(const int argc, char *argv[]) { // Example code
         MUTUALLY_REQUIRED(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
         namelessArgValue > 0, "First argument must be positive"
     );
+
+    //  Testing arguments
     printf("Basic arguments - nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
         namelessArgCount, namelessArgValue, namelessArg2Value,
         namelessStringArgValue, globalIntArgValue, intArg.argvIndexFound,
