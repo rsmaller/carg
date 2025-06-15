@@ -387,15 +387,11 @@ int charInString(const char *testString, const char subchar) {
 
 //  Fetches the basename of a file from a path.
 char *basename(char * const filePath) {
-    char *valueToTokenize = strdup(filePath);
-    char *valueCursor = valueToTokenize;
-    char *savePointer = NULL;
-    while (strtok_r(valueCursor, "\\/", &savePointer) && savePointer && *savePointer != '\0') {
-        valueCursor = savePointer;
+    char *result = filePath + strlen(filePath) - 1;
+    while (*result != '/' && *result != '\\') {
+        result--;
     }
-    const char * const returnArithmetic = valueToTokenize; // Prevent IDEs from complaining about using freed pointers in return arithmetic.
-    free(valueToTokenize);
-    return filePath + (valueCursor - returnArithmetic);
+    return ++result;
 }
 
 //  This function uses a string formatter to generate a usage message to be used when usage() is called.
