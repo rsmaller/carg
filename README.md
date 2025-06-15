@@ -4,6 +4,10 @@
 Before using this library, ensure your `main()` function accepts an argc and argv as parameters.
 This library parses those parameters using string formatters and sets variables to their values accordingly.
 
+Because this library uses string formatters, you should only use types that support scanf() formatting.
+For example, there is no formatter for an array of 100 pointers to functions that accept integers and return a character.
+Nor should you expect data remotely resembling that from a user.
+
 ### Setting a Usage Message
 It's likely the first thing you will want to do is declare a usage message for your program.
 The `setUsageMessage()` function allows you to do this; it sets a usage message that caps out at 1023 characters.
@@ -204,6 +208,10 @@ basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n");
 ```
 
 Will add `-n <int>` to the usage message.
+
+#### printOutPointerArgument() and printOutNonPointerArgument()
+These macros both print out an individual argument, though the handling of the values in each argument is different
+for pointer versus non-pointer types. Use the respective macro to fetch data about an argument of any type.
 
 #### libcargTerminate()
 This function will clean up heap allocations this library uses to parse and set arguments, particularly for automatic 

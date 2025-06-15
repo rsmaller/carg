@@ -438,10 +438,10 @@ void libcargInit(const int argc, char **argv){
 
 //  This macro creates a struct that contains the variable information as well as whether the argument has already been specified or not.
 //  It is designed to take the name of a variable which it uses to make a struct containing the variable type.
-//  For example, the variable char **arg1[100] = {0} should be declared as argInit(char **, myInt, [100], {0});
-//  Note that when doing so, the name arg1 means a struct that contains an array of 100 char **.
 //  The value can later be accessed via the name arg1Value. This is achieved with token pasting.
 //  For variables with basic types, they can be declared with basicArgInit(type, name, value) instead.
+//  For any kind of pointer without heap allocation, use pointerArgInit().
+//  For any kind of pointer with heap allocation, use heapArgInit().
 //  Finally, a variadic string argument may be passed to this macro to set a usage string with the usageMessageAutoGenerate() function.
 #define argInit(leftType, varName, rightType, val, flagsArg, ...)\
     leftType varName##Value rightType = val;\
@@ -493,6 +493,10 @@ void libcargInit(const int argc, char **argv){
 //  A wrapper for argInit().
 #define basicArgInit(type, varName, value, flagsArg, ...)\
     argInit(type, varName, NONE, value, flagsArg, __VA_ARGS__)
+
+#define pointerArgInit(leftType, varName, rightType, val, flagsArg, ...)\
+    argInit(leftType, varName, rightType, val, flagsArg, __VA_ARGS__)\
+    varName.value = varName##Value;
 
 //  Changes where the value of an argument is saved to. Ensure the readjusted pointer is of the correct type.
 //  This is useful for saving an argument value in a global variable.
@@ -772,6 +776,41 @@ void argAssert(const int assertionCount, ...) {
     va_end(args);
     setFlag(libcargInternalFlags, ASSERTIONS_SET);
 }
+
+//  Prints out data about a single argument which has a pointer type.
+//  Type information is obfuscated in each argument, so make sure to pass the correct type into this macro.
+#define printOutPointerArgument(argument, typeArg) do {\
+    printf("Argument passed in as %s:\n", (#argument));\
+    printf("\tType: %s\n", (argument) -> type);\
+    printf("\tSize: %llu\n", (argument) -> valueSize);\
+    printf("\tFlags: %d\n", (argument) -> flags);\
+    printf("\tFound At: %d\n", (argument) -> argvIndexFound);\
+    printf("\tHas Value: %d\n", (argument) -> hasValue);\
+    if ((argument) -> usageString[0]) printf("\tUsage String: %s\n", (argument) -> usageString);\
+    printf("\tFormatter Used: %s\n", (argument) -> formatterUsed);\
+    if ((argument) -> nestedArgString[0]) printf("\tNested Argument String: %s\n", (argument) -> nestedArgString);\
+    printf("\tValue: ");\
+    if (!strcmp((argument) -> formatterUsed, "%[^\n]")) printf("%s", (typeArg)(argument) -> value); /* This allows the string scanf() formatter with spaces to work. */\
+    else printf((argument) -> formatterUsed, (typeArg)(argument) -> value);\
+    printf("\n");\
+} while (0)
+
+//  Prints out data about a single argument which has a non-pointer type.
+//  Type information is obfuscated in each argument, so make sure to pass the correct type into this macro.
+#define printOutNonPointerArgument(argument, typeArg) do {\
+    printf("Argument passed in as %s:\n", (#argument));\
+    printf("\tType: %s\n", (argument) -> type);\
+    printf("\tSize: %llu\n", (argument) -> valueSize);\
+    printf("\tFlags: %d\n", (argument) -> flags);\
+    printf("\tFound At: %d\n", (argument) -> argvIndexFound);\
+    printf("\tHas Value: %d\n", (argument) -> hasValue);\
+    if ((argument) -> usageString[0]) printf("\tUsage String: %s\n", (argument) -> usageString);\
+    printf("\tFormatter Used: %s\n", (argument) -> formatterUsed);\
+    if ((argument) -> nestedArgString[0]) printf("\tNested Argument String: %s\n", (argument) -> nestedArgString);\
+    printf("\tValue: ");\
+    printf((argument) -> formatterUsed, *(typeArg *)(argument) -> value);\
+    printf("\n");\
+} while (0)
 
 //  This function will clear all heap allocations this library uses, including heap-allocated arguments.
 //  Call this after arguments have been fully parsed to avoid memory leaks.

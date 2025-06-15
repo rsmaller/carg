@@ -55,11 +55,11 @@ int main(const int argc, char *argv[]) { // Example code
 
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100 * sizeof(char), "-t|--term"); // Heap string.
     heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
-    argInit(char, stringArg2, [1000], "default", NO_FLAGS, "-ff"); // Stack string.
+    pointerArgInit(char, stringArg2, [1000], "default", NO_FLAGS, "-ff"); // Stack string.
     usageMessageAutoGenerate();
 
     //  Argument Setting
-    argumentOverrideCallbacks("-h -h2", &help, &help2);
+    argumentOverrideCallbacks("-h -h2", help, help2);
     setFlagsFromNestedArgs(2, &thing1, &thing3);
     setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
     setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
