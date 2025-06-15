@@ -388,10 +388,13 @@ int charInString(const char *testString, const char subchar) {
 //  Fetches the basename of a file from a path.
 char *basename(char * const filePath) {
     char *result = filePath + strlen(filePath) - 1;
-    while (*result != '/' && *result != '\\') {
+    while (result > filePath && *result != '/' && *result != '\\') {
         result--;
     }
-    return ++result;
+    if (result[0] == '\\' || result[0] == '/') {
+        result++;
+    }
+    return result;
 }
 
 //  This function uses a string formatter to generate a usage message to be used when usage() is called.

@@ -11,7 +11,6 @@ void help2(void) {
 }
 
 int main(const int argc, char *argv[]) { // Example code
-
     //  Argument Initialization
     libcargInit(argc, argv);
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
