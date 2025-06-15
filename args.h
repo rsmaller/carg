@@ -22,6 +22,7 @@
 
 typedef struct argStruct {
     void *value;
+    size_t valueSize;
     bool hasValue;
     int argvIndexFound; // The index where an argument is found. This stores the argv index of the flag, not the value associated with it. Set to -1 when not found.
     int flags;
@@ -450,6 +451,7 @@ void libcargInit(const int argc, char **argv){
             .flags = flagsArg,\
             .argvIndexFound = -1,\
             .nestedArgString = "",\
+            .valueSize = sizeof(varName##Value),\
             .nestedArgFillIndex = -1,\
             .formatterUsed = {0},\
             .usageString = "" VA_ARG_1(__VA_ARGS__),\
