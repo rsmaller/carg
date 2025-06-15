@@ -285,7 +285,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
                 currentArg -> hasValue = 1;
                 setArgs[argIndex] = currentArg -> hasValue;
             } else {
-                if (argIndex >= argCount - 1) usage();
+                if (argIndex >= argCount - 1 && !(charInString(argVector[argIndex], '=') >= 0 && strcmp(formatterItem, "bool"))) usage();
                 currentArg -> hasValue = sscanf(formatItemToCopy, formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
                 setArgs[argIndex] = currentArg -> hasValue;
                 setArgs[argIndex + 1] = currentArg -> hasValue;
@@ -704,8 +704,8 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
         argFormatterTokenCopy = savePointer;
         if (!envVarName || !formatter) break;
         const char *envVarValue = getenv(envVarName);
-        if (!envVarValue) break;
         currentArg = va_arg(args, argStruct *);
+        if (!envVarValue) continue;
         if (!currentArg -> hasValue) {
             currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> value);
         }
