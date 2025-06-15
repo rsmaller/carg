@@ -13,7 +13,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <assert.h>
 #include <stdbool.h>
 
 #define MAX_ARG_NESTING 256
