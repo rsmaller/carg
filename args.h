@@ -308,7 +308,7 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
         exit(EXIT_FAILURE);
     }
     if (arg -> hasValue) return 0;
-    for (int i=namelessArgCount; i<argCount; i++) {
+    for (int i=namelessArgCount+1; i<argCount; i++) {
         if (!strcmp(arg -> nestedArgString, argVector[i])) {
             *(bool *)arg -> value = !*(bool *)arg -> value;
             arg -> hasValue = 1;
