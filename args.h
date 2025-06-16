@@ -121,6 +121,8 @@ uint64_t libcargInternalFlags = 0;
 
 #define ENFORCE_NESTING_ORDER (1ULL<<5ULL)
 
+#define ENFORCE_STRICT_NESTING_ORDER (1ULL<<6ULL)
+
 //  Getters and Setters.
 #define hasFlag(item, flag) (item & flag)
 
@@ -314,7 +316,9 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
             arg -> hasValue = 1;
             setArgs[i] = arg -> hasValue;
             arg -> argvIndexFound = i;
-            if (hasFlag(arg -> flags, ENFORCE_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound) {
+            if (hasFlag(arg -> flags, ENFORCE_STRICT_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound != arg -> argvIndexFound - 1) {
+                usage();
+            } else if (hasFlag(arg -> flags, ENFORCE_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound) {
                 usage();
             }
             return 1;

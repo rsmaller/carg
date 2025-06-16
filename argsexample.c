@@ -37,7 +37,7 @@ int main(const int argc, char *argv[]) { // Example code
         nestArgument(&thing1, &thing4, "thing4");
     }
 
-    nestedArgumentInit(&thing3, "thing3", ENFORCE_NESTING_ORDER); {
+    nestedArgumentInit(&thing3, "thing3", ENFORCE_STRICT_NESTING_ORDER); {
         nestArgument(&thing3, &thing4, "thing4");
         nestArgument(&thing3, &thing5, "thing5"); {
             nestArgument(&thing5, &thing6, "thing6"); {
