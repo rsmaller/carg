@@ -6,6 +6,7 @@
 #pragma once
 #ifdef _MSC_VER
     #define strtok_r strtok_s
+    #define strdup _strdup
     #define _CRT_SECURE_NO_WARNINGS // sscanf() is required for this project.
     #pragma warning(disable:4003) // Some variadic macros in this library do not use their variadic arguments.
 #endif
@@ -878,5 +879,6 @@ void libcargTerminate(void) {
 
 #ifdef _MSC_VER // Reset macro definitions to not interfere with other included libraries.
     #undef strtok_r
+    #undef strdup
     #undef _CRT_SECURE_NO_WARNINGS
 #endif
