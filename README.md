@@ -441,6 +441,9 @@ This is a flag for declaring the root of a nested argument as not order-agnostic
 `nestedArgumentInit()`, and the library will do runtime checks in `setFlagsFromNestedArgs()` to ensure arguments nested
 within other arguments come after their parent arguments in the argument vector.
 
+### ENFORCE_STRICT_NESTING_ORDER
+This flag declares that nested arguments should be passed all in sequence, without any arguments in-between.
+
 ### NO_DEFAULT_VALUE
 This macro expands to `{0}`, and any argument initialized with it in `argInit()` will be zero-initialized. To enforce 
 this argument should have no default value, or in other words must be given a value by the user, use `argAssert()` in 

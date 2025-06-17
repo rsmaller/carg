@@ -124,6 +124,8 @@ uint64_t libcargInternalFlags = 0;
 
 #define ENFORCE_NESTING_ORDER (1ULL<<5ULL)
 
+#define ENFORCE_STRICT_NESTING_ORDER (1ULL<<6ULL)
+
 //  Getters and Setters.
 #define hasFlag(item, flag) (item & flag)
 
@@ -287,7 +289,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
                 currentArg -> hasValue = 1;
                 setArgs[argIndex] = currentArg -> hasValue;
             } else {
-                if (argIndex >= argCount - 1) usage();
+                if (argIndex >= argCount - 1 && !(charInString(argVector[argIndex], '=') >= 0 && strcmp(formatterItem, "bool"))) usage();
                 currentArg -> hasValue = sscanf(formatItemToCopy, formatterItem, flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
                 setArgs[argIndex] = currentArg -> hasValue;
                 setArgs[argIndex + 1] = currentArg -> hasValue;
@@ -311,13 +313,15 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
         exit(EXIT_FAILURE);
     }
     if (arg -> hasValue) return 0;
-    for (int i=namelessArgCount; i<argCount; i++) {
+    for (int i=namelessArgCount+1; i<argCount; i++) {
         if (!strcmp(arg -> nestedArgString, argVector[i])) {
             *(bool *)arg -> value = !*(bool *)arg -> value;
             arg -> hasValue = 1;
             setArgs[i] = arg -> hasValue;
             arg -> argvIndexFound = i;
-            if (hasFlag(arg -> flags, ENFORCE_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound) {
+            if (hasFlag(arg -> flags, ENFORCE_STRICT_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound != arg -> argvIndexFound - 1) {
+                usage();
+            } else if (hasFlag(arg -> flags, ENFORCE_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound) {
                 usage();
             }
             return 1;
@@ -740,13 +744,13 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
         argFormatterTokenCopy = savePointer;
         if (!envVarName || !formatter) break;
         const char *envVarValue = getenv(envVarName);
-        if (!envVarValue) break;
         currentArg = va_arg(args, argStruct *);
+        if (!envVarValue) continue;
         if (!currentArg -> hasValue) {
             currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> value);
         }
         if (!currentArg -> hasValue) {
-            fprintf(stderr, "Error: unable to grab environment variable %s", envVarName);
+            fprintf(stderr, "Error: unable to grab environment variable %s\n", envVarName);
         }
         strncpy(currentArg -> formatterUsed, formatter, MAX_FORMATTER_SIZE - 1);
     }
@@ -779,7 +783,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
     for (int i=1; i<argCount; i++) {
         while ((currentFlag = strtok_r(internalFormatter, " ", &savePointer))) {
             internalFormatter = savePointer;
-            functionCursor = va_arg (args, voidFuncPtr);
+            functionCursor = va_arg(args, voidFuncPtr);
             if (compareFlag(currentFlag, argVector[i])) {
                 functionCursor();
                 exit(EXIT_SUCCESS);
