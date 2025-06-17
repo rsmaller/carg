@@ -42,6 +42,8 @@ typedef struct argArray {
 
 typedef void(*voidFuncPtr)(void); // Some syntax highlighters don't like seeing function pointer parentheses in a macro.
 
+void libcargTerminate(void);
+
 //  Prints the usage message.
 void _usageDefault(void);
 
@@ -49,6 +51,7 @@ void (*usagePointer)(void) = _usageDefault;
 
 void usage(void) {
     usagePointer();
+    libcargTerminate();
     exit(EXIT_SUCCESS);
 }
 
@@ -183,7 +186,7 @@ int compareFlag(const char *argument, const char *parameter) {
 }
 
 int isFlag(const char *formatter, const char *toCheck) {
-    char *internalFormatter = _strdup(formatter);
+    char *internalFormatter = strdup(formatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     while (1) {
@@ -212,7 +215,7 @@ int test_printf(char *formatter, ...) {
 }
 
 //  This function will return the number of characters that would be written from a series of string formatters.
-int test_vsnprintf(const char *formatter, const va_list args) {
+int test_vsnprintf(const char *formatter, va_list args) {
     const int returnValue = vsnprintf(NULL, 0, formatter, args);
     return returnValue;
 }
@@ -256,11 +259,11 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
     if (setArgs[argIndex]) return;
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
-    char *internalFormatter = _strdup(argFormatter);
+    char *internalFormatter = strdup(argFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     void *flagCopierPointer = NULL;
-    char *argumentFlagToCompare = _strdup(argVector[argIndex]);
+    char *argumentFlagToCompare = strdup(argVector[argIndex]);
     const char *formatItemToCopy = argVector[argIndex + 1];
     while (1) {
         const char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
@@ -449,7 +452,7 @@ void libcargInit(const int argc, char **argv){
         printf("Heap allocation failure. Terminating\n");
         exit(EXIT_FAILURE);
     }
-    memcpy_s(argVector, sizeof(char *) * argCount, argv, sizeof(char *) * argCount);
+    memcpy(argVector, argv, sizeof(char *) * argCount);
     setArgs = (int *)calloc(argCount, sizeof(int));
     setFlag(libcargInternalFlags, LIBCARGS_INITIALIZED);
 }
@@ -505,7 +508,7 @@ void libcargInit(const int argc, char **argv){
 //  Make sure to free the pointer in the varName##Value variable when finished using this argument.
 //  Keep in mind that heap-allocated arguments cannot be directly initialized with a default value in this macro.
 #define heapArgInit(leftType, varName, rightType, flagsArg, size, ...)\
-    argInit(leftType, varName, rightType, NO_DEFAULT_VALUE, flagsArg | HEAP_ALLOCATED, __VA_ARGS__)\
+    argInit(leftType, varName, rightType, NO_DEFAULT_VALUE, ((flagsArg) | (HEAP_ALLOCATED)), __VA_ARGS__)\
     void *varName##Ptr = malloc(size);\
     memset(varName##Ptr, 0, size);\
     varName##Value = varName##Ptr;\
@@ -570,7 +573,7 @@ void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
     }
     checkForAssertion();
     if (argCount <= namelessArgCount) usage();
-    char *internalFormatter = _strdup(argFormatter);
+    char *internalFormatter = strdup(argFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     const char *currentFormatter = NULL;
@@ -734,7 +737,7 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
     }
     va_list args;
     va_start(args, argFormatter);
-    char *argFormatterTokenCopy = _strdup(argFormatter);
+    char *argFormatterTokenCopy = strdup(argFormatter);
     void *argFormatterTokenAllocation = argFormatterTokenCopy;
     char *savePointer = NULL;
     argStruct *currentArg = NULL;
@@ -773,7 +776,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
     }
     checkForAssertion();
     if (argCount < 2) return;
-    char *internalFormatter = _strdup(argFormatter);
+    char *internalFormatter = strdup(argFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     const char *currentFlag = NULL;
