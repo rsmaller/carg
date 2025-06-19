@@ -322,13 +322,22 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
     if (arg -> hasValue) return 0;
     for (int i=namelessArgCount+1; i<argCount; i++) {
         if (!strcmp(arg -> nestedArgString, argVector[i])) {
-            *(bool *)arg -> value = !*(bool *)arg -> value;
-            arg -> hasValue = 1;
+            if (hasFlag(arg -> flags, BOOLEAN_ARG)) {
+                *(bool *)arg -> value = !*(bool *)arg -> value;
+                arg -> hasValue = 1;
+            } else {
+                if (i >= argCount - 1) usage();
+                arg -> hasValue = sscanf(argVector[i+1], arg -> formatterUsed, arg -> value);
+                setArgs[i+1] = arg -> hasValue;
+            }
             setArgs[i] = arg -> hasValue;
             arg -> argvIndexFound = i;
+            if (arg -> parentArg && !hasFlag(arg -> parentArg -> flags, BOOLEAN_ARG) && arg -> parentArg -> argvIndexFound == arg -> argvIndexFound - 1) usage();
+            if (arg -> parentArg && !hasFlag(arg -> parentArg -> flags, BOOLEAN_ARG) && hasFlag(arg -> parentArg -> flags, ENFORCE_STRICT_NESTING_ORDER) && arg -> parentArg -> argvIndexFound != arg -> argvIndexFound - 2) usage(); {}
             if (hasFlag(arg -> flags, ENFORCE_STRICT_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound != arg -> argvIndexFound - 1) {
                 usage();
-            } else if (hasFlag(arg -> flags, ENFORCE_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound) {
+            }
+            if (hasFlag(arg -> flags, ENFORCE_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound) {
                 usage();
             }
             return 1;
@@ -668,10 +677,10 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     setFlag(libcargInternalFlags, GROUPED_ARGS_SET);
 }
 
-//  Use this to nest an argument within a root argument or another nested argument.
-argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString) {
+//  Use this to nest a boolean argument within a root argument or another nested argument.
+argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString) {
     if (!hasFlag(nestIn -> flags, BOOLEAN_ARG) || !hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
-        fprintf(stderr, "Error: only boolean arguments can be safely nested. Fix this!\n");
+        fprintf(stderr, "Error: only boolean arguments can be nested with this nesting function. Fix this!\n");
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
@@ -681,7 +690,6 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
         exit(EXIT_FAILURE);
     }
     argToNest -> nestedArgString = nestedArgString;
-    argToNest -> flags = nestIn -> flags;
     setFlag(argToNest -> flags, NESTED_ARG);
     clearFlag(argToNest -> flags, NESTED_ARG_ROOT);
     nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
@@ -691,15 +699,50 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
 
 //  Use this with a boolean argument struct to declare it as the root of a series of nested arguments.
 //  Every nested element, including the root, must use a plain string to identify its flag.
-argStruct *nestedArgumentInit(argStruct *arg, char *argString, int flagsArg) {
+argStruct *nestedBooleanArgumentInit(argStruct *arg, char *argString, const int flagsArg) {
     if (!hasFlag(arg -> flags, BOOLEAN_ARG)) {
-        fprintf(stderr, "Error: Nested argument initializer called on non-boolean flag. Fix this!\n");
+        fprintf(stderr, "Error: Boolean nested argument initializer called on non-boolean flag. Fix this!\n");
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
     setFlag(arg -> flags, NESTED_ARG | NESTED_ARG_ROOT | flagsArg);
     arg -> nestedArgString = argString;
     return arg;
+}
+
+//  Use this with a non-boolean argument struct to declare it as the root of a series of nested arguments.
+//  Every nested element, including the root, must use a plain string to identify its flag.
+argStruct *nestedArgumentInit(argStruct *arg, char *argString, const int flagsArg, const char * const formatterToUse) {
+    if (hasFlag(arg -> flags, BOOLEAN_ARG)) {
+        fprintf(stderr, "Error: Non-boolean nested argument initializer called on boolean flag. Fix this!\n");
+        libcargTerminate();
+        exit(EXIT_FAILURE);
+    }
+    strncpy(arg -> formatterUsed, formatterToUse, sizeof(arg -> formatterUsed) - 1);
+    setFlag(arg -> flags, NESTED_ARG | NESTED_ARG_ROOT | flagsArg);
+    arg -> nestedArgString = argString;
+    return arg;
+}
+
+//  Use this to nest an argument within a root argument or another nested argument.
+argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString, const char * const formatterToUse) {
+    if (hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
+        fprintf(stderr, "Error: only non-boolean arguments can be nested with this nesting function. Fix this!\n");
+        libcargTerminate();
+        exit(EXIT_FAILURE);
+    }
+    if (nestIn -> nestedArgFillIndex >= MAX_ARG_NESTING - 1) {
+        fprintf(stderr, "Error: too many arguments have been nested into this option!\n");
+        libcargTerminate();
+        exit(EXIT_FAILURE);
+    }
+    argToNest -> nestedArgString = nestedArgString;
+    strncpy(argToNest -> formatterUsed, formatterToUse, sizeof(argToNest -> formatterUsed) - 1);
+    setFlag(argToNest -> flags, NESTED_ARG);
+    clearFlag(argToNest -> flags, NESTED_ARG_ROOT);
+    nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
+    argToNest -> parentArg = nestIn;
+    return argToNest;
 }
 
 //  Uses nested arguments to set flags. Only use this with nested argument roots.

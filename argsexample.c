@@ -31,21 +31,29 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(bool, thing6, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing7, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing8, 0, BOOLEAN_ARG);
+    argInit(char, thing20, [100], NO_DEFAULT_VALUE, NO_FLAGS);
+    basicArgInit(int, thing21, 0, NO_FLAGS);
+    basicArgInit(int, thing22, 0, NO_FLAGS);
 
-    nestedArgumentInit(&thing1, "thing1", NO_FLAGS); {
-        nestArgument(&thing1, &thing2, "thing2");
-        nestArgument(&thing1, &thing4, "thing4");
+    nestedBooleanArgumentInit(&thing1, "thing1", NO_FLAGS); {
+        nestBooleanArgument(&thing1, &thing2, "thing2");
+        nestBooleanArgument(&thing1, &thing4, "thing4");
+        nestArgument(&thing1, &thing21, "thing21", "%d"); {
+            nestArgument(&thing21, &thing22, "thing22", "%d");
+        }
     }
 
-    nestedArgumentInit(&thing3, "thing3", ENFORCE_STRICT_NESTING_ORDER); {
-        nestArgument(&thing3, &thing4, "thing4");
-        nestArgument(&thing3, &thing5, "thing5"); {
-            nestArgument(&thing5, &thing6, "thing6"); {
-                nestArgument(&thing6, &thing7, "thing7");
-                nestArgument(&thing6, &thing8, "thing8");
+    nestedBooleanArgumentInit(&thing3, "thing3", ENFORCE_NESTING_ORDER); {
+        nestBooleanArgument(&thing3, &thing4, "thing4");
+        nestBooleanArgument(&thing3, &thing5, "thing5"); {
+            nestBooleanArgument(&thing5, &thing6, "thing6"); {
+                nestBooleanArgument(&thing6, &thing7, "thing7");
+                nestBooleanArgument(&thing6, &thing8, "thing8");
             }
         }
     }
+
+    nestedArgumentInit(&thing20, "thing20", NO_FLAGS, "%s"); {}
     //  thing1 -> thing2 or thing4 (not both)
     //  thing3 -> thing4 or thing5 (not both)
         // thing5 -> thing6
@@ -59,7 +67,7 @@ int main(const int argc, char *argv[]) { // Example code
 
     //  Argument Setting
     argumentOverrideCallbacks("-h -h2", help, help2);
-    setFlagsFromNestedArgs(2, &thing1, &thing3);
+    setFlagsFromNestedArgs(3, &thing1, &thing3, &thing20);
     setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
     setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
@@ -83,7 +91,7 @@ int main(const int argc, char *argv[]) { // Example code
         stringArg2.argvIndexFound, floatArgValue, floatArg.argvIndexFound,
         boolArg1Value, boolArg1.argvIndexFound, boolArg2Value, boolArg2.argvIndexFound,
         boolArg3Value, boolArg3.argvIndexFound);
-    printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d, thing8: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value);
+    printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d thing8: %d, thing20: %s, thing21: %d, thing22: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value, thing20Value, thing21Value, thing22Value);
     libcargTerminate();
     return 0;
 }
