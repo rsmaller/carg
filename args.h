@@ -36,6 +36,7 @@ typedef struct argStruct {
 } argStruct;
 
 typedef struct argArray {
+    size_t size;
     int fillIndex;
     argStruct **array;
 } argArray;
@@ -71,7 +72,7 @@ int argCount = 1;
 
 char **argVector = NULL;
 
-argArray allArgs = {.fillIndex = -1, .array = NULL};
+argArray allArgs = {.fillIndex = -1, .array = NULL, .size = 0};
 
 int *setArgs = NULL;
 
@@ -461,7 +462,7 @@ void setUsageFunction(void (*funcArg)(void)) {
     setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);
 }
 
-void libcargInit(const int argc, char **argv){
+void libcargInit(const int argc, const char * const * const argv){
     argCount = argc;
     argVector = (char **)malloc(sizeof(char *) * argCount);
     if (!argVector) {
@@ -505,17 +506,20 @@ void libcargInit(const int argc, char **argv){
     };\
     if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;\
     if (allArgs.array) {\
-        void *argArrayReallocation = realloc(allArgs.array, (++allArgs.fillIndex + 1) * sizeof(argStruct *));\
-        if (!argArrayReallocation) {\
-            printf("Heap allocation failure. Terminating\n");\
-            free(allArgs.array);\
-            libcargTerminate();\
-            exit(EXIT_FAILURE);\
+        allArgs.fillIndex++;\
+        if (allArgs.fillIndex >= (allArgs.size / 2)){\
+            allArgs.size *= 2;\
+            void *argArrayReallocation = realloc(allArgs.array, allArgs.size * sizeof(argStruct *));\
+            if (!argArrayReallocation) {\
+                printf("Heap allocation failure. Terminating\n");\
+                libcargTerminate();\
+                exit(EXIT_FAILURE);\
+            }\
+            allArgs.array = (argStruct **)argArrayReallocation;\
         }\
-        allArgs.array = (argStruct **)argArrayReallocation;\
         allArgs.array[allArgs.fillIndex] = &varName;\
     } else {\
-        allArgs.array = (argStruct **)malloc(sizeof(argStruct *));\
+        allArgs.array = (argStruct **)malloc(sizeof(argStruct *) * 4);\
         if (!allArgs.array) {\
             printf("Heap allocation failure. Terminating\n");\
             libcargTerminate();\
@@ -523,6 +527,7 @@ void libcargInit(const int argc, char **argv){
         }\
         allArgs.array[0] = &varName;\
         allArgs.fillIndex++;\
+        allArgs.size = 4;\
     }
 
 //  This macro is for initializing arguments which point to heap-allocated memory.
@@ -535,13 +540,15 @@ void libcargInit(const int argc, char **argv){
     varName##Value = varName##Ptr;\
     varName.value = varName##Ptr;
 
+//  This macro is for initializing arguments which point to memory that does not need to be freed by this library.
+#define pointerArgInit(leftType, varName, rightType, val, flagsArg, ...)\
+    argInit(leftType, varName, rightType, val, flagsArg, __VA_ARGS__)\
+    varName.value = varName##Value;\
+    *varName##Value;
+
 //  A wrapper for argInit().
 #define basicArgInit(type, varName, value, flagsArg, ...)\
     argInit(type, varName, NONE, value, flagsArg, __VA_ARGS__)
-
-#define pointerArgInit(leftType, varName, rightType, val, flagsArg, ...)\
-    argInit(leftType, varName, rightType, val, flagsArg, __VA_ARGS__)\
-    varName.value = varName##Value;
 
 //  Changes where the value of an argument is saved to. Ensure the readjusted pointer is of the correct type.
 //  This is useful for saving an argument value in a global variable.
@@ -970,7 +977,8 @@ void libcargTerminate(void) {
     clearFlag(libcargInternalFlags, LIBCARGS_INITIALIZED);
 }
 
-#ifdef _MSC_VER // Reset macro definitions to not interfere with other included libraries.
+// Reset macro definitions to not interfere with other included libraries.
+#ifdef _MSC_VER 
     #undef strtok_r
     #undef strdup
     #undef _CRT_SECURE_NO_WARNINGS

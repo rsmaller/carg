@@ -10,7 +10,7 @@ void help2(void) {
     printf("Help 2 message here\n");
 }
 
-int main(const int argc, char *argv[]) { // Example code
+int main(const int argc, const char *argv[]) { // Example code
     //  Argument Initialization
     libcargInit(argc, argv);
     basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
@@ -23,6 +23,10 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(bool, boolArg2, 1, BOOLEAN_ARG, "-c");
     basicArgInit(bool, boolArg3, 0, BOOLEAN_ARG, "--xarg");
 
+    heapArgInit(char *, stringArg, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
+    heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
+    pointerArgInit(char, stringArg2, [1000], "default", NO_FLAGS, "-ff"); // Stack string.
+
     basicArgInit(bool, thing1, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing2, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing3, 0, BOOLEAN_ARG);
@@ -31,7 +35,7 @@ int main(const int argc, char *argv[]) { // Example code
     basicArgInit(bool, thing6, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing7, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing8, 0, BOOLEAN_ARG);
-    argInit(char, thing20, [100], NO_DEFAULT_VALUE, NO_FLAGS);
+    pointerArgInit(char, thing20, [100], "thing20_default", NO_FLAGS);
     basicArgInit(int, thing21, 0, NO_FLAGS);
     basicArgInit(int, thing22, 0, NO_FLAGS);
 
@@ -53,16 +57,13 @@ int main(const int argc, char *argv[]) { // Example code
         }
     }
 
-    nestedArgumentInit(&thing20, "thing20", NO_FLAGS, "%s"); {}
+    nestedArgumentInit(&thing20, "thing20", NO_FLAGS, "%99s");
     //  thing1 -> thing2 or thing4 (not both)
     //  thing3 -> thing4 or thing5 (not both)
         // thing5 -> thing6
             // thing6 -> thing7
             // thing6 -> thing8
 
-    heapArgInit(char *, stringArg, NONE, NO_FLAGS, 100 * sizeof(char), "-t|--term"); // Heap string.
-    heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
-    pointerArgInit(char, stringArg2, [1000], "default", NO_FLAGS, "-ff"); // Stack string.
     usageMessageAutoGenerate();
 
     //  Argument Setting
@@ -71,7 +72,7 @@ int main(const int argc, char *argv[]) { // Example code
     setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
     setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
-    setDefaultFlagsFromEnv("OS:%[^\n] PATH:%7s", &stringArg2, &stringArg);
+    setDefaultFlagsFromEnv("OS:%999[^\n] PATH:%7s", &stringArg2, &stringArg);
 
     //  Assertion, previews, and termination
     argAssert(5,
