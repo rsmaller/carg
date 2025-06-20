@@ -17,8 +17,6 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#define MAX_ARG_NESTING 256
-
 #define MAX_FORMATTER_SIZE 128
 
 typedef struct argStruct {
@@ -32,8 +30,9 @@ typedef struct argStruct {
     const char * const usageString;
     char formatterUsed[MAX_FORMATTER_SIZE];
     int nestedArgFillIndex;
+    size_t nestedArgArraySize;
     struct argStruct *parentArg;
-    struct argStruct *nestedArgs[MAX_ARG_NESTING];
+    struct argStruct **nestedArgs;
 } argStruct;
 
 typedef struct argArray {
@@ -500,7 +499,8 @@ void libcargInit(const int argc, char **argv){
             .formatterUsed = {0},\
             .usageString = "" VA_ARG_1(__VA_ARGS__),\
             .parentArg = NULL,\
-            .nestedArgs = {0},\
+            .nestedArgs = NULL,\
+            .nestedArgArraySize = 0,\
             .type = "<" TOKEN_TO_STRING(leftType) TOKEN_TO_STRING(rightType) ">"\
     };\
     if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;\
@@ -684,10 +684,12 @@ argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, char *ne
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
-    if (nestIn -> nestedArgFillIndex >= MAX_ARG_NESTING - 1) {
-        fprintf(stderr, "Error: too many arguments have been nested into this option!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+    if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= nestIn -> nestedArgArraySize / 2) {
+          nestIn -> nestedArgArraySize *= 2;
+          nestIn -> nestedArgs = (argStruct **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(argStruct *));
+    } else {
+        nestIn -> nestedArgs = (argStruct **)calloc(4, sizeof(argStruct *));
+        nestIn -> nestedArgArraySize = 4;
     }
     argToNest -> nestedArgString = nestedArgString;
     setFlag(argToNest -> flags, NESTED_ARG);
@@ -731,10 +733,12 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
-    if (nestIn -> nestedArgFillIndex >= MAX_ARG_NESTING - 1) {
-        fprintf(stderr, "Error: too many arguments have been nested into this option!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+    if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= nestIn -> nestedArgArraySize / 2) {
+        nestIn -> nestedArgArraySize *= 2;
+        nestIn -> nestedArgs = (argStruct **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(argStruct *));
+    } else {
+        nestIn -> nestedArgs = (argStruct **)calloc(4, sizeof(argStruct *));
+        nestIn -> nestedArgArraySize = 4;
     }
     argToNest -> nestedArgString = nestedArgString;
     strncpy(argToNest -> formatterUsed, formatterToUse, sizeof(argToNest -> formatterUsed) - 1);
@@ -954,6 +958,8 @@ void libcargTerminate(void) {
             for (int i=0; i<=allArgs.fillIndex; i++) {
                 if (allArgs.array[i] -> value && hasFlag(allArgs.array[i] -> flags, HEAP_ALLOCATED)) {
                     free(allArgs.array[i] -> value);
+                } else if (allArgs.array[i] -> nestedArgs) {
+                    free(allArgs.array[i] -> nestedArgs);
                 }
             }
             free(allArgs.array);
