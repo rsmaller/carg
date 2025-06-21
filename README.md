@@ -135,6 +135,8 @@ For example, to declare arguments for a help-displaying function and another ran
 argumentOverrideCallbacks("-h -r", &help, &randomHelperFunction);
 ```
 
+This function should be called before any other arguments are set.
+
 ### Arguments Without Flags
 Another feature this library supports is nameless arguments. Nameless arguments are passed in to the program without a flag.
 These arguments should always come before named arguments to prevent argument ambiguity.
@@ -393,7 +395,8 @@ program.exe flag2
 This function accepts the argument count and vector, plus a series of variadic arguments, mainly a formatter and 
 function pointers which accept no arguments and return nothing. This function type is referred to as `voidFuncPtr` in
 the `args.h` header. It will set flags where, when passed by the user, will run a specific function and terminate the 
-program, essentially overriding the control flow of the program.
+program, essentially overriding the control flow of the program. This function should be called before any setter 
+functions.
 
 For example:
 

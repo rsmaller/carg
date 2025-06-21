@@ -866,6 +866,12 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
+    if (hasFlag(libcargInternalFlags, ASSERTIONS_SET) || hasFlag(libcargInternalFlags, NAMED_ARGS_SET) || hasFlag(libcargInternalFlags, NAMELESS_ARGS_SET) ||
+        hasFlag(libcargInternalFlags, GROUPED_ARGS_SET) || hasFlag(libcargInternalFlags, NESTED_ARGS_SET)) {
+        fprintf(stderr, "Error: Callback override initialized after arguments were set. Fix this!\n");
+        libcargTerminate();
+        exit(EXIT_FAILURE);
+    }
     checkForAssertion();
     if (argCount < 2) return;
     char *internalFormatter = strdup(argFormatter);
