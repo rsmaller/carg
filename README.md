@@ -8,6 +8,12 @@ Because this library uses string formatters, you should only use types that supp
 For example, there is no formatter for an array of 100 pointers to functions that accept integers and return a character.
 Nor should you expect data remotely resembling that from a user.
 
+To set up the library to use your argument vector, call `libcargInit()` with the argument count and vector; the
+argument vector should ideally be a const double pointer.
+
+At the end of your usage of this library, be sure to call `libcargTerminate()` to clean up any heap-allocated memory and
+prevent memory leaks.
+
 ### Setting a Usage Message
 It's likely the first thing you will want to do is declare a usage message for your program.
 The `setUsageMessage()` function allows you to do this; it sets a usage message that caps out at 1023 characters.
@@ -22,7 +28,7 @@ The `usage()` function will print out this message and terminate the program.
 ### Initializing Arguments
 As for arguments, they are stored in structs and variables of their respective type.
 Structs serve to keep track of whether an argument has been specified by the user or not.
-To simplify the declaration of arguments, `argInit()` and basicArgInit() were created.
+To simplify the declaration of arguments, `argInit()` and `basicArgInit()` were created.
 Simply call `argInit()` or `basicArgInit()` with both a variable name to declare, type information, a default value, and a bitmask representing toggled flags.
 To write explicitly that a variable should not have a default value, use the `NO_DEFAULT_VALUE` macro in place of a default value.
 This macro is only for readability, and it will zero-initialize the variable you create.
@@ -46,7 +52,7 @@ basicArgInit(int, intArg, 1, NO_FLAGS)
 
 ### Setting Argument Values from The Argument Vector
 The value of an argument should only be accessed after setting the variables' values in accordance with user input.
-Keep in mind variables must be initialized via `argInit()`, `basicArgInit()` or `heapArgInit()` before being set.
+Keep in mind variables must be initialized via `argInit()`, `basicArgInit()`, `pointerArgInit()` or `heapArgInit()` before being set.
 To set argument values from the user, use the `setFlagsFromNamedArgs()` function. This function accepts the argc and argv parameters and a string formatter for arguments.
 `setFlagsFromNamedArgs()` accepts both flag parameters and string formatters associated with them.
 That formatter might look like: `"-v:%s"` followed by a string argument struct.
@@ -57,10 +63,10 @@ example.exe -v <INSERT_STRING_HERE>
 ```
 
 Below is an example of the initializer and setter in conjunction.
-Keeping everything in mind, the string variable would need to be initialized first:
+Keeping everything in mind, the char variable would need to be initialized first:
 
 ```
-basicArgInit(char *, myString, "default", NO_FLAGS);
+basicArgInit(char, myString, 'c', NO_FLAGS);
 ```
 
 All arguments should be initialized before setting them, so let's add an int argument also:
@@ -72,7 +78,7 @@ basicArgInit(int, myInt, 0, NO_FLAGS);
 Then, these values can be set using the `setFlagsFromNamedArgs()` function:
 
 ```
-setFlagsFromNamedArgs(argc, argv, "-v:%s -i:%d", myString, myInt);
+setFlagsFromNamedArgs("-v:%s -i:%d", myString, myInt);
 ```
 
 The %s formatter corresponds to the argument struct `myString` and the %d formatter corresponds to the struct `myInt`.
@@ -126,7 +132,7 @@ To specify arguments that make the program do something entirely different, prim
 For example, to declare arguments for a help-displaying function and another random helper function:
 
 ```
-argumentOverrideCallbacks(argc, argv, "-h -r", &help, &randomHelperFunction);
+argumentOverrideCallbacks("-h -r", &help, &randomHelperFunction);
 ```
 
 ### Arguments Without Flags
@@ -143,13 +149,13 @@ basicArgInit(char, namedArg, 'a', NO_FLAGS);
 Then, set the values for nameless arguments first:
 
 ```
-setFlagsFromNamelessArgs(argc, argv, "%d", &namelessArg);
+setFlagsFromNamelessArgs("%d", &namelessArg);
 ```
 
 Lastly, set the values for named arguments:
 
 ```
-setFlagsFromNamedArgs(argc, argv, "-n:%d", &namedArg);
+setFlagsFromNamedArgs("-n:%d", &namedArg);
 ```
 
 Keep in mind that nameless arguments are required regardless if they are enforced with an assertion or not.
@@ -249,6 +255,11 @@ This function-style macro will heap-allocate a variable for which an argument's 
 same arguments as `argInit()`, except it has no default value argument and a memory allocation size must be given as the 
 last argument to the macro.
 
+#### pointerArgInit()
+This macro will create an argument which contains a pointer which does not need to be automatically heap-allocated; the 
+level of indirection on the value pointer element in the argument struct created from this macro and the `heapArgInit()` 
+macro is one less than in the other argument initializers.
+
 #### adjustArgumentCursor()
 This function can change what variable an argument struct points to. This is useful if you would like to rename a 
 variable, use a global variable, or do some pointer abstractions.
@@ -262,7 +273,7 @@ the command line. The argument structs should correspond to flags in the string 
 flag plus a colon plus the corresponding string formatter. Each argument should also be separated by spaces. For 
 example:
 
-`setFlagsFromNamedArgs(argc, argv, "-n:%d -t:%10s -b:bool", &intArg, &stringArg, &boolArg)`
+`setFlagsFromNamedArgs("-n:%d -t:%10s -b:bool", &intArg, &stringArg, &boolArg)`
 
 - Will use the `-n` flag plus a digit value to set the `intArg` argument and subsequently the `intArgValue` variable.
 - Will use the `-t` flag plus a string value to set the `stringArg` argument and subsequently the `stringArgValue` variable.
@@ -278,7 +289,7 @@ This function works similarly to `setFlagsFromNamedArgs()`, but it has a few key
 
 For example:
 
-`setFlagsFromNamelessArgs(argc, argv, "%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg)`
+`setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg)`
 
  - Will use a digit formatter to set `namelessArg` to the value passed in as the very first command line argument.
  - Will use a digit formatter to set `namelessArg2` to the value passed in as the second command line argument.
@@ -386,7 +397,7 @@ program, essentially overriding the control flow of the program.
 
 For example:
 
-`argumentOverrideCallbacks(argc, argv, "-h -h2", &help, &help2)`
+`argumentOverrideCallbacks("-h -h2", &help, &help2)`
 
  - Means the `-h` flag will run the `help()` function and then terminate the program.
  - Means the `-h2` flag will run the `help2()` function and then terminate the program.
