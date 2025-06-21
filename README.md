@@ -1,7 +1,7 @@
 # cargs - C Argument Parsing Library
 
 ## How to Use This Library
-Before using this library, ensure your `main()` function accepts an argc and argv as parameters.
+Before using this library, ensure your `main()` function accepts an `argc` and `argv` as parameters.
 This library parses those parameters using string formatters and sets variables to their values accordingly.
 
 Because this library uses string formatters, you should only use types that support scanf() formatting.
@@ -53,7 +53,7 @@ basicArgInit(int, intArg, 1, NO_FLAGS)
 ### Setting Argument Values from The Argument Vector
 The value of an argument should only be accessed after setting the variables' values in accordance with user input.
 Keep in mind variables must be initialized via `argInit()`, `basicArgInit()`, `pointerArgInit()` or `heapArgInit()` before being set.
-To set argument values from the user, use the `setFlagsFromNamedArgs()` function. This function accepts the argc and argv parameters and a string formatter for arguments.
+To set argument values from the user, use the `setFlagsFromNamedArgs()` function. This function accepts the `argc` and `argv` parameters and a string formatter for arguments.
 `setFlagsFromNamedArgs()` accepts both flag parameters and string formatters associated with them.
 That formatter might look like: `"-v:%s"` followed by a string argument struct.
 This would mean that the flag -v should be followed by a string:
@@ -335,20 +335,40 @@ mycommand push now
 might be configured via a nested argument. The push option could be stored as a root nested node that has now nested
 inside of it. In this case, the keyword `now` would only have meaning if `push` is supplied alongside it.
 
-#### nestedArgumentInit()
+#### nestedBooleanArgumentInit()
 This function will initialize a boolean argument as a nested argument root node. This function takes the argument, a 
 string, and new flags; the string is the argument the program will search for to match and toggle that boolean argument.
 
-#### nestArgument()
+#### nestBooleanArgument()
 This function will nest a boolean argument in another nested argument, whether it is a root node or not. As of now, each 
 individual nested boolean argument can only directly nest 256 other arguments. Since arguments will always end up nested
 inside a root node, you can use curly braces to make the nesting a little easier to read. On a basic level, it looks
 like:
 
 ```
-nestedArgumentInit(&arg1, "arg"); {
-        nestArgument(&arg1, &arg2, "thing2");
-        nestArgument(&arg1, &arg3, "thing3");
+nestedArgumentInit(&arg1, "arg", NO_FLAGS); { // Initialize arg1.
+    nestArgument(&arg1, &arg2, "thing2"); // Nest arg2 in arg1 with the string representing being "thing2".
+    nestArgument(&arg1, &arg3, "thing3"); // Nest arg3 in arg1 with the string being "thing3".
+}
+```
+
+This might be uses as such:
+
+```
+program.exe arg thing2 thing3
+```
+
+which will set all three booleans, provided that arg and thing2 are passed alongside thing3.
+
+#### nestedArgumentInit() and nestArgument()
+These are the non-boolean versions of the nested argument functions. They accept the same parameters as their boolean
+counterparts, and they also require a `scanf()` formatter after their nested name, as such:
+
+```
+nestedArgumentInit(&thing20, "thing20", NO_FLAGS, "%99s"); { // Initialize thing20 as a root with %99s formatter.
+    nestArgument(&thing20, &thing21, "thing21", "%d"); { // Nest thing21 in thing20 with %d formatter
+        nestArgument(&thing21, &thing22, "thing22", "%d"); // Nest thing22 in thing21 with %d formatter
+    }
 }
 ```
 
