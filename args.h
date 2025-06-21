@@ -45,16 +45,11 @@ typedef void(*voidFuncPtr)(void); // Some syntax highlighters don't like seeing 
 
 void libcargTerminate(void);
 
-//  Prints the usage message.
-void _usageDefault(void);
+void _usageDefault(void); // The standard function to print the usage message.
 
-void (*usagePointer)(void) = _usageDefault;
+void (*_usagePointer)(void) = _usageDefault; // Usage function cursor which may be changed by the client code.
 
-void usage(void) {
-    usagePointer();
-    libcargTerminate();
-    exit(EXIT_SUCCESS);
-}
+void usage(void); // The function which should be called after setting usage information to display a usage message.
 
 char *contains(char *, const char *);
 
@@ -173,39 +168,6 @@ uint64_t libcargInternalFlags = 0;
 //  SECTION: Internal Functions and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#define checkForAssertion() do {\
-    if (hasFlag(libcargInternalFlags, ASSERTIONS_SET)) {\
-        fprintf(stderr, "Error: Assertion initializer called before args are initialized. Please fix this!\n");\
-        libcargTerminate();\
-        exit(EXIT_FAILURE);\
-    }\
-} while (0)
-
-//  A semantic wrapper to compare flags against their parameters.
-//  For internal use only.
-int compareFlag(const char *argument, const char *parameter) {
-    return !strcmp(argument, parameter);
-}
-
-int isFlag(const char *formatter, const char *toCheck) {
-    char *internalFormatter = strdup(formatter);
-    void *internalFormatterAllocation = internalFormatter;
-    char *savePointer = NULL;
-    while (1) {
-        char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
-        strtok_r(NULL, ": ", &savePointer); // Discard formatter item
-        internalFormatter = savePointer;
-        if (!flagItem) {
-            break;
-        }
-        if (compareFlag(toCheck, flagItem)) {
-            return 1;
-        }
-    }
-    free(internalFormatterAllocation);
-    return 0;
-}
-
 //  This function will return the number of characters that would be written from a series of string formatters.
 //  However, it will not write to anything.
 int test_printf(char *formatter, ...) {
@@ -238,6 +200,39 @@ int secure_sprintf(char * const startPointer, char * const endPointer, char **cu
     *(endPointer - 1) = '\0';
     va_end(args);
     return returnValue;
+}
+
+#define _checkForAssertion() do {\
+    if (hasFlag(libcargInternalFlags, ASSERTIONS_SET)) {\
+        fprintf(stderr, "Error: Assertion initializer called before args are initialized. Please fix this!\n");\
+        libcargTerminate();\
+        exit(EXIT_FAILURE);\
+    }\
+} while (0)
+
+//  A semantic wrapper to compare flags against their parameters.
+//  For internal use only.
+int _compareFlag(const char *argument, const char *parameter) {
+    return !strcmp(argument, parameter);
+}
+
+int _isFlag(const char *formatter, const char *toCheck) {
+    char *internalFormatter = strdup(formatter);
+    void *internalFormatterAllocation = internalFormatter;
+    char *savePointer = NULL;
+    while (1) {
+        char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
+        strtok_r(NULL, ": ", &savePointer); // Discard formatter item
+        internalFormatter = savePointer;
+        if (!flagItem) {
+            break;
+        }
+        if (_compareFlag(toCheck, flagItem)) {
+            return 1;
+        }
+    }
+    free(internalFormatterAllocation);
+    return 0;
 }
 
 //  Prints the usage message.
@@ -285,7 +280,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
             if (currentArg -> hasValue) usage(); // Duplicate named arguments
             flagCopierPointer = currentArg -> value;
             if (!flagCopierPointer) return;
-            if (compareFlag(formatterItem, "bool")) {
+            if (_compareFlag(formatterItem, "bool")) {
                 if (!hasFlag(currentArg -> flags, BOOLEAN_ARG)) {
                     fprintf(stderr, "Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.\n");
                     libcargTerminate();
@@ -458,8 +453,15 @@ void setUsageFunction(void (*funcArg)(void)) {
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
-    usagePointer = funcArg;
+    _usagePointer = funcArg;
     setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);
+}
+
+//  This function will display the set usage message or call the set usage function and then terminate the program.
+void usage(void) {
+    _usagePointer();
+    libcargTerminate();
+    exit(EXIT_SUCCESS);
 }
 
 void libcargInit(const int argc, const char * const * const argv){
@@ -578,7 +580,7 @@ void setFlagsFromNamedArgs(const char * const argFormatter, ...) {
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
-    checkForAssertion();
+    _checkForAssertion();
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     for (int i=namelessArgCount + 1; i<argCount; i++) {
@@ -606,7 +608,7 @@ void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
-    checkForAssertion();
+    _checkForAssertion();
     if (argCount <= namelessArgCount) usage();
     char *internalFormatter = strdup(argFormatter);
     void *internalFormatterAllocation = internalFormatter;
@@ -657,7 +659,7 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
-    checkForAssertion();
+    _checkForAssertion();
     const char prefixChar = argFormatter[0];
     const char *noPrefixArgFormatter = argFormatter + 1;
     va_list formatterArgs;
@@ -872,7 +874,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
-    checkForAssertion();
+    _checkForAssertion();
     if (argCount < 2) return;
     char *internalFormatter = strdup(argFormatter);
     void *internalFormatterAllocation = internalFormatter;
@@ -887,7 +889,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
         while ((currentFlag = strtok_r(internalFormatter, " ", &savePointer))) {
             internalFormatter = savePointer;
             functionCursor = va_arg(args_copy, voidFuncPtr);
-            if (compareFlag(currentFlag, argVector[i])) {
+            if (_compareFlag(currentFlag, argVector[i])) {
                 functionCursor();
                 free(internalFormatterAllocation);
                 libcargTerminate();
