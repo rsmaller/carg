@@ -694,7 +694,7 @@ argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, char *ne
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= nestIn -> nestedArgArraySize / 2) {
           nestIn -> nestedArgArraySize *= 2;
           nestIn -> nestedArgs = (argStruct **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(argStruct *));
-    } else {
+    } else if (!nestIn -> nestedArgs) {
         nestIn -> nestedArgs = (argStruct **)calloc(4, sizeof(argStruct *));
         nestIn -> nestedArgArraySize = 4;
     }
@@ -743,7 +743,7 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
         nestIn -> nestedArgs = (argStruct **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(argStruct *));
-    } else {
+    } else if (!nestIn -> nestedArgs) {
         nestIn -> nestedArgs = (argStruct **)calloc(4, sizeof(argStruct *));
         nestIn -> nestedArgArraySize = 4;
     }
