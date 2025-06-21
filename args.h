@@ -929,6 +929,7 @@ void argAssert(const int assertionCount, ...) {
 }
 
 //  Prints out data about a single argument which has a pointer type.
+//  This function is primarily for strings, or data that does not need to be passed as a dereferenced value before printing.
 //  Type information is obfuscated in each argument, so make sure to pass the correct type into this macro.
 #define printOutPointerArgument(argument, typeArg) do {\
     printf("Argument passed in as %s:\n", (#argument));\
@@ -947,6 +948,8 @@ void argAssert(const int assertionCount, ...) {
 } while (0)
 
 //  Prints out data about a single argument which has a non-pointer type.
+//  If you want to print out a pointer argument's dereferenced value, you can use this function.
+//  This is particularly useful when printing out an element from something like an integer array.
 //  Type information is obfuscated in each argument, so make sure to pass the correct type into this macro.
 #define printOutNonPointerArgument(argument, typeArg) do {\
     printf("Argument passed in as %s:\n", (#argument));\
