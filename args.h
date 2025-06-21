@@ -538,7 +538,8 @@ void libcargInit(const int argc, const char * const * const argv){
     void *varName##Ptr = malloc(size);\
     memset(varName##Ptr, 0, size);\
     varName##Value = varName##Ptr;\
-    varName.value = varName##Ptr;
+    varName.value = varName##Ptr;\
+    *varName##Value;
 
 //  This macro is for initializing arguments which point to memory that does not need to be freed by this library.
 #define pointerArgInit(leftType, varName, rightType, val, flagsArg, ...)\
@@ -618,6 +619,11 @@ void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
         currentFormatter = strtok_r(internalFormatter, " ", &savePointer);
         internalFormatter = savePointer;
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
+        if (!hasFlag(currentArg -> flags, NAMELESS_ARG)) {
+            fprintf(stderr, "Error: Nameless arg setter called on named arg. Please fix this!\n");
+            libcargTerminate();
+            exit(EXIT_FAILURE);
+        }
         flagCopierPointer = currentArg -> value;
         currentArg -> hasValue = sscanf(argVector[i], currentFormatter, flagCopierPointer);
         setArgs[i] = currentArg -> hasValue;
