@@ -13,8 +13,8 @@ void help2(void) {
 int main(const int argc, const char *argv[]) { // Example code
     //  Argument Initialization
     libcargInit(argc, argv);
-    basicArgInit(int, namelessArg, NO_DEFAULT_VALUE, NAMELESS_ARG);
-    basicArgInit(int, namelessArg2, NO_DEFAULT_VALUE, NAMELESS_ARG);
+    basicArgInit(int, positionalArg, NO_DEFAULT_VALUE, POSITIONAL_ARG);
+    basicArgInit(int, positionalArg2, NO_DEFAULT_VALUE, POSITIONAL_ARG);
     basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n");
     adjustArgumentCursor(&intArg, &globalIntArgValue);
     basicArgInit(int, keywordIntArg, NO_DEFAULT_VALUE, NO_FLAGS, "-k");
@@ -24,7 +24,7 @@ int main(const int argc, const char *argv[]) { // Example code
     basicArgInit(bool, boolArg3, 0, BOOLEAN_ARG, "--xarg");
 
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
-    heapArgInit(char *, namelessStringArg, NONE, NAMELESS_ARG, 100 * sizeof(char)); // Heap string.
+    heapArgInit(char *, positionalStringArg, NONE, POSITIONAL_ARG, 100 * sizeof(char)); // Heap string.
     pointerArgInit(char, stringArg2, [1000], "default", NO_FLAGS, "-ff"); // Stack string.
 
     basicArgInit(bool, thing1, 0, BOOLEAN_ARG);
@@ -69,24 +69,25 @@ int main(const int argc, const char *argv[]) { // Example code
     //  Argument Setting
     argumentOverrideCallbacks("-h -h2", help, help2);
     setFlagsFromNestedArgs(3, &thing1, &thing3, &thing20);
-    setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg);
+    setFlagsFromPositionalArgs("%d %d %20s", &positionalArg, &positionalArg2, &positionalStringArg);
     setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
     setDefaultFlagsFromEnv("OS:%999[^\n] PATH:%7s", &stringArg2, &stringArg);
 
     //  Assertion, previews, and termination
+    libcargValidate();
     argAssert(5,
         globalIntArgValue > -1, "-n arg must be greater than or equal to 0",
         REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
         MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "-b and --xarg cannot be toggled at the same time",
         MUTUALLY_REQUIRED(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
-        namelessArgValue > 0, "First argument must be positive"
+        positionalArgValue > 0, "First argument must be positive"
     );
 
     //  Testing arguments
-    printf("Basic arguments - nameless arg count: %d, namelessArg: %d, namelessArg2: %d, namelessStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
-        namelessArgCount, namelessArgValue, namelessArg2Value,
-        namelessStringArgValue, globalIntArgValue, intArg.argvIndexFound,
+    printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
+        positionalArgCount, positionalArgValue, positionalArg2Value,
+        positionalStringArgValue, globalIntArgValue, intArg.argvIndexFound,
         keywordIntArgValue, keywordIntArg.argvIndexFound,
         stringArgValue, stringArg.argvIndexFound, stringArg2Value,
         stringArg2.argvIndexFound, floatArgValue, floatArg.argvIndexFound,

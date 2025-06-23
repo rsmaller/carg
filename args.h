@@ -71,7 +71,7 @@ argArray allArgs = {.fillIndex = -1, .array = NULL, .size = 0};
 
 int *setArgs = NULL;
 
-int namelessArgCount = 0;
+int positionalArgCount = 0;
 
 char usageString[usageStringSize] = "Please specify a usage message in your client code. You can do this via setUsageMessage() or usageMessageAutoGenerate().";
 
@@ -97,7 +97,7 @@ uint64_t libcargInternalFlags = 0;
 
 #define NAMED_ARGS_SET (1ULL<<1ULL)
 
-#define NAMELESS_ARGS_SET (1ULL<<2ULL)
+#define POSITIONAL_ARGS_SET (1ULL<<2ULL)
 
 #define GROUPED_ARGS_SET (1ULL<<3ULL)
 
@@ -117,7 +117,7 @@ uint64_t libcargInternalFlags = 0;
 #define NESTED_ARG_ROOT (1ULL<<2ULL)
 
 //  Argument Flags. (These should be set by the user.)
-#define NAMELESS_ARG (1ULL<<3ULL)
+#define POSITIONAL_ARG (1ULL<<3ULL)
 
 #define BOOLEAN_ARG (1ULL<<4ULL)
 
@@ -315,7 +315,7 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
         exit(EXIT_FAILURE);
     }
     if (arg -> hasValue) return 0;
-    for (int i=namelessArgCount+1; i<argCount; i++) {
+    for (int i=positionalArgCount+1; i<argCount; i++) {
         if (!strcmp(arg -> nestedArgString, argVector[i])) {
             if (hasFlag(arg -> flags, BOOLEAN_ARG)) {
                 *(bool *)arg -> value = !*(bool *)arg -> value;
@@ -341,17 +341,17 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
     return 0;
 }
 
-void _printAllNamelessArgsToUsageBuffer(void) {
+void _printAllPositionalArgsToUsageBuffer(void) {
     for (int i=0; i<=allArgs.fillIndex; i++) {
         if (!allArgs.array[i]) break;
-        if (!hasFlag(allArgs.array[i] -> flags, NAMELESS_ARG)) continue;
+        if (!hasFlag(allArgs.array[i] -> flags, POSITIONAL_ARG)) continue;
         if (allArgs.array[i] -> usageString[0]) secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ", allArgs.array[i]->usageString);
         else if (allArgs.array[i] -> nestedArgString[0]) secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ", allArgs.array[i]->nestedArgString);
         secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ",allArgs.array[i]->type);
     }
 }
 
-void _printAllNonNamelessArgsToUsageBuffer(void) {
+void _printAllNonPositionalArgsToUsageBuffer(void) {
     for (int i=0; i<=allArgs.fillIndex; i++) {
         if (hasFlag(allArgs.array[i] -> flags, BOOLEAN_ARG && allArgs.array[i] -> usageString[0])) secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ", allArgs.array[i]->usageString);
     }
@@ -359,7 +359,7 @@ void _printAllNonNamelessArgsToUsageBuffer(void) {
         if (hasFlag(allArgs.array[i] -> flags, NESTED_ARG_ROOT)) secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ", allArgs.array[i]->nestedArgString);
     }
     for (int i=0; i<=allArgs.fillIndex; i++) {
-        if (hasFlag(allArgs.array[i] -> flags, NAMELESS_ARG)) continue;
+        if (hasFlag(allArgs.array[i] -> flags, POSITIONAL_ARG)) continue;
         if (hasFlag(allArgs.array[i] -> flags, BOOLEAN_ARG) && !allArgs.array[i] -> nestedArgString[0]) {
             continue;
         }
@@ -440,8 +440,8 @@ void usageMessageAutoGenerate(void) {
         exit(EXIT_FAILURE);
     }
     secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s%s ", "Usage: ", basename(argVector[0]));
-    _printAllNamelessArgsToUsageBuffer();
-    _printAllNonNamelessArgsToUsageBuffer();
+    _printAllPositionalArgsToUsageBuffer();
+    _printAllNonPositionalArgsToUsageBuffer();
     setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);
 }
 
@@ -449,7 +449,7 @@ void usageMessageAutoGenerate(void) {
 //  However, using it is not recommended unless there is some requisite functionality to the client code which the usage message generation in this library does not provide.
 void setUsageFunction(void (*funcArg)(void)) {
     if (hasFlag(libcargInternalFlags, USAGE_MESSAGE_SET)) {
-        fprintf(stderr, "Error: usage message set by user twice. Please fix this!\n");
+        fprintf(stderr, "Err or: usage message set by user twice. Please fix this!\n");
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
@@ -506,7 +506,7 @@ void libcargInit(const int argc, const char * const * const argv){
             .nestedArgArraySize = 0,\
             .type = "<" TOKEN_TO_STRING(leftType) TOKEN_TO_STRING(rightType) ">"\
     };\
-    if (hasFlag(flagsArg, NAMELESS_ARG)) namelessArgCount++;\
+    if (hasFlag(flagsArg, POSITIONAL_ARG)) positionalArgCount++;\
     if (allArgs.array) {\
         allArgs.fillIndex++;\
         if (allArgs.fillIndex >= (allArgs.size / 2)){\
@@ -583,33 +583,33 @@ void setFlagsFromNamedArgs(const char * const argFormatter, ...) {
     _checkForAssertion();
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
-    for (int i=namelessArgCount + 1; i<argCount; i++) {
+    for (int i=positionalArgCount + 1; i<argCount; i++) {
         _checkArgAgainstFormatter(i, argFormatter, formatterArgs);
     }
     va_end(formatterArgs);
     setFlag(libcargInternalFlags, NAMED_ARGS_SET);
 }
 
-//  This sets values for nameless arguments in mostly the same format as setFlagsFromNamedArgs().
+//  This sets values for positional arguments in mostly the same format as setFlagsFromNamedArgs().
 //  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
-void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
+void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
     if (!hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {
         fprintf(stderr, "Error: setter called before library initialization. Please fix this!\n");
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
-    if (hasFlag(libcargInternalFlags, NAMELESS_ARGS_SET)) {
-        fprintf(stderr, "Error: Nameless args initializer called multiple times. Please fix this!\n");
+    if (hasFlag(libcargInternalFlags, POSITIONAL_ARGS_SET)) {
+        fprintf(stderr, "Error: Positional args initializer called multiple times. Please fix this!\n");
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
     if (hasFlag(libcargInternalFlags, GROUPED_ARGS_SET)) {
-        fprintf(stderr, "Error: Grouped args initializer called before nameless args initializer. Please fix this!\n");
+        fprintf(stderr, "Error: Grouped args initializer called before positional args initializer. Please fix this!\n");
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
     _checkForAssertion();
-    if (argCount <= namelessArgCount) usage();
+    if (argCount <= positionalArgCount) usage();
     char *internalFormatter = strdup(argFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
@@ -617,12 +617,12 @@ void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
     void *flagCopierPointer = NULL;
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
-    for (int i=1; i<namelessArgCount+1; i++) {
+    for (int i=1; i<positionalArgCount+1; i++) {
         currentFormatter = strtok_r(internalFormatter, " ", &savePointer);
         internalFormatter = savePointer;
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
-        if (!hasFlag(currentArg -> flags, NAMELESS_ARG)) {
-            fprintf(stderr, "Error: Nameless arg setter called on named arg. Please fix this!\n");
+        if (!hasFlag(currentArg -> flags, POSITIONAL_ARG)) {
+            fprintf(stderr, "Error: Positional arg setter called on named arg. Please fix this!\n");
             libcargTerminate();
             exit(EXIT_FAILURE);
         }
@@ -639,7 +639,7 @@ void setFlagsFromNamelessArgs(const char *argFormatter, ...) {
     }
     free(internalFormatterAllocation);
     va_end(formatterArgs);
-    setFlag(libcargInternalFlags, NAMELESS_ARGS_SET);
+    setFlag(libcargInternalFlags, POSITIONAL_ARGS_SET);
 }
 
 //  Creates boolean flags, which should be individual characters, that can be grouped under one flag in any order.
@@ -868,7 +868,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
         libcargTerminate();
         exit(EXIT_FAILURE);
     }
-    if (hasFlag(libcargInternalFlags, ASSERTIONS_SET) || hasFlag(libcargInternalFlags, NAMED_ARGS_SET) || hasFlag(libcargInternalFlags, NAMELESS_ARGS_SET) ||
+    if (hasFlag(libcargInternalFlags, ASSERTIONS_SET) || hasFlag(libcargInternalFlags, NAMED_ARGS_SET) || hasFlag(libcargInternalFlags, POSITIONAL_ARGS_SET) ||
         hasFlag(libcargInternalFlags, GROUPED_ARGS_SET) || hasFlag(libcargInternalFlags, NESTED_ARGS_SET)) {
         fprintf(stderr, "Error: Callback override initialized after arguments were set. Fix this!\n");
         libcargTerminate();
@@ -974,6 +974,29 @@ void argAssert(const int assertionCount, ...) {
     printf("\n");\
 } while (0)
 
+//  Do a final sweep to catch any arguments that have been passed but were not used.
+//  This function is not required for this library to work.
+//  However, this function is useful for pointing out redundant arguments to the end user.
+void libcargValidate(void) {
+    if (!(hasFlag(libcargInternalFlags, ASSERTIONS_SET) || hasFlag(libcargInternalFlags, NAMED_ARGS_SET) || hasFlag(libcargInternalFlags, POSITIONAL_ARGS_SET) ||
+        hasFlag(libcargInternalFlags, GROUPED_ARGS_SET) || hasFlag(libcargInternalFlags, NESTED_ARGS_SET))) {
+        fprintf(stderr, "Error: Argument validator called before arguments were set. Fix this!\n");
+        libcargTerminate();
+        exit(EXIT_FAILURE);
+        }
+    bool errorFound = false;
+    for (int i=1; i<argCount; i++) {
+        if (!setArgs[i]) {
+            fprintf(stderr, "Error: unknown option: \"%s\"\n", argVector[i]);
+            errorFound = true;
+        }
+    }
+    if (errorFound) {
+        libcargTerminate();
+        exit(EXIT_SUCCESS);
+    }
+}
+
 //  This function will clear all heap allocations this library uses, including heap-allocated arguments.
 //  Call this after arguments have been fully parsed to avoid memory leaks.
 void libcargTerminate(void) {
@@ -982,7 +1005,8 @@ void libcargTerminate(void) {
             for (int i=0; i<=allArgs.fillIndex; i++) {
                 if (allArgs.array[i] -> value && hasFlag(allArgs.array[i] -> flags, HEAP_ALLOCATED)) {
                     free(allArgs.array[i] -> value);
-                } else if (allArgs.array[i] -> nestedArgs) {
+                }
+                if (allArgs.array[i] -> nestedArgs) {
                     free(allArgs.array[i] -> nestedArgs);
                 }
             }

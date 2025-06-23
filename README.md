@@ -138,20 +138,20 @@ argumentOverrideCallbacks("-h -r", &help, &randomHelperFunction);
 This function should be called before any other arguments are set.
 
 ### Arguments Without Flags
-Another feature this library supports is nameless arguments. Nameless arguments are passed in to the program without a flag.
+Another feature this library supports is positional arguments. Positional arguments are passed in to the program without a flag.
 These arguments should always come before named arguments to prevent argument ambiguity.
 
-To use nameless arguments alongside named arguments, initialize both first:
+To use positional arguments alongside named arguments, initialize both first:
 
 ```
-basicArgInit(int, namelessArg, 0, NAMELESS_ARG);
+basicArgInit(int, positionalArg, 0, POSITIONAL_ARG);
 basicArgInit(char, namedArg, 'a', NO_FLAGS);
 ```
 
-Then, set the values for nameless arguments first:
+Then, set the values for positional arguments first:
 
 ```
-setFlagsFromNamelessArgs("%d", &namelessArg);
+setFlagsFromPositionalArgs("%d", &positionalArg);
 ```
 
 Lastly, set the values for named arguments:
@@ -160,9 +160,9 @@ Lastly, set the values for named arguments:
 setFlagsFromNamedArgs("-n:%d", &namedArg);
 ```
 
-Keep in mind that nameless arguments are required regardless if they are enforced with an assertion or not.
+Keep in mind that positional arguments are required regardless if they are enforced with an assertion or not.
 Furthermore, they are assigned to argument variables based on their order. Make sure they line up correctly when you set their values!
-Nameless arguments can be used in assertions the same way as named arguments.
+Positional arguments can be used in assertions the same way as named arguments.
 
 ## Function Implementations
 
@@ -205,7 +205,7 @@ after all arguments have been initialized, and it should not be called alongside
 usage message should be set before running any assertions.
 
 This function works by combining the usage string set via `argInit()` variadic arguments with the auto-generated type 
-string of the argument, which may be something like `<int>` or `<char *>`. It displays nameless arguments first, then 
+string of the argument, which may be something like `<int>` or `<char *>`. It displays positional arguments first, then 
 boolean arguments, nested argument roots, then named arguments. Keep in mind that *only* nested argument roots will be 
 shown in the usage message to avoid clutter; non-root nested arguments are not shown in the usage message.
 
@@ -284,18 +284,18 @@ example:
 When passed in via the command line, the flag and its value may be separated by a space or an `=`, like in keyword argument
 syntax: `-n=5`. Using this syntax with a boolean argument will toggle the boolean while discarding the value provided.
 
-#### setFlagsFromNamelessArgs()
+#### setFlagsFromPositionalArgs()
 This function works similarly to `setFlagsFromNamedArgs()`, but it has a few key differences:
-- Arguments are "nameless", meaning they are defined based on their order and not any flags.
+- Arguments are "positional", meaning they are defined based on their order and not any flags.
 - The string formatter passed in should not have any flags in it as a result.
 
 For example:
 
-`setFlagsFromNamelessArgs("%d %d %20s", &namelessArg, &namelessArg2, &namelessStringArg)`
+`setFlagsFromPositionalArgs("%d %d %20s", &positionalArg, &positionalArg2, &positionalStringArg)`
 
- - Will use a digit formatter to set `namelessArg` to the value passed in as the very first command line argument.
- - Will use a digit formatter to set `namelessArg2` to the value passed in as the second command line argument.
- - Will use a string formatter to set `namelessStringArg` to the value passed in as the third command line argument.
+ - Will use a digit formatter to set `positionalArg` to the value passed in as the very first command line argument.
+ - Will use a digit formatter to set `positionalArg2` to the value passed in as the second command line argument.
+ - Will use a string formatter to set `positionalStringArg` to the value passed in as the third command line argument.
 
 #### setFlagsFromGroupedBooleanArgs()
 This function takes in a string, which should be a prefix plus a series of characters, each one representing a boolean
@@ -437,6 +437,11 @@ An assertion might look like:
 You can otherwise specify `NULL` to print out the usage message instead. The `USAGE_MESSAGE` macro expands to NULL and 
 can also be used; it exists for readability purposes.
 
+#### libcargValidate()
+This function will do a final pass to ensure every argument in the argument vector has been used for something. If it
+encounters a redundant or unused argument, it will show the argument in an error message and terminate the program. Of 
+course, this function should be called after any argument setters.
+
 ## Assertion Macros
 
 ### REQUIRED_ARGUMENT()
@@ -456,7 +461,7 @@ arguments.
 This is a macro which expands to `0`. This is a semantic choice to show in `argInit()` that an argument has no custom 
 flags.
 
-### NAMELESS_ARG
+### POSITIONAL_ARG
 This macro should be passed in to the flags section of `argInit()` to specify an argument should be 
 given a value without any sort of flag preceding it.
 
@@ -464,7 +469,7 @@ given a value without any sort of flag preceding it.
 When specifying an argument should simply be a flag which toggles some variable on or off, two things must be done. The 
 argument must be initialized as a boolean, which is what this flag is for. Pass this flag into `argInit()` and later 
 reference the generated argument in `setFlagsFromNamedArgs()` with `bool` to create a boolean argument. Boolean arguments
-are always flags, and they can therefore never appear as a nameless argument.
+are always flags, and they can therefore never appear as a positional argument.
 
 ### HEAP_ALLOCATED
 This is a flag for declaring an argument as heap-allocated. In practice, this should never be used. This library 
