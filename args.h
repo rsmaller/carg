@@ -25,10 +25,12 @@ typedef struct argStruct {
     bool hasValue;
     int argvIndexFound; // The index where an argument is found. This stores the argv index of the flag, not the value associated with it. Set to -1 when not found.
     int flags;
-    char *nestedArgString;
+
     const char * const type;
     const char * const usageString;
     char formatterUsed[MAX_FORMATTER_SIZE];
+
+    char *nestedArgString;
     int nestedArgFillIndex;
     size_t nestedArgArraySize;
     struct argStruct *parentArg;
@@ -124,6 +126,8 @@ uint64_t libcargInternalFlags = 0;
 #define ENFORCE_NESTING_ORDER (1ULL<<5ULL)
 
 #define ENFORCE_STRICT_NESTING_ORDER (1ULL<<6ULL)
+
+#define MULTI_ARG (1ULL<<7ULL)
 
 //  Getters and Setters.
 #define hasFlag(item, flag) (item & flag)
@@ -541,13 +545,13 @@ void libcargInit(const int argc, const char * const * const argv){
     memset(varName##Ptr, 0, size);\
     varName##Value = varName##Ptr;\
     varName.value = varName##Ptr;\
-    *varName##Value;
+    varName.valueSize = sizeof(*varName##Value);
 
 //  This macro is for initializing arguments which point to memory that does not need to be freed by this library.
 #define pointerArgInit(leftType, varName, rightType, val, flagsArg, ...)\
     argInit(leftType, varName, rightType, val, flagsArg, __VA_ARGS__)\
     varName.value = varName##Value;\
-    *varName##Value;
+    varName.valueSize = sizeof(*varName##Value);
 
 //  A wrapper for argInit().
 #define basicArgInit(type, varName, value, flagsArg, ...)\
@@ -670,6 +674,7 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     argStruct* currentArg = NULL;
     for (int i=1; i<argCount; i++) {
         if (argVector[i][0] != prefixChar || setArgs[i]) continue;
+        if (strlen(argVector[i]) > 1 && argVector[i][1] == prefixChar) continue;
         for (int j=0; j<strlen(noPrefixArgFormatter); j++) {
             if (charInString(argVector[i], noPrefixArgFormatter[j]) >= 0) {
                 for (int k=0; k<=j; k++) {
