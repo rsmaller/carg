@@ -25,7 +25,8 @@ int main(const int argc, const char *argv[]) { // Example code
 
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
     heapArgInit(char *, positionalStringArg, NONE, POSITIONAL_ARG, 100 * sizeof(char)); // Heap string.
-    pointerArgInit(char, stringArg2, [1000], "default", NO_FLAGS, "-ff"); // Stack string.
+    heapArgInit(int *, multiIntArg, NONE, MULTI_ARG, sizeof(int));
+    pointerArgInit(char, multiStringArg2, [1000], "default", MULTI_ARG, "-ff"); // Stack string.
 
     basicArgInit(bool, thing1, 0, BOOLEAN_ARG);
     basicArgInit(bool, thing2, 0, BOOLEAN_ARG);
@@ -70,9 +71,9 @@ int main(const int argc, const char *argv[]) { // Example code
     argumentOverrideCallbacks("-h -h2", help, help2);
     setFlagsFromNestedArgs(3, &thing1, &thing3, &thing20);
     setFlagsFromPositionalArgs("%d %d %20s", &positionalArg, &positionalArg2, &positionalStringArg);
-    setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d", &intArg, &stringArg, &stringArg, &stringArg2, &floatArg, &boolArg3, &keywordIntArg);
+    setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d --mynum:%d", &intArg, &stringArg, &stringArg, &multiStringArg2, &floatArg, &boolArg3, &keywordIntArg, &multiIntArg);
     setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
-    setDefaultFlagsFromEnv("OS:%999[^\n] PATH:%7s", &stringArg2, &stringArg);
+    setDefaultFlagsFromEnv("OS:%999[^\n] PATH:%7s", &multiStringArg2, &stringArg);
 
     //  Assertion, previews, and termination
     libcargValidate();
@@ -89,8 +90,8 @@ int main(const int argc, const char *argv[]) { // Example code
         positionalArgCount, positionalArgValue, positionalArg2Value,
         positionalStringArgValue, globalIntArgValue, intArg.argvIndexFound,
         keywordIntArgValue, keywordIntArg.argvIndexFound,
-        stringArgValue, stringArg.argvIndexFound, stringArg2Value,
-        stringArg2.argvIndexFound, floatArgValue, floatArg.argvIndexFound,
+        stringArgValue, stringArg.argvIndexFound, multiStringArg2Value,
+        multiStringArg2.argvIndexFound, floatArgValue, floatArg.argvIndexFound,
         boolArg1Value, boolArg1.argvIndexFound, boolArg2Value, boolArg2.argvIndexFound,
         boolArg3Value, boolArg3.argvIndexFound);
     printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d thing8: %d, thing20: %s, thing21: %d, thing22: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value, thing20Value, thing21Value, thing22Value);

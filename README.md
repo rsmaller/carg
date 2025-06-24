@@ -221,6 +221,9 @@ Will add `-n <int>` to the usage message.
 These macros both print out an individual argument, though the handling of the values in each argument is different
 for pointer versus non-pointer types. Use the respective macro to fetch data about an argument of any type.
 
+#### printOutPointerMultiArgument() and printOutNonPointerMultiArgument()
+These are the respective macro variants for printing out multi-argument versions of the above macros.
+
 #### libcargTerminate()
 This function will clean up heap allocations this library uses to parse and set arguments, particularly for automatic 
 usage message generation. This should be called after all arguments have been set and after any usage message can be 
@@ -473,7 +476,8 @@ are always flags, and they can therefore never appear as a positional argument.
 
 ### HEAP_ALLOCATED
 This is a flag for declaring an argument as heap-allocated. In practice, this should never be used. This library 
-automatically handles setting this flag when using the `heapArgInit()` function-style macro.
+automatically handles setting this flag when using the `heapArgInit()` function-style macro. Setting this manually may
+cause the library to free a pointer which has not been heap-allocated. Doing so may result in segmentation faults/crashes.
 
 ### ENFORCE_NESTING_ORDER
 This is a flag for declaring the root of a nested argument as not order-agnostic; this flag should be set in
@@ -482,6 +486,10 @@ within other arguments come after their parent arguments in the argument vector.
 
 ### ENFORCE_STRICT_NESTING_ORDER
 This flag declares that nested arguments should be passed all in sequence, without any arguments in-between.
+
+### MULTI_ARG
+This flag should be used to declare that an argument should be a linked list of values from which to add on to each time
+an argument is found. When an argument is toggled with this flag, it is allowed to be repeated in the argument vector.
 
 ### NO_DEFAULT_VALUE
 This macro expands to `{0}`, and any argument initialized with it in `argInit()` will be zero-initialized. To enforce 

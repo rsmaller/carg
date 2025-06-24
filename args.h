@@ -19,9 +19,14 @@
 
 #define MAX_FORMATTER_SIZE 128
 
-typedef struct argStruct {
+typedef struct multiArgLinkedList {
+    struct multiArgLinkedList *next;
     void *value;
-    size_t valueSize;
+} multiArgLinkedList;
+
+typedef struct argStruct {
+    multiArgLinkedList valueContainer;
+    size_t valueSize; // For non-heap arguments, this will contain the size of the holder variable. For heap-allocated arguments, this will contain the size of heap-allocated memory.
     bool hasValue;
     int argvIndexFound; // The index where an argument is found. This stores the argv index of the flag, not the value associated with it. Set to -1 when not found.
     int flags;
@@ -281,8 +286,20 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
         }
         if (!strcmp(flagItem, argumentFlagToCompare)) {
             if (!currentArg) return;
-            if (currentArg -> hasValue) usage(); // Duplicate named arguments
-            flagCopierPointer = currentArg -> value;
+            if (currentArg -> hasValue && !hasFlag(currentArg -> flags, MULTI_ARG)) usage(); // Duplicate named arguments
+            if (hasFlag(currentArg -> flags, MULTI_ARG) && currentArg -> hasValue) {
+                multiArgLinkedList *multiArgCursor = &currentArg->valueContainer;
+                while (multiArgCursor -> next) {
+                    multiArgCursor = multiArgCursor -> next;
+                }
+                multiArgCursor -> next = (multiArgLinkedList *)malloc(sizeof(multiArgLinkedList));\
+                multiArgCursor -> next -> next = NULL;
+                multiArgCursor -> next -> value = malloc(currentArg -> valueSize);
+                flagCopierPointer = multiArgCursor -> next -> value;
+            } else {
+                flagCopierPointer = currentArg -> valueContainer.value;
+            }
+
             if (!flagCopierPointer) return;
             if (_compareFlag(formatterItem, "bool")) {
                 if (!hasFlag(currentArg -> flags, BOOLEAN_ARG)) {
@@ -322,11 +339,11 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
     for (int i=positionalArgCount+1; i<argCount; i++) {
         if (!strcmp(arg -> nestedArgString, argVector[i])) {
             if (hasFlag(arg -> flags, BOOLEAN_ARG)) {
-                *(bool *)arg -> value = !*(bool *)arg -> value;
+                *(bool *)arg -> valueContainer.value = !*(bool *)arg -> valueContainer.value;
                 arg -> hasValue = 1;
             } else {
                 if (i >= argCount - 1) usage();
-                arg -> hasValue = sscanf(argVector[i+1], arg -> formatterUsed, arg -> value);
+                arg -> hasValue = sscanf(argVector[i+1], arg -> formatterUsed, arg -> valueContainer.value);
                 setArgs[i+1] = arg -> hasValue;
             }
             setArgs[i] = arg -> hasValue;
@@ -496,7 +513,7 @@ void libcargInit(const int argc, const char * const * const argv){
     }\
     leftType varName##Value rightType = val;\
     argStruct varName = (argStruct) {\
-            .value = &varName##Value,\
+            .valueContainer = {.value = &varName##Value, .next = NULL},\
             .hasValue = 0,\
             .flags = flagsArg,\
             .argvIndexFound = -1,\
@@ -544,14 +561,14 @@ void libcargInit(const int argc, const char * const * const argv){
     void *varName##Ptr = malloc(size);\
     memset(varName##Ptr, 0, size);\
     varName##Value = varName##Ptr;\
-    varName.value = varName##Ptr;\
-    varName.valueSize = sizeof(*varName##Value);
+    varName.valueContainer = (multiArgLinkedList) {.value = varName##Ptr, .next = NULL};\
+    varName.valueSize = size;
 
 //  This macro is for initializing arguments which point to memory that does not need to be freed by this library.
 #define pointerArgInit(leftType, varName, rightType, val, flagsArg, ...)\
     argInit(leftType, varName, rightType, val, flagsArg, __VA_ARGS__)\
-    varName.value = varName##Value;\
-    varName.valueSize = sizeof(*varName##Value);
+    varName.valueContainer = (multiArgLinkedList) {.value = varName##Value, .next = NULL};\
+    varName.valueSize = sizeof(varName##Value);
 
 //  A wrapper for argInit().
 #define basicArgInit(type, varName, value, flagsArg, ...)\
@@ -562,8 +579,8 @@ void libcargInit(const int argc, const char * const * const argv){
 //  If a heap-allocated argument is readjusted, the old memory it pointed to will be freed.
 //  This will only change the variable where the argument is saved, meaning the save variable will not follow the "Value" convention the rest of this code follows unless you name it accordingly.
 void adjustArgumentCursor(argStruct *arg, void *newItem) {
-    if (hasFlag(arg->flags, HEAP_ALLOCATED)) free(arg -> value);
-    arg -> value = newItem;
+    if (hasFlag(arg->flags, HEAP_ALLOCATED)) free(arg -> valueContainer.value);
+    arg -> valueContainer.value = newItem;
 }
 
 //  Pass in the argument count, argument vector, and all argument structs generated from the argInit()
@@ -630,7 +647,7 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
             libcargTerminate();
             exit(EXIT_FAILURE);
         }
-        flagCopierPointer = currentArg -> value;
+        flagCopierPointer = currentArg -> valueContainer.value;
         currentArg -> hasValue = sscanf(argVector[i], currentFormatter, flagCopierPointer);
         setArgs[i] = currentArg -> hasValue;
         if (!currentArg -> hasValue) {
@@ -679,7 +696,7 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
             if (charInString(argVector[i], noPrefixArgFormatter[j]) >= 0) {
                 for (int k=0; k<=j; k++) {
                     currentArg = va_arg(formatterArgs, argStruct *);
-                    flagCopierPointer = (bool *)currentArg -> value;
+                    flagCopierPointer = (bool *)currentArg -> valueContainer.value;
                 }
                 va_end(formatterArgs);
                 va_copy(formatterArgs, formatterArgsSaveCopy);
@@ -847,7 +864,7 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
         currentArg = va_arg(args, argStruct *);
         if (!envVarValue) continue;
         if (!currentArg -> hasValue) {
-            currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> value);
+            currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> valueContainer.value);
         }
         if (!currentArg -> hasValue) {
             fprintf(stderr, "Error: unable to grab environment variable %s\n", envVarName);
@@ -955,8 +972,8 @@ void argAssert(const int assertionCount, ...) {
     printf("\tFormatter Used: %s\n", (argument) -> formatterUsed);\
     if ((argument) -> nestedArgString[0]) printf("\tNested Argument String: %s\n", (argument) -> nestedArgString);\
     printf("\tValue: ");\
-    if (!strcmp((argument) -> formatterUsed, "%[^\n]")) printf("%s", (typeArg)(argument) -> value); /* This allows the string scanf() formatter with spaces to work. */\
-    else printf((argument) -> formatterUsed, (typeArg)(argument) -> value);\
+    if (charInString((argument) -> formatterUsed, '\n')) printf("%s", (typeArg)(argument) -> valueContainer.value); /* This allows the string scanf() formatter with spaces to work. */\
+    else printf((argument) -> formatterUsed, (typeArg)(argument) -> valueContainer.value);\
     printf("\n");\
 } while (0)
 
@@ -975,8 +992,33 @@ void argAssert(const int assertionCount, ...) {
     printf("\tFormatter Used: %s\n", (argument) -> formatterUsed);\
     if ((argument) -> nestedArgString[0]) printf("\tNested Argument String: %s\n", (argument) -> nestedArgString);\
     printf("\tValue: ");\
-    printf((argument) -> formatterUsed, *(typeArg *)(argument) -> value);\
+    printf((argument) -> formatterUsed, *(typeArg *)(argument) -> valueContainer.value);\
     printf("\n");\
+} while (0)
+
+#define printOutNonPointerMultiArgument(argument, typeArg) do {\
+    printOutNonPointerArgument(argument, typeArg);\
+    if (!(argument) -> formatterUsed[0]) break;\
+    multiArgLinkedList *cursor = *argument.valueContainer.next;\
+    while (cursor) {\
+        printf("\tValue: ");\
+        printf((argument) -> formatterUsed, *(typeArg)cursor -> value);\
+        printf("\n");\
+        cursor = cursor -> next;\
+    }\
+} while (0)
+
+#define printOutPointerMultiArgument(argument, typeArg) do {\
+printOutPointerArgument(argument, typeArg);\
+    if (!(argument) -> formatterUsed[0]) break;\
+    multiArgLinkedList *cursor = *argument.valueContainer.next;\
+    while (cursor) {\
+        printf("\tValue: ");\
+        if (charInString((argument) -> formatterUsed, '\n')) printf("%s", (typeArg)cursor -> value); /* This allows the string scanf() formatter with spaces to work. */\
+        else printf((argument) -> formatterUsed, (typeArg)cursor -> value);\
+        printf("\n");\
+        cursor = cursor -> next;\
+    }\
 } while (0)
 
 //  Do a final sweep to catch any arguments that have been passed but were not used.
@@ -1008,11 +1050,21 @@ void libcargTerminate(void) {
     if (hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {
         if (allArgs.array) {
             for (int i=0; i<=allArgs.fillIndex; i++) {
-                if (allArgs.array[i] -> value && hasFlag(allArgs.array[i] -> flags, HEAP_ALLOCATED)) {
-                    free(allArgs.array[i] -> value);
+                if (allArgs.array[i] -> valueContainer.value && hasFlag(allArgs.array[i] -> flags, HEAP_ALLOCATED)) {
+                    free(allArgs.array[i] -> valueContainer.value);
                 }
                 if (allArgs.array[i] -> nestedArgs) {
                     free(allArgs.array[i] -> nestedArgs);
+                }
+                if (allArgs.array[i] -> valueContainer.next) {
+                    multiArgLinkedList *cursor = allArgs.array[i] -> valueContainer.next -> next;
+                    void *cursorToFree = allArgs.array[i] -> valueContainer.next;
+                    free(cursorToFree);
+                    while (cursor) {
+                        cursorToFree = cursor;
+                        cursor = cursor -> next;
+                        free(cursorToFree);
+                    }
                 }
             }
             free(allArgs.array);
