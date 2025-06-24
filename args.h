@@ -173,6 +173,12 @@ uint64_t libcargInternalFlags = 0;
 
 #define TOKEN_TO_STRING(x) #x
 
+#define _libcargError(...) do {\
+    fprintf(stderr, "libcargError: "__VA_ARGS__);\
+    libcargTerminate();\
+    exit(EXIT_FAILURE);\
+} while (0)
+
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Functions and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -213,9 +219,7 @@ int secure_sprintf(char * const startPointer, char * const endPointer, char **cu
 
 #define _checkForAssertion() do {\
     if (hasFlag(libcargInternalFlags, ASSERTIONS_SET)) {\
-        fprintf(stderr, "Error: Assertion initializer called before args are initialized. Please fix this!\n");\
-        libcargTerminate();\
-        exit(EXIT_FAILURE);\
+        _libcargError("Assertion initializer called before args are initialized. Please fix this!\n");\
     }\
 } while (0)
 
@@ -276,6 +280,12 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
         const char *formatterItem = strtok_r(NULL, ": ", &savePointer);
         internalFormatter = savePointer;
         if (!flagItem) break;
+        if (charInString(flagItem, '%') > -1) {
+            _libcargError("Cannot parse flag %s\n", flagItem);
+        }
+        if (!_compareFlag(formatterItem, "bool") && formatterItem[0] != '%') {
+            _libcargError("Cannot parse formatter %s\n", formatterItem);
+        }
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         if (charInString(argVector[argIndex], '=') >= 0 && strcmp(formatterItem, "bool")) {
             int ncompare = 0;
@@ -303,9 +313,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
             if (!flagCopierPointer) return;
             if (_compareFlag(formatterItem, "bool")) {
                 if (!hasFlag(currentArg -> flags, BOOLEAN_ARG)) {
-                    fprintf(stderr, "Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.\n");
-                    libcargTerminate();
-                    exit(EXIT_FAILURE);
+                    _libcargError("Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.\n");
                 }
                 *(bool *)flagCopierPointer = !*(bool *)flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
                 currentArg -> hasValue = 1;
@@ -331,9 +339,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
 int _setFlagFromNestedArgInternal(argStruct *arg) {
     if (!arg) return 0;
     if (!hasFlag(arg -> flags, NESTED_ARG)) {
-        fprintf(stderr, "Error: Nested flag setter called on non-nested argument. Fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Nested flag setter called on non-nested argument. Fix this!\n");
     }
     if (arg -> hasValue) return 0;
     for (int i=positionalArgCount+1; i<argCount; i++) {
@@ -439,9 +445,7 @@ const char *basename(const char * const pathStart) {
 //  This function uses a string formatter to generate a usage message to be used when usage() is called.
 #define setUsageMessage(...) do { \
     if (hasFlag(libcargInternalFlags, USAGE_MESSAGE_SET)) {\
-        fprintf(stderr, "Error: usage message set by user twice. Please fix this!\n");\
-        libcargTerminate();\
-        exit(EXIT_FAILURE);\
+        _libcargError("Usage message set by user twice. Please fix this!\n");\
     }\
     secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, __VA_ARGS__);\
     setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);\
@@ -451,14 +455,10 @@ const char *basename(const char * const pathStart) {
 //  setUsageMessage() should not be used alongside this function, otherwise it would obfuscate the generated usage message generated here.
 void usageMessageAutoGenerate(void) {
     if (!hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {
-        fprintf(stderr, "Error: usage message auto-generated before library initialization. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Usage message auto-generated before library initialization. Please fix this!\n");
     }
     if (hasFlag(libcargInternalFlags, USAGE_MESSAGE_SET)) {
-        fprintf(stderr, "Error: usage message set by user twice. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Usage message set by user twice. Please fix this!\n");
     }
     secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s%s ", "Usage: ", basename(argVector[0]));
     _printAllPositionalArgsToUsageBuffer();
@@ -470,9 +470,7 @@ void usageMessageAutoGenerate(void) {
 //  However, using it is not recommended unless there is some requisite functionality to the client code which the usage message generation in this library does not provide.
 void setUsageFunction(void (*funcArg)(void)) {
     if (hasFlag(libcargInternalFlags, USAGE_MESSAGE_SET)) {
-        fprintf(stderr, "Err or: usage message set by user twice. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Usage message set by user twice. Please fix this!\n");
     }
     _usagePointer = funcArg;
     setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);
@@ -507,9 +505,7 @@ void libcargInit(const int argc, const char * const * const argv){
 //  Finally, a variadic string argument may be passed to this macro to set a usage string with the usageMessageAutoGenerate() function.
 #define argInit(leftType, varName, rightType, val, flagsArg, ...)\
     if (!hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {\
-        fprintf(stderr, "Error: attempt to initialize argument before library initialization. Please fix this!\n");\
-        libcargTerminate();\
-        exit(EXIT_FAILURE);\
+        _libcargError("Attempt to initialize argument before library initialization. Please fix this!\n");\
     }\
     leftType varName##Value rightType = val;\
     argStruct varName = (argStruct) {\
@@ -587,19 +583,13 @@ void adjustArgumentCursor(argStruct *arg, void *newItem) {
 //  and basicArgInit() functions to set them based on the argument vector.
 void setFlagsFromNamedArgs(const char * const argFormatter, ...) {
     if (!hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {
-        fprintf(stderr, "Error: setter called before library initialization. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Setter called before library initialization. Please fix this!\n");
     }
     if (hasFlag(libcargInternalFlags, NAMED_ARGS_SET)) {
-        fprintf(stderr, "Error: Named args initializer called multiple times. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Named args initializer called multiple times. Please fix this!\n");
     }
     if (hasFlag(libcargInternalFlags, GROUPED_ARGS_SET)) {
-        fprintf(stderr, "Error: Grouped args initializer called before named args initializer. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Grouped args initializer called before named args initializer. Please fix this!\n");
     }
     _checkForAssertion();
     va_list formatterArgs;
@@ -615,19 +605,13 @@ void setFlagsFromNamedArgs(const char * const argFormatter, ...) {
 //  However, this function is for arguments without preceding flags; therefore, flags should not be included in the formatter.
 void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
     if (!hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {
-        fprintf(stderr, "Error: setter called before library initialization. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Setter called before library initialization. Please fix this!\n");
     }
     if (hasFlag(libcargInternalFlags, POSITIONAL_ARGS_SET)) {
-        fprintf(stderr, "Error: Positional args initializer called multiple times. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Positional args initializer called multiple times. Please fix this!\n");
     }
     if (hasFlag(libcargInternalFlags, GROUPED_ARGS_SET)) {
-        fprintf(stderr, "Error: Grouped args initializer called before positional args initializer. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Grouped args initializer called before positional args initializer. Please fix this!\n");
     }
     _checkForAssertion();
     if (argCount <= positionalArgCount) usage();
@@ -643,9 +627,7 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
         internalFormatter = savePointer;
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         if (!hasFlag(currentArg -> flags, POSITIONAL_ARG)) {
-            fprintf(stderr, "Error: Positional arg setter called on named arg. Please fix this!\n");
-            libcargTerminate();
-            exit(EXIT_FAILURE);
+            _libcargError("Positional arg setter called on named argument. Please fix this!\n");
         }
         flagCopierPointer = currentArg -> valueContainer.value;
         currentArg -> hasValue = sscanf(argVector[i], currentFormatter, flagCopierPointer);
@@ -671,14 +653,10 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
 //  The argument structs each correspond to a character in the flag string, so the order matters!
 void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     if (!hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {
-        fprintf(stderr, "Error: setter called before library initialization. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Setter called before library initialization. Please fix this!\n");
     }
     if (hasFlag(libcargInternalFlags, GROUPED_ARGS_SET)) {
-        fprintf(stderr, "Error: Grouped args initializer called multiple times. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Grouped args initializer called multiple times. Please fix this!\n");
     }
     _checkForAssertion();
     const char prefixChar = argFormatter[0];
@@ -717,9 +695,7 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
 //  Use this to nest a boolean argument within a root argument or another nested argument.
 argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString) {
     if (!hasFlag(nestIn -> flags, BOOLEAN_ARG) || !hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
-        fprintf(stderr, "Error: only boolean arguments can be nested with this nesting function. Fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Only boolean arguments can be nested with this nesting function. Fix this!\n");
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= nestIn -> nestedArgArraySize / 2) {
           nestIn -> nestedArgArraySize *= 2;
@@ -740,9 +716,7 @@ argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, char *ne
 //  Every nested element, including the root, must use a plain string to identify its flag.
 argStruct *nestedBooleanArgumentInit(argStruct *arg, char *argString, const int flagsArg) {
     if (!hasFlag(arg -> flags, BOOLEAN_ARG)) {
-        fprintf(stderr, "Error: Boolean nested argument initializer called on non-boolean flag. Fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Boolean nested argument initializer called on non-boolean flag. Fix this!\n");
     }
     setFlag(arg -> flags, NESTED_ARG | NESTED_ARG_ROOT | flagsArg);
     arg -> nestedArgString = argString;
@@ -753,9 +727,7 @@ argStruct *nestedBooleanArgumentInit(argStruct *arg, char *argString, const int 
 //  Every nested element, including the root, must use a plain string to identify its flag.
 argStruct *nestedArgumentInit(argStruct *arg, char *argString, const int flagsArg, const char * const formatterToUse) {
     if (hasFlag(arg -> flags, BOOLEAN_ARG)) {
-        fprintf(stderr, "Error: Non-boolean nested argument initializer called on boolean flag. Fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Non-boolean nested argument initializer called on boolean flag. Fix this!\n");
     }
     strncpy(arg -> formatterUsed, formatterToUse, sizeof(arg -> formatterUsed) - 1);
     setFlag(arg -> flags, NESTED_ARG | NESTED_ARG_ROOT | flagsArg);
@@ -766,9 +738,7 @@ argStruct *nestedArgumentInit(argStruct *arg, char *argString, const int flagsAr
 //  Use this to nest an argument within a root argument or another nested argument.
 argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString, const char * const formatterToUse) {
     if (hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
-        fprintf(stderr, "Error: only non-boolean arguments can be nested with this nesting function. Fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Only non-boolean arguments can be nested with this nesting function. Fix this!\n");
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
@@ -794,38 +764,26 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
 //  A logical line must follow from a graph of options for the flags to be toggled accordingly.
 void setFlagsFromNestedArgs(const int nestedArgumentCount, ...) {
     if (!hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {
-        fprintf(stderr, "Error: setter called before library initialization. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Setter called before library initialization. Please fix this!\n");
     }
     if (hasFlag(libcargInternalFlags, NESTED_ARGS_SET)) {
-        fprintf(stderr, "Error: Nested args initializer called multiple times. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Nested args initializer called multiple times. Please fix this!\n");
     }
     if (hasFlag(libcargInternalFlags, GROUPED_ARGS_SET)) {
-        fprintf(stderr, "Error: Grouped args initializer called before nested args initializer. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Grouped args initializer called before nested args initializer. Please fix this!\n");
     }
     va_list args;
     va_start(args, nestedArgumentCount);
     for (int x=0; x<nestedArgumentCount; x++) {
         argStruct *argRoot = va_arg(args, argStruct *);
         if (!hasFlag(argRoot -> flags, NESTED_ARG)) {
-            fprintf(stderr, "Error: Nested flag setter called on non-nested argument. Fix this!\n");
-            libcargTerminate();
-            exit(EXIT_FAILURE);
+            _libcargError("Nested flag setter called on non-nested argument. Fix this!\n");
         }
         if (!hasFlag(argRoot -> flags, NESTED_ARG_ROOT)) {
-            fprintf(stderr, "Error: Nested flag setter called on non-root nested argument. Fix this!\n");
-            libcargTerminate();
-            exit(EXIT_FAILURE);
+            _libcargError("Nested flag setter called on non-root nested argument. Fix this!\n");
         }
         if (argRoot -> hasValue) {
-            fprintf(stderr, "Error: Root nested element is set multiple times. Fix this!\n");
-            libcargTerminate();
-            exit(EXIT_FAILURE);
+            _libcargError("Root nested element was set multiple times. Fix this!\n");
         }
         const argStruct *argCursor = argRoot;
         if (!_setFlagFromNestedArgInternal(argRoot)) continue;
@@ -845,9 +803,7 @@ void setFlagsFromNestedArgs(const int nestedArgumentCount, ...) {
 //  Lastly, the function should be given variadic argument structs (Ex. "PATH:%s OS:%s", &string1, &string2)
 void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
     if (!hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {
-        fprintf(stderr, "Error: setter called before library initialization. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Setter called before library initialization. Please fix this!\n");
     }
     va_list args;
     va_start(args, argFormatter);
@@ -859,6 +815,8 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
         char *envVarName = strtok_r(argFormatterTokenCopy, ": ", &savePointer);
         char *formatter = strtok_r(NULL, ": ", &savePointer);
         argFormatterTokenCopy = savePointer;
+        if (envVarName && charInString(envVarName, '%') > -1) _libcargError("Cannot parse environment variable %s\n", envVarName);
+        if (formatter && formatter[0] != '%') _libcargError("Cannot parse formatter %s\n", formatter);
         if (!envVarName || !formatter) break;
         const char *envVarValue = getenv(envVarName);
         currentArg = va_arg(args, argStruct *);
@@ -867,7 +825,7 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
             currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> valueContainer.value);
         }
         if (!currentArg -> hasValue) {
-            fprintf(stderr, "Error: unable to grab environment variable %s\n", envVarName);
+            _libcargError("Unable to grab environment variable %s\n", envVarName);
         }
         strncpy(currentArg -> formatterUsed, formatter, MAX_FORMATTER_SIZE - 1);
     }
@@ -881,20 +839,14 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
 //  These arguments will override any other arguments passed in.
 void argumentOverrideCallbacks(const char *argFormatter, ...) {
     if (!hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {
-        fprintf(stderr, "Error: argument override called before library initialization. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Argument override called before library initialization. Please fix this!\n");
     }
     if (hasFlag(libcargInternalFlags, OVERRIDE_CALLBACKS_SET)) {
-        fprintf(stderr, "Error: Override callback args initializer called multiple times. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Override callback args initializer called multiple times. Please fix this!\n");
     }
     if (hasFlag(libcargInternalFlags, ASSERTIONS_SET) || hasFlag(libcargInternalFlags, NAMED_ARGS_SET) || hasFlag(libcargInternalFlags, POSITIONAL_ARGS_SET) ||
         hasFlag(libcargInternalFlags, GROUPED_ARGS_SET) || hasFlag(libcargInternalFlags, NESTED_ARGS_SET)) {
-        fprintf(stderr, "Error: Callback override initialized after arguments were set. Fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Callback override initialized after arguments were set. Fix this!\n");
     }
     _checkForAssertion();
     if (argCount < 2) return;
@@ -935,9 +887,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
 //  This function is designed to validate command line arguments.
 void argAssert(const int assertionCount, ...) {
     if (hasFlag(libcargInternalFlags, ASSERTIONS_SET)) {
-        fprintf(stderr, "Error: Assertion args initializer called multiple times. Please fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Assertion args initializer called multiple times. Please fix this!\n");
     }
     va_list args;                         
     va_start(args, assertionCount);
@@ -1027,14 +977,12 @@ printOutPointerArgument(argument, typeArg);\
 void libcargValidate(void) {
     if (!(hasFlag(libcargInternalFlags, ASSERTIONS_SET) || hasFlag(libcargInternalFlags, NAMED_ARGS_SET) || hasFlag(libcargInternalFlags, POSITIONAL_ARGS_SET) ||
         hasFlag(libcargInternalFlags, GROUPED_ARGS_SET) || hasFlag(libcargInternalFlags, NESTED_ARGS_SET))) {
-        fprintf(stderr, "Error: Argument validator called before arguments were set. Fix this!\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+        _libcargError("Argument validator called before arguments were set. Fix this!\n");
         }
     bool errorFound = false;
     for (int i=1; i<argCount; i++) {
         if (!setArgs[i]) {
-            fprintf(stderr, "Error: unknown option: \"%s\"\n", argVector[i]);
+            fprintf(stderr, "Error: Unknown option \"%s\"\n", argVector[i]);
             errorFound = true;
         }
     }
