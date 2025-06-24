@@ -1005,10 +1005,12 @@ void libcargTerminate(void) {
                     free(allArgs.array[i] -> nestedArgs);
                 }
                 if (allArgs.array[i] -> valueContainer.next) {
+                    free(allArgs.array[i] -> valueContainer.next -> value);
                     multiArgLinkedList *cursor = allArgs.array[i] -> valueContainer.next -> next;
-                    void *cursorToFree = allArgs.array[i] -> valueContainer.next;
+                    multiArgLinkedList *cursorToFree = allArgs.array[i] -> valueContainer.next;
                     free(cursorToFree);
                     while (cursor) {
+                        free(cursor -> value);
                         cursorToFree = cursor;
                         cursor = cursor -> next;
                         free(cursorToFree);
