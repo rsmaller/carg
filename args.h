@@ -359,8 +359,7 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
 
 //  Prints out data about a single argument which has a pointer type.
 //  This function is primarily for strings, or data that does not need to be passed as a dereferenced value before printing.
-//  Type information is obfuscated in each argument, so make sure to pass the correct type into this macro.
-#define printOutPointerArgument(argument, typeArg) do {\
+#define printOutStringArgument(argument) do {\
     printf("Argument passed in as %s:\n", (#argument));\
     printf("\tType: %s\n", (argument) -> type);\
     printf("\tSize: %llu\n", (argument) -> valueSize);\
@@ -371,8 +370,8 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
     printf("\tFormatter Used: %s\n", (argument) -> formatterUsed);\
     if ((argument) -> nestedArgString[0]) printf("\tNested Argument String: %s\n", (argument) -> nestedArgString);\
     printf("\tValue: ");\
-    if (charInString((argument) -> formatterUsed, '\n')) printf("%s", (typeArg)(argument) -> valueContainer.value); /* This allows the string scanf() formatter with spaces to work. */\
-    else printf((argument) -> formatterUsed, (typeArg)(argument) -> valueContainer.value);\
+    if (charInString((argument) -> formatterUsed, '\n')) printf("%s", (argument) -> valueContainer.value); /* This allows the string scanf() formatter with spaces to work. */\
+    else printf((argument) -> formatterUsed, (argument) -> valueContainer.value);\
     printf("\n");\
 } while (0)
 
@@ -380,7 +379,7 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
 //  If you want to print out a pointer argument's dereferenced value, you can use this function.
 //  This is particularly useful when printing out an element from something like an integer array.
 //  Type information is obfuscated in each argument, so make sure to pass the correct type into this macro.
-#define printOutNonPointerArgument(argument, typeArg) do {\
+#define printOutNonStringArgument(argument, typeArg) do {\
     printf("Argument passed in as %s:\n", (#argument));\
     printf("\tType: %s\n", (argument) -> type);\
     printf("\tSize: %llu\n", (argument) -> valueSize);\
@@ -395,28 +394,28 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
     printf("\n");\
 } while (0)
 
-//  This macro is the same as printOutNonPointerArgument(), but it will explicitly print multi-argument vectors.
-#define printOutNonPointerMultiArgument(argument, typeArg) do {\
-    printOutNonPointerArgument(argument, typeArg);\
+//  This macro is the same as printOutNonStringArgument(), but it will explicitly print multi-argument vectors.
+#define printOutNonStringMultiArgument(argument, typeArg) do {\
+    printOutNonStringArgument(argument, typeArg);\
     if (!(argument) -> formatterUsed[0]) break;\
     multiArgLinkedList *cursor = *argument.valueContainer.next;\
     while (cursor) {\
         printf("\tValue: ");\
-        printf((argument) -> formatterUsed, *(typeArg)cursor -> value);\
+        printf((argument) -> formatterUsed, *(typeArg *)cursor -> value);\
         printf("\n");\
         cursor = cursor -> next;\
     }\
 } while (0)
 
-//  This macro is the same as printOutPointerArgument(), but it will explicitly print multi-argument vectors.
-#define printOutPointerMultiArgument(argument, typeArg) do {\
-    printOutPointerArgument(argument, typeArg);\
+//  This macro is the same as printOutStringArgument(), but it will explicitly print multi-argument vectors.
+#define printOutStringMultiArgument(argument) do {\
+    printOutStringArgument(argument);\
     if (!(argument) -> formatterUsed[0]) break;\
     multiArgLinkedList *cursor = *argument.valueContainer.next;\
     while (cursor) {\
         printf("\tValue: ");\
-        if (charInString((argument) -> formatterUsed, '\n')) printf("%s", (typeArg)cursor -> value); /* This allows the string scanf() formatter with spaces to work. */\
-        else printf((argument) -> formatterUsed, (typeArg)cursor -> value);\
+        if (charInString((argument) -> formatterUsed, '\n')) printf("%s", (cursor -> value)); /* This allows the string scanf() formatter with spaces to work. */\
+        else printf((argument) -> formatterUsed, cursor -> value);\
         printf("\n");\
         cursor = cursor -> next;\
     }\

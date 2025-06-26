@@ -217,12 +217,36 @@ basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n");
 
 Will add `-n <int>` to the usage message.
 
-#### printOutPointerArgument() and printOutNonPointerArgument()
+#### printOutStringArgument() and printOutNonStringArgument()
 These macros both print out an individual argument, though the handling of the values in each argument is different
-for pointer versus non-pointer types. Use the respective macro to fetch data about an argument of any type.
+for string versus non-string printed types. Use the respective macro to fetch data about an argument of any type.
+Both macros accept an argument struct pointer to print from.
+Note that printing functions are type-agnostic when printing pointer values because the pointer type is grabbed from the 
+formatter; therefore, `printOutStringArgument()` requires no type to be passed in.
+However, `printOutNonStringArgument()` does require a provided type.
+For arguments which are stored as pointers, the indirection is handled internally; only the type which will be printed 
+out should be passed in to these macros (i.e. `int *` arguments should be passed to the macros as `int` types).
 
-#### printOutPointerMultiArgument() and printOutNonPointerMultiArgument()
+For example:
+
+```
+printOutNonStringArgument(&intArg, int);
+printOutStringArgument(&stringArg);
+```
+
+would be the conventional way to call these macros.
+
+#### printOutStringMultiArgument() and printOutNonStringMultiArgument()
 These are the respective macro variants for printing out multi-argument versions of the above macros.
+Similar to above, `printOutStringMultiArgument()` does not accept a type as a parameter. Furthermore, pointer indirection
+likewise applies here.
+
+These macros may be used as shown below:
+
+```
+printOutNonStringMultiArgument(&multiIntArg, int);
+printOutStringMultiArgument(&multiStringArg);
+```
 
 #### libcargTerminate()
 This function will clean up heap allocations this library uses to parse and set arguments, particularly for automatic 

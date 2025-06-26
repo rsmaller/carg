@@ -95,6 +95,10 @@ int main(const int argc, const char *argv[]) { // Example code
         boolArg1Value, boolArg1.argvIndexFound, boolArg2Value, boolArg2.argvIndexFound,
         boolArg3Value, boolArg3.argvIndexFound);
     printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d thing8: %d, thing20: %s, thing21: %d, thing22: %d\n", thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value, thing20Value, thing21Value, thing22Value);
+    // printOutNonStringArgument(&multiIntArg, int); // Uncomment these to see how the argument printing functions work.
+    // printOutStringArgument(&stringArg);
+    // printOutNonStringMultiArgument(&multiIntArg, int);
+    // printOutStringMultiArgument(&multiStringArg2);
     libcargTerminate();
     return 0;
 }
