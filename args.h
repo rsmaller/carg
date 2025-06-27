@@ -316,21 +316,13 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
         if (allArgs.fillIndex >= (allArgs.size / 2)){\
             allArgs.size *= 2;\
             void *argArrayReallocation = realloc(allArgs.array, allArgs.size * sizeof(argStruct *));\
-            if (!argArrayReallocation) {\
-                printf("Heap allocation failure. Terminating\n");\
-                libcargTerminate();\
-                exit(EXIT_FAILURE);\
-            }\
+            _heapCheck(argArrayReallocation);\
             allArgs.array = (argStruct **)argArrayReallocation;\
         }\
         allArgs.array[allArgs.fillIndex] = &varName;\
     } else {\
         allArgs.array = (argStruct **)malloc(sizeof(argStruct *) * 4);\
-        if (!allArgs.array) {\
-            printf("Heap allocation failure. Terminating\n");\
-            libcargTerminate();\
-            exit(EXIT_FAILURE);\
-        }\
+        _heapCheck(allArgs.array);\
         allArgs.array[0] = &varName;\
         allArgs.fillIndex++;\
         allArgs.size = 4;\
@@ -342,6 +334,7 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
 #define heapArgInit(leftType, varName, rightType, flagsArg, size, ...)\
     argInit(leftType, varName, rightType, NO_DEFAULT_VALUE, ((flagsArg) | (HEAP_ALLOCATED)), __VA_ARGS__)\
     void *varName##Ptr = malloc(size);\
+    _heapCheck(varName##Ptr);\
     memset(varName##Ptr, 0, size);\
     varName##Value = varName##Ptr;\
     varName.valueContainer = (multiArgLinkedList) {.value = varName##Ptr, .next = NULL};\
@@ -430,7 +423,7 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
 int test_printf(char *formatter, ...);
 
 //  This function will return the number of characters that would be written from a series of string formatters.
-int test_vsnprintf(const char *formatter, const va_list args);
+int test_vsnprintf(const char *formatter, va_list args);
 
 //  This function keeps track of a start and end pointer of a string. The end pointer of the string should be the start
 //  of the string plus the size of the string, or in other words, the index right after the expected location of the
@@ -441,6 +434,9 @@ int secure_sprintf(char * const startPointer, char * const endPointer, char **cu
 //  of the string plus the size of the string, or in other words, the index right after the expected location of the
 //  null terminator in a string.
 int secure_vsprintf(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, va_list argsToCopy);
+
+//  This function verifies that a heap allocation was successful and terminates if not.
+void _heapCheck(void *ptr);
 
 //  A semantic wrapper to compare flags against their parameters.
 int _compareFlag(const char *argument, const char *parameter);
@@ -551,14 +547,14 @@ void usage(void) {
 
 void libcargInit(const int argc, const char * const * const argv) {
     argCount = argc;
-    argVector = (char **)malloc(sizeof(char *) * argCount);
-    if (!argVector) {
-        printf("Heap allocation failure. Terminating\n");
-        libcargTerminate();
-        exit(EXIT_FAILURE);
+    argVector = (char **)calloc(argCount, sizeof(char *));
+    _heapCheck(argVector);
+    for (int i=0; i<argCount; i++) {
+        argVector[i] = strdup(argv[i]);
+        _heapCheck(argVector[i]);
     }
-    memcpy(argVector, argv, sizeof(char *) * argCount);
     setArgs = (int *)calloc(argCount, sizeof(int));
+    _heapCheck(setArgs);
     setFlag(libcargInternalFlags, LIBCARGS_INITIALIZED);
 }
 
@@ -600,6 +596,7 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
     _checkForAssertion();
     if (argCount <= positionalArgCount) usage();
     char *internalFormatter = strdup(argFormatter);
+    _heapCheck(internalFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     const char *currentFormatter = NULL;
@@ -617,6 +614,10 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
         currentArg -> hasValue = sscanf(argVector[i], currentFormatter, flagCopierPointer);
         setArgs[i] = currentArg -> hasValue;
         if (!currentArg -> hasValue) {
+            if (internalFormatterAllocation) {
+                free(internalFormatterAllocation);
+                internalFormatterAllocation = NULL;
+            }
             usage();
         }
         currentArg -> argvIndexFound = i;
@@ -624,7 +625,10 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
             strncpy(currentArg -> formatterUsed, currentFormatter, MAX_FORMATTER_SIZE - 1);
         }
     }
-    free(internalFormatterAllocation);
+    if (internalFormatterAllocation) {
+        free(internalFormatterAllocation);
+        internalFormatterAllocation = NULL;
+    }
     va_end(formatterArgs);
     setFlag(libcargInternalFlags, POSITIONAL_ARGS_SET);
 }
@@ -686,8 +690,10 @@ argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, char *ne
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
         nestIn -> nestedArgs = (argStruct **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(argStruct *));
+        _heapCheck(nestIn -> nestedArgs);
     } else if (!nestIn -> nestedArgs) {
         nestIn -> nestedArgs = (argStruct **)calloc(4, sizeof(argStruct *));
+        _heapCheck(nestIn -> nestedArgs);
         nestIn -> nestedArgArraySize = 4;
     }
     argToNest -> nestedArgString = nestedArgString;
@@ -715,8 +721,10 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
         nestIn -> nestedArgs = (argStruct **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(argStruct *));
+        _heapCheck(nestIn -> nestedArgs);
     } else if (!nestIn -> nestedArgs) {
         nestIn -> nestedArgs = (argStruct **)calloc(4, sizeof(argStruct *));
+        _heapCheck(nestIn -> nestedArgs);
         nestIn -> nestedArgArraySize = 4;
     }
     argToNest -> nestedArgString = nestedArgString;
@@ -770,6 +778,7 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
     va_list args;
     va_start(args, argFormatter);
     char *argFormatterTokenCopy = strdup(argFormatter);
+    _heapCheck(argFormatterTokenCopy);
     void *argFormatterTokenAllocation = argFormatterTokenCopy;
     char *savePointer = NULL;
     argStruct *currentArg = NULL;
@@ -787,6 +796,7 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
             currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> valueContainer.value);
         }
         if (!currentArg -> hasValue) {
+            free(argFormatterTokenAllocation);
             _libcargError("Unable to grab environment variable %s\n", envVarName);
         }
         strncpy(currentArg -> formatterUsed, formatter, MAX_FORMATTER_SIZE - 1);
@@ -809,6 +819,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
     _checkForAssertion();
     if (argCount < 2) return;
     char *internalFormatter = strdup(argFormatter);
+    _heapCheck(internalFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     const char *currentFlag = NULL;
@@ -831,6 +842,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
         free(internalFormatterAllocation);
         va_copy(args_copy, args);
         internalFormatter = strdup(argFormatter);
+        _heapCheck(internalFormatter);
         internalFormatterAllocation = internalFormatter;
         savePointer = NULL;
     }
@@ -906,7 +918,12 @@ void libcargTerminate(void) {
             free(allArgs.array);
         }
         if (setArgs) free(setArgs);
-        if (argVector) free(argVector);
+        if (argVector) {
+            for (int i=0; i<argCount; i++) {
+                free(argVector[i]);
+            }
+            free(argVector);
+        }
     }
     clearFlag(libcargInternalFlags, LIBCARGS_INITIALIZED);
 }
@@ -923,7 +940,7 @@ int test_printf(char *formatter, ...) {
     return returnValue;
 }
 
-int test_vsnprintf(const char *formatter, const va_list args) {
+int test_vsnprintf(const char *formatter, va_list args) { // NOLINT
     const int returnValue = vsnprintf(NULL, 0, formatter, args);
     return returnValue;
 }
@@ -958,12 +975,21 @@ int secure_vsprintf(char * const startPointer, char * const endPointer, char **c
     return returnValue;
 }
 
+void _heapCheck(void *ptr) {
+    if (!ptr) {
+        printf("Heap allocation failure. Terminating\n");
+        libcargTerminate();
+        exit(EXIT_FAILURE);
+    }
+}
+
 int _compareFlag(const char *argument, const char *parameter) {
     return !strcmp(argument, parameter);
 }
 
 int _isFlag(const char *formatter, const char *toCheck) {
     char *internalFormatter = strdup(formatter);
+    _heapCheck(internalFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     while (1) {
@@ -998,10 +1024,12 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
     char *internalFormatter = strdup(argFormatter);
+    _heapCheck(internalFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     void *flagCopierPointer = NULL;
     char *argumentFlagToCompare = strdup(argVector[argIndex]);
+    _heapCheck(argumentFlagToCompare);
     const char *formatItemToCopy = argVector[argIndex + 1];
     while (1) {
         const char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
@@ -1030,9 +1058,11 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
                 while (multiArgCursor -> next) {
                     multiArgCursor = multiArgCursor -> next;
                 }
-                multiArgCursor -> next = (multiArgLinkedList *)malloc(sizeof(multiArgLinkedList));\
+                multiArgCursor -> next = (multiArgLinkedList *)malloc(sizeof(multiArgLinkedList));
+                _heapCheck(multiArgCursor -> next);
                 multiArgCursor -> next -> next = NULL;
                 multiArgCursor -> next -> value = malloc(currentArg -> valueSize);
+                _heapCheck(multiArgCursor -> next -> value);
                 flagCopierPointer = multiArgCursor -> next -> value;
             } else {
                 flagCopierPointer = currentArg -> valueContainer.value;
@@ -1052,6 +1082,10 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
                 setArgs[argIndex] = currentArg -> hasValue;
                 if (!(charInString(argVector[argIndex], '=') >= 0 && strcmp(formatterItem, "bool"))) setArgs[argIndex + 1] = currentArg -> hasValue;
                 if (!currentArg -> hasValue) {
+                    free(internalFormatterAllocation);
+                    free(argumentFlagToCompare);
+                    internalFormatterAllocation = NULL;
+                    argumentFlagToCompare = NULL;
                     usage();
                 }
             }
