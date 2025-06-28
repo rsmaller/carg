@@ -438,6 +438,9 @@ int secure_vsprintf(char * const startPointer, char * const endPointer, char **c
 //  This function verifies that a heap allocation was successful and terminates if not.
 void _heapCheck(void *ptr);
 
+//  Frees a non-null heap allocation.
+void _freeIf(void *ptr);
+
 //  A semantic wrapper to compare flags against their parameters.
 int _compareFlag(const char *argument, const char *parameter);
 
@@ -559,7 +562,7 @@ void libcargInit(const int argc, const char * const * const argv) {
 }
 
 void adjustArgumentCursor(argStruct *arg, void *newItem) {
-    if (hasFlag(arg->flags, HEAP_ALLOCATED)) free(arg -> valueContainer.value);
+    if (hasFlag(arg->flags, HEAP_ALLOCATED)) _freeIf(arg -> valueContainer.value);
     arg -> valueContainer.value = newItem;
 }
 
@@ -614,10 +617,8 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
         currentArg -> hasValue = sscanf(argVector[i], currentFormatter, flagCopierPointer);
         setArgs[i] = currentArg -> hasValue;
         if (!currentArg -> hasValue) {
-            if (internalFormatterAllocation) {
-                free(internalFormatterAllocation);
-                internalFormatterAllocation = NULL;
-            }
+            _freeIf(internalFormatterAllocation);
+            internalFormatterAllocation = NULL;
             usage();
         }
         currentArg -> argvIndexFound = i;
@@ -625,10 +626,8 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
             strncpy(currentArg -> formatterUsed, currentFormatter, MAX_FORMATTER_SIZE - 1);
         }
     }
-    if (internalFormatterAllocation) {
-        free(internalFormatterAllocation);
-        internalFormatterAllocation = NULL;
-    }
+    _freeIf(internalFormatterAllocation);
+    internalFormatterAllocation = NULL;
     va_end(formatterArgs);
     setFlag(libcargInternalFlags, POSITIONAL_ARGS_SET);
 }
@@ -796,13 +795,13 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
             currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> valueContainer.value);
         }
         if (!currentArg -> hasValue) {
-            free(argFormatterTokenAllocation);
+            _freeIf(argFormatterTokenAllocation);
             _libcargError("Unable to grab environment variable %s\n", envVarName);
         }
         strncpy(currentArg -> formatterUsed, formatter, MAX_FORMATTER_SIZE - 1);
     }
     va_end(args);
-    free(argFormatterTokenAllocation);
+    _freeIf(argFormatterTokenAllocation);
 }
 
 void argumentOverrideCallbacks(const char *argFormatter, ...) {
@@ -834,19 +833,19 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
             functionCursor = va_arg(args_copy, voidFuncPtr);
             if (_compareFlag(currentFlag, argVector[i])) {
                 functionCursor();
-                free(internalFormatterAllocation);
+                _freeIf(internalFormatterAllocation);
                 libcargTerminate();
                 exit(EXIT_SUCCESS);
             }
         }
-        free(internalFormatterAllocation);
+        _freeIf(internalFormatterAllocation);
         va_copy(args_copy, args);
         internalFormatter = strdup(argFormatter);
         _heapCheck(internalFormatter);
         internalFormatterAllocation = internalFormatter;
         savePointer = NULL;
     }
-    free(internalFormatterAllocation);
+    _freeIf(internalFormatterAllocation);
     va_end(args);
     setFlag(libcargInternalFlags, OVERRIDE_CALLBACKS_SET);
 }
@@ -897,32 +896,32 @@ void libcargTerminate(void) {
         if (allArgs.array) {
             for (int i=0; i<=allArgs.fillIndex; i++) {
                 if (allArgs.array[i] -> valueContainer.value && hasFlag(allArgs.array[i] -> flags, HEAP_ALLOCATED)) {
-                    free(allArgs.array[i] -> valueContainer.value);
+                    _freeIf(allArgs.array[i] -> valueContainer.value);
                 }
                 if (allArgs.array[i] -> nestedArgs) {
-                    free(allArgs.array[i] -> nestedArgs);
+                    _freeIf(allArgs.array[i] -> nestedArgs);
                 }
                 if (allArgs.array[i] -> valueContainer.next) {
-                    free(allArgs.array[i] -> valueContainer.next -> value);
+                    _freeIf(allArgs.array[i] -> valueContainer.next -> value);
                     multiArgLinkedList *cursor = allArgs.array[i] -> valueContainer.next -> next;
                     multiArgLinkedList *cursorToFree = allArgs.array[i] -> valueContainer.next;
-                    free(cursorToFree);
+                    _freeIf(cursorToFree);
                     while (cursor) {
-                        free(cursor -> value);
+                        _freeIf(cursor -> value);
                         cursorToFree = cursor;
                         cursor = cursor -> next;
-                        free(cursorToFree);
+                        _freeIf(cursorToFree);
                     }
                 }
             }
-            free(allArgs.array);
+            _freeIf(allArgs.array);
         }
-        if (setArgs) free(setArgs);
+        _freeIf(setArgs);
         if (argVector) {
             for (int i=0; i<argCount; i++) {
-                free(argVector[i]);
+                _freeIf(argVector[i]);
             }
-            free(argVector);
+            _freeIf(argVector);
         }
     }
     clearFlag(libcargInternalFlags, LIBCARGS_INITIALIZED);
@@ -983,6 +982,10 @@ void _heapCheck(void *ptr) {
     }
 }
 
+void _freeIf(void *ptr) {
+    if (ptr) free(ptr);
+}
+
 int _compareFlag(const char *argument, const char *parameter) {
     return !strcmp(argument, parameter);
 }
@@ -1003,7 +1006,7 @@ int _isFlag(const char *formatter, const char *toCheck) {
             return 1;
         }
     }
-    free(internalFormatterAllocation);
+    _freeIf(internalFormatterAllocation);
     return 0;
 }
 
@@ -1082,8 +1085,8 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
                 setArgs[argIndex] = currentArg -> hasValue;
                 if (!(charInString(argVector[argIndex], '=') >= 0 && strcmp(formatterItem, "bool"))) setArgs[argIndex + 1] = currentArg -> hasValue;
                 if (!currentArg -> hasValue) {
-                    free(internalFormatterAllocation);
-                    free(argumentFlagToCompare);
+                    _freeIf(internalFormatterAllocation);
+                    _freeIf(argumentFlagToCompare);
                     internalFormatterAllocation = NULL;
                     argumentFlagToCompare = NULL;
                     usage();
@@ -1094,8 +1097,8 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
             break;
         }
     }
-    free(internalFormatterAllocation);
-    free(argumentFlagToCompare);
+    _freeIf(internalFormatterAllocation);
+    _freeIf(argumentFlagToCompare);
 }
 
 int _setFlagFromNestedArgInternal(argStruct *arg) {
