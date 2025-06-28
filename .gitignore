@@ -68,6 +68,7 @@ dkms.conf
 /cmake-build-debug
 /CMakeFiles
 /.idea
+/.vscode
 /x64
 /bin
 /argsexample
