@@ -2,7 +2,13 @@
 //  SECTION: Includes and Type Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// ReSharper disable CppNonInlineFunctionDefinitionInHeaderFile
+//  ReSharper disable CppNonInlineFunctionDefinitionInHeaderFile
+//  Stop some misbehaving static code analyzers.
+#ifdef __INTELLISENSE__
+    #define true 1
+    #define false 0
+#endif
+
 #pragma once
 #ifdef _MSC_VER
     #define strtok_r strtok_s
