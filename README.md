@@ -108,9 +108,10 @@ You may want to make an argument required or limit which values the user can set
 `argAssert()` is designed for this; it accepts the number of argument assertions as an argument. All assertions after that are two arguments each.
 
 The first argument should be the condition that must be met. This can be any expression which can be evaluated as a zero versus nonzero value.
-If this condition is that the argument is required, use `REQUIRED_ARGUMENT()` with the corresponding argument struct.
+If this condition is that the argument is required, use `requiredArgument()` with the corresponding argument struct.
+If two arguments should not be set at the same time, use `mutuallyExclusive()` with the corresponding structs.
+Lastly, `mutuallyRequired()` should be used to assert that two arguments must be set simultaneously when used.
 
-If two arguments should not be set at the same time, use `MUTUALLY_EXCLUSIVE()` with the corresponding structs.
 The second argument should be the message to display if the condition is not met. Set this to `USAGE_MESSAGE` to use the usage message instead.
 
 For example:
@@ -118,8 +119,8 @@ For example:
 ```
 argAssert(3, 
         myIntValue > -1, "Int 1 must not be negative",
-        REQUIRED_ARGUMENT(myInt), USAGE_MESSAGE,
-        REQUIRED_ARGUMENT(myString), USAGE_MESSAGE
+        requiredArgument(myInt), USAGE_MESSAGE,
+        requiredArgument(myString), USAGE_MESSAGE
 );
 ```
 
@@ -471,13 +472,13 @@ course, this function should be called after any argument setters.
 
 ## Assertion Macros
 
-### REQUIRED_ARGUMENT()
+### requiredArgument()
 This is a function-style macro which accepts an argument struct as an argument. This is an assertion which will fail if 
 an argument is not given a value by the user. This should be used in `argAssert()`:
 
-`argAssert(1, REQUIRED_ARGUMENT(charArg), "Char argument is required")`
+`argAssert(1, requiredArgument(charArg), "Char argument is required")`
 
-### MUTUALLY_EXCLUSIVE()
+### mutuallyExclusive()
 This is another assertion macro. This one accepts two argument structs, and the assertion will fail if both arguments 
 have been provided a value by the user. In other words, this assertion forces the user to pick at most one of two 
 arguments.

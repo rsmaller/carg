@@ -23,7 +23,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#define MAX_FORMATTER_SIZE 128
+#define maxFormatterSize 128
 
 typedef struct multiArgLinkedList {
     struct multiArgLinkedList *next;
@@ -39,7 +39,7 @@ typedef struct argStruct {
 
     const char * const type;
     const char * const usageString;
-    char formatterUsed[MAX_FORMATTER_SIZE];
+    char formatterUsed[maxFormatterSize];
 
     char *nestedArgString;
     int nestedArgFillIndex;
@@ -116,13 +116,13 @@ uint64_t libcargInternalFlags = 0;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //  This is designed to be used in the argAssert() function to assert that an argument cannot have a default value.
-#define REQUIRED_ARGUMENT(varName) (varName.hasValue)
+#define requiredArgument(varName) (varName.hasValue)
 
 //  Assert that two arguments cannot be declared by the user at the same time.
-#define MUTUALLY_EXCLUSIVE(varName1, varName2) (!(varName1.hasValue && varName2.hasValue))
+#define mutuallyExclusive(varName1, varName2) (!(varName1.hasValue && varName2.hasValue))
 
 //  Assert that if the first argument is used, the second must also be used.
-#define MUTUALLY_REQUIRED(varName1, varName2) (varName1.hasValue ? varName2.hasValue : 1)
+#define mutuallyRequired(varName1, varName2) (varName1.hasValue ? varName2.hasValue : 1)
 
 // For use in argAssert.
 #define USAGE_MESSAGE NULL
@@ -629,7 +629,7 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
         }
         currentArg -> argvIndexFound = i;
         if (currentFormatter) {
-            strncpy(currentArg -> formatterUsed, currentFormatter, MAX_FORMATTER_SIZE - 1);
+            strncpy(currentArg -> formatterUsed, currentFormatter, maxFormatterSize - 1);
         }
     }
     _freeIf(internalFormatterAllocation);
@@ -804,7 +804,7 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
             _freeIf(argFormatterTokenAllocation);
             _libcargError("Unable to grab environment variable %s\n", envVarName);
         }
-        strncpy(currentArg -> formatterUsed, formatter, MAX_FORMATTER_SIZE - 1);
+        strncpy(currentArg -> formatterUsed, formatter, maxFormatterSize - 1);
     }
     va_end(args);
     _freeIf(argFormatterTokenAllocation);
@@ -1099,7 +1099,7 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
                 }
             }
             currentArg -> argvIndexFound = argIndex;
-            if (formatterItem) strncpy(currentArg -> formatterUsed, formatterItem, MAX_FORMATTER_SIZE - 1);
+            if (formatterItem) strncpy(currentArg -> formatterUsed, formatterItem, maxFormatterSize - 1);
             break;
         }
     }

@@ -79,9 +79,9 @@ int main(const int argc, const char *argv[]) { // Example code
     libcargValidate();
     argAssert(5,
         globalIntArgValue > -1, "-n arg must be greater than or equal to 0",
-        REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
-        MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "-b and --xarg cannot be toggled at the same time",
-        MUTUALLY_REQUIRED(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
+        requiredArgument(intArg), USAGE_MESSAGE,
+        mutuallyExclusive(boolArg1, boolArg3), "-b and --xarg cannot be toggled at the same time",
+        mutuallyRequired(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
         positionalArgValue > 0, "First argument must be positive"
     );
 
