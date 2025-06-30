@@ -20,7 +20,7 @@ The `setUsageMessage()` function allows you to do this; it sets a usage message 
 It accepts a string with formatters in it. This might look something like:
 
 ```
-setUsageMessage("USAGE: %s -n Arg1 -t Arg2", basename(argv[0]));
+setUsageMessage("USAGE: %s -n Arg1 -t Arg2", cargBasename(argv[0]));
 ```
 
 The `usage()` function will print out this message and terminate the program.
@@ -180,12 +180,12 @@ a part of the greater string, it returns `NULL`.
 The `charInString()` function returns the index of the first occurrence of a character in a string. If the character is 
 not in the string, it returns -1.
 
-#### basename()
-The `basename()` function is similar to the function often included in `libgen.h` in POSIX systems; considering this 
-header is not officially supported on other compilers, a basic implementation of `basename` is included in this 
+#### cargBasename()
+The `cargBasename()` function is similar to the function often included in `libgen.h` in POSIX systems; considering this 
+header is not officially supported on other compilers, a basic implementation of `cargBasename` is included in this 
 argument library.
 A basename function takes a full file path string and returns the very last item in the file tree, or more specifically 
-the substring following all forward or backward slashes. For example, `basename("C:\Users\User1\test.exe")` will return 
+the substring following all forward or backward slashes. For example, `cargBasename("C:\Users\User1\test.exe")` will return 
 `test.exe`. This is useful for truncating the name of your program as it appears in the argument vector.
 
 #### usage()

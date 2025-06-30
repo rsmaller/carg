@@ -13,8 +13,8 @@ void help2(void) {
 int main(int argc, char *argv[]) { // Example code
     //  Argument Initialization
     libcargInit(argc, argv);
-    basicArgInit(int, positionalArg, NO_DEFAULT_VALUE, POSITIONAL_ARG);
-    basicArgInit(int, positionalArg2, NO_DEFAULT_VALUE, POSITIONAL_ARG);
+    basicArgInit(int, positionalArg, NO_DEFAULT_VALUE, POSITIONAL_ARG, NO_USAGE_STRING);
+    basicArgInit(int, positionalArg2, NO_DEFAULT_VALUE, POSITIONAL_ARG, NO_USAGE_STRING);
     basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n");
     adjustArgumentCursor(&intArg, &globalIntArgValue);
     basicArgInit(int, keywordIntArg, NO_DEFAULT_VALUE, NO_FLAGS, "-k");
@@ -24,21 +24,21 @@ int main(int argc, char *argv[]) { // Example code
     basicArgInit(bool, boolArg3, 0, BOOLEAN_ARG, "--xarg");
 
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
-    heapArgInit(char *, positionalStringArg, NONE, POSITIONAL_ARG, 100 * sizeof(char)); // Heap string.
-    heapArgInit(int *, multiIntArg, NONE, MULTI_ARG, sizeof(int));
+    heapArgInit(char *, positionalStringArg, NONE, POSITIONAL_ARG, 100 * sizeof(char), NO_USAGE_STRING); // Heap string.
+    heapArgInit(int *, multiIntArg, NONE, MULTI_ARG, sizeof(int), NO_USAGE_STRING);
     pointerArgInit(char, multiStringArg2, [1000], "default", MULTI_ARG, "-ff"); // Stack string.
 
-    basicArgInit(bool, thing1, 0, BOOLEAN_ARG);
-    basicArgInit(bool, thing2, 0, BOOLEAN_ARG);
-    basicArgInit(bool, thing3, 0, BOOLEAN_ARG);
-    basicArgInit(bool, thing4, 0, BOOLEAN_ARG);
-    basicArgInit(bool, thing5, 0, BOOLEAN_ARG);
-    basicArgInit(bool, thing6, 0, BOOLEAN_ARG);
-    basicArgInit(bool, thing7, 0, BOOLEAN_ARG);
-    basicArgInit(bool, thing8, 0, BOOLEAN_ARG);
-    pointerArgInit(char, thing20, [100], "thing20_default", NO_FLAGS);
-    basicArgInit(int, thing21, 0, NO_FLAGS);
-    basicArgInit(int, thing22, 0, NO_FLAGS);
+    basicArgInit(bool, thing1, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, thing2, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, thing3, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, thing4, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, thing5, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, thing6, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, thing7, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, thing8, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    pointerArgInit(char, thing20, [100], "thing20_default", NO_FLAGS, NO_USAGE_STRING);
+    basicArgInit(int, thing21, 0, NO_FLAGS, NO_USAGE_STRING);
+    basicArgInit(int, thing22, 0, NO_FLAGS, NO_USAGE_STRING);
 
     nestedBooleanArgumentInit(&thing1, "thing1", NO_FLAGS); {
         nestBooleanArgument(&thing1, &thing2, "thing2");

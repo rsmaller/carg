@@ -15,6 +15,8 @@
     #define _CRT_SECURE_NO_WARNINGS // sscanf() is required for this project.
     #pragma warning(disable:4003) // Some variadic macros in this library do not use their variadic arguments.
 #endif
+
+#define _GNU_SOURCE
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -88,6 +90,8 @@ uint64_t libcargInternalFlags = 0;
 #define NO_FLAGS (0ULL) // Set no flags when creating an argument.
 
 #define NO_DEFAULT_VALUE {0} // Set default argument to 0 in arg initializers, for readability purposes.
+
+#define NO_USAGE_STRING ""
 
 #define NONE // Empty and does nothing. For semantics in function-style macros like argInit().
 
@@ -206,8 +210,8 @@ char *contains(char *testString, const char *substring);
 //  Returns -1 if the character is not present in the string.
 int charInString(const char *testString, char subchar);
 
-//  Fetches the basename of a file from a path.
-const char *basename(const char * pathStart);
+//  Fetches the cargBasename of a file from a path.
+const char *cargBasename(const char * pathStart);
 
 //  This function uses a string formatter to generate a usage message to be used when usage() is called.
 void setUsageMessage(const char *formatter, ...);
@@ -295,8 +299,9 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
 //  For variables with basic types, they can be declared with basicArgInit(type, name, value) instead.
 //  For any kind of pointer without heap allocation, use pointerArgInit().
 //  For any kind of pointer with heap allocation, use heapArgInit().
-//  Finally, a variadic string argument may be passed to this macro to set a usage string with the usageMessageAutoGenerate() function.
-#define argInit(leftType, varName, rightType, val, flagsArg, ...)\
+//  Finally, a string argument should be passed to this macro to set a usage string with the usageMessageAutoGenerate() function.
+//  For no usage string, use "" or NO_USAGE_STRING.
+#define argInit(leftType, varName, rightType, val, flagsArg, usageStringArg)\
     if (!hasFlag(libcargInternalFlags, LIBCARGS_INITIALIZED)) {\
         _libcargError("Attempt to initialize argument before library initialization. Please fix this!\n");\
     }\
@@ -310,7 +315,7 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
         .valueSize = sizeof(varName##Value),\
         .nestedArgFillIndex = -1,\
         .formatterUsed = {0},\
-        .usageString = "" VA_ARG_1(__VA_ARGS__),\
+        .usageString = "" usageStringArg,\
         .parentArg = NULL,\
         .nestedArgs = NULL,\
         .nestedArgArraySize = 0,\
@@ -319,7 +324,7 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
     if (hasFlag(flagsArg, POSITIONAL_ARG)) positionalArgCount++;\
     if (allArgs.array) {\
         allArgs.fillIndex++;\
-        if (allArgs.fillIndex >= (allArgs.size / 2)){\
+        if (allArgs.fillIndex >= (int)(allArgs.size / 2)){\
             allArgs.size *= 2;\
             void *argArrayReallocation = realloc(allArgs.array, allArgs.size * sizeof(argStruct *));\
             _heapCheck(argArrayReallocation);\
@@ -337,8 +342,8 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
 //  This macro is for initializing arguments which point to heap-allocated memory.
 //  Make sure to free the pointer in the varName##Value variable when finished using this argument.
 //  Keep in mind that heap-allocated arguments cannot be directly initialized with a default value in this macro.
-#define heapArgInit(leftType, varName, rightType, flagsArg, size, ...)\
-    argInit(leftType, varName, rightType, NO_DEFAULT_VALUE, ((flagsArg) | (HEAP_ALLOCATED)), __VA_ARGS__)\
+#define heapArgInit(leftType, varName, rightType, flagsArg, size, usageString)\
+    argInit(leftType, varName, rightType, NO_DEFAULT_VALUE, ((flagsArg) | (HEAP_ALLOCATED)), usageString)\
     void *varName##Ptr = malloc(size);\
     _heapCheck(varName##Ptr);\
     memset(varName##Ptr, 0, size);\
@@ -347,14 +352,14 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
     varName.valueSize = size;
 
 //  This macro is for initializing arguments which point to memory that does not need to be freed by this library.
-#define pointerArgInit(leftType, varName, rightType, val, flagsArg, ...)\
-    argInit(leftType, varName, rightType, val, flagsArg, __VA_ARGS__)\
+#define pointerArgInit(leftType, varName, rightType, val, flagsArg, usageString)\
+    argInit(leftType, varName, rightType, val, flagsArg, usageString)\
     varName.valueContainer = (multiArgLinkedList) {.value = varName##Value, .next = NULL};\
     varName.valueSize = sizeof(varName##Value);
 
 //  A wrapper for argInit() for simple argument types.
-#define basicArgInit(type, varName, value, flagsArg, ...)\
-    argInit(type, varName, NONE, value, flagsArg, __VA_ARGS__)
+#define basicArgInit(type, varName, value, flagsArg, usageString)\
+    argInit(type, varName, NONE, value, flagsArg, usageString)
 
 //  Prints out data about a single argument which has a pointer type.
 //  This function is primarily for strings, or data that does not need to be passed as a dereferenced value before printing.
@@ -498,7 +503,7 @@ char *contains(char *testString, const char *substring) {
 }
 
 int charInString(const char *testString, const char subchar) {
-    for (int i=0; i<strlen(testString); i++) {
+    for (size_t i=0; i<strlen(testString); i++) {
         if (testString[i] == subchar) {
             return i;
         }
@@ -506,7 +511,7 @@ int charInString(const char *testString, const char subchar) {
     return -1;
 }
 
-const char *basename(const char * const pathStart) {
+const char *cargBasename(const char * const pathStart) {
     const char * const pathEnd = pathStart + strlen(pathStart);
     const char *result = pathEnd;
     while (result > pathStart && *result != '/' && *result != '\\') {
@@ -536,7 +541,7 @@ void usageMessageAutoGenerate(void) {
     if (hasFlag(libcargInternalFlags, USAGE_MESSAGE_SET)) {
         _libcargError("Usage message set by user twice. Please fix this!\n");
     }
-    secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s%s ", "Usage: ", basename(argVector[0]));
+    secure_sprintf(usageStringCursor, usageStringEnd, &usageStringCursor, "%s%s ", "Usage: ", cargBasename(argVector[0]));
     _printAllPositionalArgsToUsageBuffer();
     _printAllNonPositionalArgsToUsageBuffer();
     setFlag(libcargInternalFlags, USAGE_MESSAGE_SET);
@@ -657,9 +662,9 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     for (int i=1; i<argCount; i++) {
         if (argVector[i][0] != prefixChar || setArgs[i]) continue;
         if (strlen(argVector[i]) > 1 && argVector[i][1] == prefixChar) continue;
-        for (int j=0; j<strlen(noPrefixArgFormatter); j++) {
+        for (size_t j=0; j<strlen(noPrefixArgFormatter); j++) {
             if (charInString(argVector[i], noPrefixArgFormatter[j]) >= 0) {
-                for (int k=0; k<=j; k++) {
+                for (size_t k=0; k<=j; k++) {
                     currentArg = va_arg(formatterArgs, argStruct *);
                     flagCopierPointer = (bool *)currentArg -> valueContainer.value;
                 }
@@ -692,7 +697,7 @@ argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, char *ne
     if (!hasFlag(nestIn -> flags, BOOLEAN_ARG) || !hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
         _libcargError("Only boolean arguments can be nested with this nesting function. Fix this!\n");
     }
-    if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= nestIn -> nestedArgArraySize / 2) {
+    if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
         nestIn -> nestedArgs = (argStruct **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(argStruct *));
         _heapCheck(nestIn -> nestedArgs);
@@ -723,7 +728,7 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
     if (hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
         _libcargError("Only non-boolean arguments can be nested with this nesting function. Fix this!\n");
     }
-    if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= nestIn -> nestedArgArraySize / 2) {
+    if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
         nestIn -> nestedArgs = (argStruct **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(argStruct *));
         _heapCheck(nestIn -> nestedArgs);
@@ -1127,7 +1132,7 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
             setArgs[i] = arg -> hasValue;
             arg -> argvIndexFound = i;
             if (arg -> parentArg && !hasFlag(arg -> parentArg -> flags, BOOLEAN_ARG) && arg -> parentArg -> argvIndexFound == arg -> argvIndexFound - 1) usage();
-            if (arg -> parentArg && !hasFlag(arg -> parentArg -> flags, BOOLEAN_ARG) && hasFlag(arg -> parentArg -> flags, ENFORCE_STRICT_NESTING_ORDER) && arg -> parentArg -> argvIndexFound != arg -> argvIndexFound - 2) usage(); {}
+            if (arg -> parentArg && !hasFlag(arg -> parentArg -> flags, BOOLEAN_ARG) && hasFlag(arg -> parentArg -> flags, ENFORCE_STRICT_NESTING_ORDER) && arg -> parentArg -> argvIndexFound != arg -> argvIndexFound - 2) usage();
             if (hasFlag(arg -> flags, ENFORCE_STRICT_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound != arg -> argvIndexFound - 1) {
                 usage();
             }
@@ -1178,4 +1183,9 @@ void _printAllNonPositionalArgsToUsageBuffer(void) {
     #undef strtok_r
     #undef strdup
     #undef _CRT_SECURE_NO_WARNINGS
+#endif
+
+//  Provide C standard errors for those using outdated standards.
+#if __STDC_VERSION__ < 199901L || !defined(__STDC_VERSION__)
+    #error args.h only supports C99 and above.
 #endif
