@@ -10,7 +10,7 @@ void help2(void) {
     printf("Help 2 message here\n");
 }
 
-int main(const int argc, const char *argv[]) { // Example code
+int main(int argc, char *argv[]) { // Example code
     //  Argument Initialization
     libcargInit(argc, argv);
     basicArgInit(int, positionalArg, NO_DEFAULT_VALUE, POSITIONAL_ARG);
