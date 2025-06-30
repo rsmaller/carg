@@ -91,7 +91,7 @@ uint64_t libcargInternalFlags = 0;
 
 #define NO_DEFAULT_VALUE {0} // Set default argument to 0 in arg initializers, for readability purposes.
 
-#define NO_USAGE_STRING ""
+#define NO_USAGE_STRING "" // To declare in an argument initializer that no usage string should be present.
 
 #define NONE // Empty and does nothing. For semantics in function-style macros like argInit().
 

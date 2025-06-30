@@ -29,9 +29,10 @@ The `usage()` function will print out this message and terminate the program.
 As for arguments, they are stored in structs and variables of their respective type.
 Structs serve to keep track of whether an argument has been specified by the user or not.
 To simplify the declaration of arguments, `argInit()` and `basicArgInit()` were created.
-Simply call `argInit()` or `basicArgInit()` with both a variable name to declare, type information, a default value, and a bitmask representing toggled flags.
+Simply call `argInit()` or `basicArgInit()` with both a variable name to declare, type information, a default value, a bitmask representing toggled flags, and a usage string.
 To write explicitly that a variable should not have a default value, use the `NO_DEFAULT_VALUE` macro in place of a default value.
 This macro is only for readability, and it will zero-initialize the variable you create.
+To declare that an argument has no usage string associated with it, use the `NO_USAGE_STRING` macro.
 To enforce that an argument must be given a value, see `argAssert()` below.
 
 `argInit()`, `basicArgInit()` and `heapArgInit()` will create a struct from the variable name entered into them.
@@ -520,6 +521,10 @@ an argument is found. When an argument is toggled with this flag, it is allowed 
 This macro expands to `{0}`, and any argument initialized with it in `argInit()` will be zero-initialized. To enforce 
 this argument should have no default value, or in other words must be given a value by the user, use `argAssert()` in 
 combination with this.
+
+### NO_USAGE_STRING
+This macro expands to `""`, or the empty string. Its purpose is in `argInit()` to declare that an argument has no 
+usage string associated with it.
 
 ### NONE
 This macro expands to nothing, and its purpose is for declaring empty type information in `argInit()` or `heapArgInit()`.
