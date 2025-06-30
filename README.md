@@ -42,7 +42,7 @@ This pointer will be freed automatically via `libcargTerminate()`.
 For example, when declaring an int argument via:
 
 ```
-basicArgInit(int, intArg, 1, NO_FLAGS)
+basicArgInit(int, intArg, 1, NO_FLAGS, NO_USAGE_STRING)
 ```
 
 - `intArg` is a struct.
@@ -66,7 +66,7 @@ Below is an example of the initializer and setter in conjunction.
 Keeping everything in mind, the char variable would need to be initialized first:
 
 ```
-basicArgInit(char, myString, 'c', NO_FLAGS);
+basicArgInit(char, myString, 'c', NO_FLAGS, NO_USAGE_STRING);
 ```
 
 All arguments should be initialized before setting them, so let's add an int argument also:
@@ -145,8 +145,8 @@ These arguments should always come before named arguments to prevent argument am
 To use positional arguments alongside named arguments, initialize both first:
 
 ```
-basicArgInit(int, positionalArg, 0, POSITIONAL_ARG);
-basicArgInit(char, namedArg, 'a', NO_FLAGS);
+basicArgInit(int, positionalArg, 0, POSITIONAL_ARG, NO_USAGE_STRING);
+basicArgInit(char, namedArg, 'a', NO_FLAGS, NO_USAGE_STRING);
 ```
 
 Then, set the values for positional arguments first:
@@ -213,7 +213,7 @@ shown in the usage message to avoid clutter; non-root nested arguments are not s
 For example, calling `basicArgInit()` as follows:
 
 ```
-basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n");
+basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n", NO_USAGE_STRING);
 ```
 
 Will add `-n <int>` to the usage message.
@@ -261,14 +261,14 @@ put the expected flag both here and in the setter functions. This argument is no
 
 #### argInit()
 This function-style macro initializes an argument via a variable where the result goes and a struct which contains a 
-void pointer to that variable. It accepts split type information, a variable name, a default value, and flags.
+void pointer to that variable. It accepts split type information, a variable name, a default value, flags, and a usage string where the expected flag might go.
 For example, to initialize a simple character argument, the following might be used:
 
-`arginit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS)`
+`arginit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING)`
 
 To initialize an array of 100 characters, that would look like:
 
-`arginit(char, charArrayArg, [100], NO_DEFAULT_VALUE, NO_FLAGS)`
+`arginit(char, charArrayArg, [100], NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING)`
 
 These arguments could later be accessed with `charArgValue` and `charArrayArgValue` respectively.
 For use in argument setting functions, however, `charArg` and `charArrayArg` should be used.
@@ -278,7 +278,7 @@ This macro is a wrapper for `argInit()` which only specifies basic type informat
 be declared with this macro. To declare the char argument like in `argInit()`, but with a default value of 2,
 do the following:
 
-`basicArginit(char, charArg, 2, NO_FLAGS)`
+`basicArginit(char, charArg, 2, NO_FLAGS, NO_USAGE_STRING)`
 
 #### heapArgInit()
 This function-style macro will heap-allocate a variable for which an argument's value will be copied into. It takes the 
@@ -525,7 +525,7 @@ combination with this.
 This macro expands to nothing, and its purpose is for declaring empty type information in `argInit()` or `heapArgInit()`.
 For example, declaring a char in `argInit()` is as follows:
 
-`arginit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS)`
+`argInit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING)`
 
 A char variable has no type information on the right side of it, so right-side type information should be omitted. This 
 macro does precisely that.
