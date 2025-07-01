@@ -3,9 +3,13 @@
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //  ReSharper disable CppNonInlineFunctionDefinitionInHeaderFile
 //  Stop some misbehaving static code analyzers.
-#ifdef __INTELLISENSE__
+#if defined(__INTELLISENSE__)
     #define true 1
     #define false 0
 #endif
@@ -25,11 +29,13 @@
 
 #define maxFormatterSize 128
 
-typedef struct argStruct {
-    struct multiArgLinkedList {
+typedef struct multiArgLinkedList {
         struct multiArgLinkedList *next;
         void *value;
-    } valueContainer;
+} multiArgLinkedList;
+
+typedef struct argStruct {
+    multiArgLinkedList valueContainer;
 
     size_t valueSize; // For non-heap arguments, this will contain the size of the holder variable. For heap-allocated arguments, this will contain the size of heap-allocated memory.
     bool hasValue;
@@ -40,14 +46,12 @@ typedef struct argStruct {
     const char * const usageString;
     char formatterUsed[maxFormatterSize];
 
-    char *nestedArgString;
+    const char *nestedArgString;
     int nestedArgFillIndex;
     size_t nestedArgArraySize;
     struct argStruct *parentArg;
     struct argStruct **nestedArgs;
 } argStruct;
-
-typedef struct multiArgLinkedList multiArgLinkedList;
 
 typedef struct argArray {
     size_t size;
@@ -171,7 +175,8 @@ uint64_t libcargInternalFlags = 0;
 
 //  Internal Assertion and Error Macros
 #define _libcargError(...) do {\
-    fprintf(stderr, "libcargError: "__VA_ARGS__);\
+    fprintf(stderr, "libcargError: ");\
+    fprintf(stderr, __VA_ARGS__);\
     libcargTerminate();\
     exit(EXIT_FAILURE);\
 } while (0)
@@ -276,17 +281,17 @@ void setFlagsFromNestedArgs(const int nestedArgumentCount, ...);
 
 //  Use this with a boolean argument struct to declare it as the root of a series of nested arguments.
 //  Every nested element, including the root, must use a plain string to identify its flag.
-argStruct *nestedBooleanArgumentInit(argStruct *arg, char *argString, const uint64_t flagsArg);
+argStruct *nestedBooleanArgumentInit(argStruct *arg, const char *argString, const uint64_t flagsArg);
 
 //  Use this to nest a boolean argument within a root argument or another nested argument.
-argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString);
+argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, const char *nestedArgString);
 
 //  Use this with a non-boolean argument struct to declare it as the root of a series of nested arguments.
 //  Every nested element, including the root, must use a plain string to identify its flag.
-argStruct *nestedArgumentInit(argStruct *arg, char *argString, const uint64_t flagsArg, const char * const formatterToUse);
+argStruct *nestedArgumentInit(argStruct *arg, const char *argString, const uint64_t flagsArg, const char * const formatterToUse);
 
 //  Use this to nest an argument within a root argument or another nested argument.
-argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString, const char * const formatterToUse);
+argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, const char *nestedArgString, const char * const formatterToUse);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: User-Facing Macros
@@ -346,14 +351,14 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArg
     void *varName##Ptr = malloc(size);\
     _heapCheck(varName##Ptr);\
     memset(varName##Ptr, 0, size);\
-    varName##Value = varName##Ptr;\
-    varName.valueContainer = (multiArgLinkedList) {.value = varName##Ptr, .next = NULL};\
+    varName##Value = (leftType rightType)varName##Ptr;\
+    varName.valueContainer = (struct multiArgLinkedList) {.value = varName##Ptr, .next = NULL};\
     varName.valueSize = size;
 
 //  This macro is for initializing arguments which point to memory that does not need to be freed by this library.
 #define pointerArgInit(leftType, varName, rightType, val, flagsArg, usageString)\
     argInit(leftType, varName, rightType, val, flagsArg, usageString)\
-    varName.valueContainer = (multiArgLinkedList) {.value = varName##Value, .next = NULL};\
+    varName.valueContainer = (struct multiArgLinkedList) {.value = varName##Value, .next = NULL};\
     varName.valueSize = sizeof(varName##Value);
 
 //  A wrapper for argInit() for simple argument types.
@@ -438,7 +443,7 @@ int test_vsnprintf(const char *formatter, va_list args);
 //  This function keeps track of a start and end pointer of a string. The end pointer of the string should be the start
 //  of the string plus the size of the string, or in other words, the index right after the expected location of the
 //  null terminator in a string.
-int secure_sprintf(char * const startPointer, char * const endPointer, char **cursor, char *formatter, ...);
+int secure_sprintf(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, ...);
 
 //  This function keeps track of a start and end pointer of a string. The end pointer of the string should be the start
 //  of the string plus the size of the string, or in other words, the index right after the expected location of the
@@ -496,7 +501,7 @@ void _printAllNonPositionalArgsToUsageBuffer(void);
 
 //  Provide C standard errors for those using outdated standards.
 //  None of the functions will have bodies if this condition is met.
-#if __STDC_VERSION__ < 199901L || !defined(__STDC_VERSION__)
+#if (__STDC_VERSION__ < 199901L || !defined(__STDC_VERSION__)) && !defined(__cplusplus)
     #error args.h is only supported on the C99 standard and above.
 #else
 
@@ -696,7 +701,7 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     setFlag(libcargInternalFlags, GROUPED_ARGS_SET);
 }
 
-argStruct *nestedBooleanArgumentInit(argStruct *arg, char *argString, const uint64_t flagsArg) {
+argStruct *nestedBooleanArgumentInit(argStruct *arg, const char *argString, const uint64_t flagsArg) {
     if (!hasFlag(arg -> flags, BOOLEAN_ARG)) {
         _libcargError("Boolean nested argument initializer called on non-boolean flag. Fix this!\n");
     }
@@ -705,7 +710,7 @@ argStruct *nestedBooleanArgumentInit(argStruct *arg, char *argString, const uint
     return arg;
 }
 
-argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString) {
+argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, const char *nestedArgString) {
     if (!hasFlag(nestIn -> flags, BOOLEAN_ARG) || !hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
         _libcargError("Only boolean arguments can be nested with this nesting function. Fix this!\n");
     }
@@ -726,7 +731,7 @@ argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, char *ne
     return argToNest;
 }
 
-argStruct *nestedArgumentInit(argStruct *arg, char *argString, const uint64_t flagsArg, const char * const formatterToUse) {
+argStruct *nestedArgumentInit(argStruct *arg, const char *argString, const uint64_t flagsArg, const char * const formatterToUse) {
     if (hasFlag(arg -> flags, BOOLEAN_ARG)) {
         _libcargError("Non-boolean nested argument initializer called on boolean flag. Fix this!\n");
     }
@@ -736,7 +741,7 @@ argStruct *nestedArgumentInit(argStruct *arg, char *argString, const uint64_t fl
     return arg;
 }
 
-argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, char *nestedArgString, const char * const formatterToUse) {
+argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, const char *nestedArgString, const char * const formatterToUse) {
     if (hasFlag(argToNest -> flags, BOOLEAN_ARG)) {
         _libcargError("Only non-boolean arguments can be nested with this nesting function. Fix this!\n");
     }
@@ -967,7 +972,7 @@ int test_vsnprintf(const char *formatter, va_list args) { // NOLINT
     return returnValue;
 }
 
-int secure_sprintf(char * const startPointer, char * const endPointer, char **cursor, char *formatter, ...) {
+int secure_sprintf(char * const startPointer, char * const endPointer, char **cursor, const char * const formatter, ...) {
     if (startPointer > endPointer) return 0;
     va_list args;
     va_start(args, formatter);
@@ -998,8 +1003,10 @@ int secure_vsprintf(char * const startPointer, char * const endPointer, char **c
 }
 
 char *cargStrdup(const char *str) {
-    char *returnVal = (char *)malloc(sizeof(char) * (strlen(str) + 1));
-    strncpy(returnVal, str, strlen(str));
+    const size_t size = strlen(str);
+    char *returnVal = (char *)malloc(sizeof(char) * (size + 1));
+    strncpy(returnVal, str, size);
+    returnVal[size] = '\0';
     return returnVal;
 }
 
@@ -1203,3 +1210,8 @@ void _printAllNonPositionalArgsToUsageBuffer(void) {
 #endif
 
 #endif // For C standard compatibility check.
+
+
+#ifdef __cplusplus
+}
+#endif // For C++ linking compatibility
