@@ -11,12 +11,10 @@
 
 #ifdef _MSC_VER
     #define strtok_r strtok_s
-    #define strdup _strdup
     #define _CRT_SECURE_NO_WARNINGS // sscanf() is required for this project.
     #pragma warning(disable:4003) // Some variadic macros in this library do not use their variadic arguments.
 #endif
 
-#define _GNU_SOURCE
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -446,6 +444,9 @@ int secure_sprintf(char * const startPointer, char * const endPointer, char **cu
 //  null terminator in a string.
 int secure_vsprintf(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, va_list argsToCopy);
 
+//  This is a cross-platform string duplication function.
+char *cargStrdup(const char *str);
+
 //  This function verifies that a heap allocation was successful and terminates if not.
 void _heapCheck(void *ptr);
 
@@ -566,7 +567,7 @@ void libcargInit(int argc, char **argv) {
     argVector = (char **)calloc(argCount, sizeof(char *));
     _heapCheck(argVector);
     for (int i=0; i<argCount; i++) {
-        argVector[i] = strdup(argv[i]);
+        argVector[i] = cargStrdup(argv[i]);
         _heapCheck(argVector[i]);
     }
     setArgs = (int *)calloc(argCount, sizeof(int));
@@ -611,7 +612,7 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
     }
     _checkForAssertion();
     if (argCount <= positionalArgCount) usage();
-    char *internalFormatter = strdup(argFormatter);
+    char *internalFormatter = cargStrdup(argFormatter);
     _heapCheck(internalFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
@@ -787,7 +788,7 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
     }
     va_list args;
     va_start(args, argFormatter);
-    char *argFormatterTokenCopy = strdup(argFormatter);
+    char *argFormatterTokenCopy = cargStrdup(argFormatter);
     _heapCheck(argFormatterTokenCopy);
     void *argFormatterTokenAllocation = argFormatterTokenCopy;
     char *savePointer = NULL;
@@ -828,7 +829,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
     }
     _checkForAssertion();
     if (argCount < 2) return;
-    char *internalFormatter = strdup(argFormatter);
+    char *internalFormatter = cargStrdup(argFormatter);
     _heapCheck(internalFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
@@ -851,7 +852,7 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
         }
         _freeIf(&internalFormatterAllocation);
         va_copy(args_copy, args);
-        internalFormatter = strdup(argFormatter);
+        internalFormatter = cargStrdup(argFormatter);
         _heapCheck(internalFormatter);
         internalFormatterAllocation = internalFormatter;
         savePointer = NULL;
@@ -985,6 +986,12 @@ int secure_vsprintf(char * const startPointer, char * const endPointer, char **c
     return returnValue;
 }
 
+char *cargStrdup(const char *str) {
+    char *returnVal = (char *)malloc(sizeof(char) * (strlen(str) + 1));
+    strncpy(returnVal, str, strlen(str));
+    return returnVal;
+}
+
 void _heapCheck(void *ptr) {
     if (!ptr) {
         printf("Heap allocation failure. Terminating\n");
@@ -1005,7 +1012,7 @@ int _compareFlag(const char *argument, const char *parameter) {
 }
 
 int _isFlag(const char *formatter, const char *toCheck) {
-    char *internalFormatter = strdup(formatter);
+    char *internalFormatter = cargStrdup(formatter);
     _heapCheck(internalFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
@@ -1040,12 +1047,12 @@ void _checkArgAgainstFormatter(const int argIndex, const char *argFormatter, va_
     if (setArgs[argIndex]) return;
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
-    char *internalFormatter = strdup(argFormatter);
+    char *internalFormatter = cargStrdup(argFormatter);
     _heapCheck(internalFormatter);
     void *internalFormatterAllocation = internalFormatter;
     char *savePointer = NULL;
     void *flagCopierPointer = NULL;
-    char *argumentFlagToCompare = strdup(argVector[argIndex]);
+    char *argumentFlagToCompare = cargStrdup(argVector[argIndex]);
     _heapCheck(argumentFlagToCompare);
     const char *formatItemToCopy = argVector[argIndex + 1];
     while (1) {
@@ -1181,7 +1188,6 @@ void _printAllNonPositionalArgsToUsageBuffer(void) {
 // Reset macro definitions to not interfere with other included libraries.
 #ifdef _MSC_VER 
     #undef strtok_r
-    #undef strdup
     #undef _CRT_SECURE_NO_WARNINGS
 #endif
 
