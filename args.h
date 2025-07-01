@@ -2,6 +2,7 @@
 //  SECTION: Includes and Type Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #pragma once
+
 //  ReSharper disable CppNonInlineFunctionDefinitionInHeaderFile
 //  Stop some misbehaving static code analyzers.
 #ifdef __INTELLISENSE__
@@ -488,6 +489,16 @@ void _printAllPositionalArgsToUsageBuffer(void);
 //  Inserts every other type of argument into the usage message when auto-generating a usage message.
 //  For internal use only.
 void _printAllNonPositionalArgsToUsageBuffer(void);
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  SECTION: Platform Compatibility Enforcement
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//  Provide C standard errors for those using outdated standards.
+//  None of the functions will have bodies if this condition is met.
+#if __STDC_VERSION__ < 199901L || !defined(__STDC_VERSION__)
+    #error args.h is only supported on the C99 standard and above.
+#else
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: User-Facing Function Definitions
@@ -1191,7 +1202,4 @@ void _printAllNonPositionalArgsToUsageBuffer(void) {
     #undef _CRT_SECURE_NO_WARNINGS
 #endif
 
-//  Provide C standard errors for those using outdated standards.
-#if __STDC_VERSION__ < 199901L || !defined(__STDC_VERSION__)
-    #error args.h only supports C99 and above.
-#endif
+#endif // For C standard compatibility check.
