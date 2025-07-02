@@ -1042,6 +1042,7 @@ int _isFlag(const char *formatter, const char *toCheck) {
             break;
         }
         if (_compareFlag(toCheck, flagItem)) {
+            _freeIf(&internalFormatterAllocation);
             return 1;
         }
     }
@@ -1214,4 +1215,6 @@ void _printAllNonPositionalArgsToUsageBuffer(void) {
 
 #ifdef __cplusplus
 }
-#endif // For C++ linking compatibility
+
+// For C++ linking compatibility
+#endif
