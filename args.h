@@ -71,7 +71,7 @@ int argCount = 1;
 
 char **argVector = NULL;
 
-argArray allArgs = {.fillIndex = -1, .array = NULL, .size = 0};
+argArray allArgs = {.size = 0, .fillIndex = -1, .array = NULL};
 
 int *setArgs = NULL;
 
@@ -311,19 +311,19 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, const char *nes
     }\
     leftType varName##Value rightType = val;\
     argStruct varName = (argStruct) {\
-        .valueContainer = {.value = &varName##Value, .next = NULL},\
-        .hasValue = 0,\
-        .flags = flagsArg,\
-        .argvIndexFound = -1,\
-        .nestedArgString = "",\
+        .valueContainer = {.next = NULL, .value = &varName##Value},\
         .valueSize = sizeof(varName##Value),\
-        .nestedArgFillIndex = -1,\
-        .formatterUsed = {0},\
+        .hasValue = 0,\
+        .argvIndexFound = -1,\
+        .flags = flagsArg,\
+        .type = "<" TOKEN_TO_STRING(leftType) TOKEN_TO_STRING(rightType) ">",\
         .usageString = "" usageStringArg,\
-        .parentArg = NULL,\
-        .nestedArgs = NULL,\
+        .formatterUsed = {0},\
+        .nestedArgString = "",\
+        .nestedArgFillIndex = -1,\
         .nestedArgArraySize = 0,\
-        .type = "<" TOKEN_TO_STRING(leftType) TOKEN_TO_STRING(rightType) ">"\
+        .parentArg = NULL,\
+        .nestedArgs = NULL\
     };\
     if (hasFlag(flagsArg, POSITIONAL_ARG)) positionalArgCount++;\
     if (allArgs.array) {\
@@ -352,13 +352,13 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, const char *nes
     _heapCheck(varName##Ptr);\
     memset(varName##Ptr, 0, size);\
     varName##Value = (leftType rightType)varName##Ptr;\
-    varName.valueContainer = (struct multiArgLinkedList) {.value = varName##Ptr, .next = NULL};\
+    varName.valueContainer = (struct multiArgLinkedList) {.next = NULL, .value = varName##Ptr};\
     varName.valueSize = size;
 
 //  This macro is for initializing arguments which point to memory that does not need to be freed by this library.
 #define pointerArgInit(leftType, varName, rightType, val, flagsArg, usageString)\
     argInit(leftType, varName, rightType, val, flagsArg, usageString)\
-    varName.valueContainer = (struct multiArgLinkedList) {.value = varName##Value, .next = NULL};\
+    varName.valueContainer = (struct multiArgLinkedList) {.next = NULL, .value = varName##Value};\
     varName.valueSize = sizeof(varName##Value);
 
 //  A wrapper for argInit() for simple argument types.
