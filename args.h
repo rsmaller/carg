@@ -24,8 +24,8 @@ extern "C" {
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #define maxFormatterSize 128
 
@@ -501,7 +501,7 @@ void _printAllNonPositionalArgsToUsageBuffer(void);
 
 //  Provide C standard errors for those using outdated standards.
 //  None of the functions will have bodies if this condition is met.
-#if (__STDC_VERSION__ < 199901L || !defined(__STDC_VERSION__)) && !defined(__cplusplus)
+#if (__STDC_VERSION__ < 199901L || !defined(__STDC_VERSION__)) && !defined(__cplusplus) && !defined(_MSC_VER)
     #error args.h is only supported on the C99 standard and above.
 #else
 
@@ -520,7 +520,7 @@ char *contains(char *testString, const char *substring) {
 }
 
 int charInString(const char *testString, const char subchar) {
-    for (size_t i=0; i<strlen(testString); i++) {
+    for (int i=0; i<strlen(testString); i++) {
         if (testString[i] == subchar) {
             return i;
         }
