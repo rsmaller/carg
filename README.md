@@ -4,12 +4,18 @@
 Before using this library, ensure your `main()` function accepts an `argc` and `argv` as parameters.
 This library parses those parameters using string formatters and sets variables to their values accordingly.
 
-Because this library uses string formatters, you should only use types that support scanf() formatting.
+Because this library uses string formatters, you should only use types that support `scanf()` formatting.
 For example, there is no formatter for an array of 100 pointers to functions that accept integers and return a character.
 Nor should you expect data remotely resembling that from a user.
 
-To set up the library to use your argument vector, call `libcargInit()` with the argument count and vector; the
-argument vector should ideally be a const double pointer.
+This library is a header-only library. Everything is in the `args.h` header, so to add this library into your project,
+put it in your environment's include path and include the header accordingly:
+
+```
+#include "args.h"
+```
+
+To set up the library to use your argument vector, call `libcargInit()` with the argument count and vector.
 
 At the end of your usage of this library, be sure to call `libcargTerminate()` to clean up any heap-allocated memory and
 prevent memory leaks.
@@ -43,7 +49,7 @@ This pointer will be freed automatically via `libcargTerminate()`.
 For example, when declaring an int argument via:
 
 ```
-basicArgInit(int, intArg, 1, NO_FLAGS, NO_USAGE_STRING)
+basicArgInit(int, intArg, 1, NO_FLAGS, NO_USAGE_STRING);
 ```
 
 - `intArg` is a struct.
@@ -73,7 +79,7 @@ basicArgInit(char, myString, 'c', NO_FLAGS, NO_USAGE_STRING);
 All arguments should be initialized before setting them, so let's add an int argument also:
 
 ```
-basicArgInit(int, myInt, 0, NO_FLAGS);
+basicArgInit(int, myInt, 0, NO_FLAGS, NO_USAGE_STRING);
 ```
 
 Then, these values can be set using the `setFlagsFromNamedArgs()` function:
@@ -265,11 +271,15 @@ This function-style macro initializes an argument via a variable where the resul
 void pointer to that variable. It accepts split type information, a variable name, a default value, flags, and a usage string where the expected flag might go.
 For example, to initialize a simple character argument, the following might be used:
 
-`arginit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING)`
+```
+arginit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING);
+```
 
 To initialize an array of 100 characters, that would look like:
 
-`arginit(char, charArrayArg, [100], NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING)`
+```
+arginit(char, charArrayArg, [100], NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING);
+```
 
 These arguments could later be accessed with `charArgValue` and `charArrayArgValue` respectively.
 For use in argument setting functions, however, `charArg` and `charArrayArg` should be used.
@@ -279,7 +289,9 @@ This macro is a wrapper for `argInit()` which only specifies basic type informat
 be declared with this macro. To declare the char argument like in `argInit()`, but with a default value of 2,
 do the following:
 
-`basicArginit(char, charArg, 2, NO_FLAGS, NO_USAGE_STRING)`
+```
+basicArginit(char, charArg, 2, NO_FLAGS, NO_USAGE_STRING);
+```
 
 #### heapArgInit()
 This function-style macro will heap-allocate a variable for which an argument's value will be copied into. It takes the 
@@ -304,7 +316,9 @@ the command line. The argument structs should correspond to flags in the string 
 flag plus a colon plus the corresponding string formatter. Each argument should also be separated by spaces. For 
 example:
 
-`setFlagsFromNamedArgs("-n:%d -t:%10s -b:bool", &intArg, &stringArg, &boolArg)`
+```
+setFlagsFromNamedArgs("-n:%d -t:%10s -b:bool", &intArg, &stringArg, &boolArg)
+```
 
 - Will use the `-n` flag plus a digit value to set the `intArg` argument and subsequently the `intArgValue` variable.
 - Will use the `-t` flag plus a string value to set the `stringArg` argument and subsequently the `stringArgValue` variable.
@@ -320,7 +334,9 @@ This function works similarly to `setFlagsFromNamedArgs()`, but it has a few key
 
 For example:
 
-`setFlagsFromPositionalArgs("%d %d %20s", &positionalArg, &positionalArg2, &positionalStringArg)`
+```
+setFlagsFromPositionalArgs("%d %d %20s", &positionalArg, &positionalArg2, &positionalStringArg);
+```
 
  - Will use a digit formatter to set `positionalArg` to the value passed in as the very first command line argument.
  - Will use a digit formatter to set `positionalArg2` to the value passed in as the second command line argument.
@@ -449,7 +465,9 @@ functions.
 
 For example:
 
-`argumentOverrideCallbacks("-h -h2", &help, &help2)`
+```
+argumentOverrideCallbacks("-h -h2", &help, &help2);
+```
 
  - Means the `-h` flag will run the `help()` function and then terminate the program.
  - Means the `-h2` flag will run the `help2()` function and then terminate the program.
@@ -461,7 +479,9 @@ for an argument, like `intArgValue > 0` for example. Assertion messages are what
 
 An assertion might look like:
 
-`argAssert(1, intArgValue > 0, "Int argument must be positive")`
+```
+argAssert(1, intArgValue > 0, "Int argument must be positive");
+```
 
 You can otherwise specify `NULL` to print out the usage message instead. The `USAGE_MESSAGE` macro expands to NULL and 
 can also be used; it exists for readability purposes.
@@ -477,7 +497,9 @@ course, this function should be called after any argument setters.
 This is a function-style macro which accepts an argument struct as an argument. This is an assertion which will fail if 
 an argument is not given a value by the user. This should be used in `argAssert()`:
 
-`argAssert(1, requiredArgument(charArg), "Char argument is required")`
+```
+argAssert(1, requiredArgument(charArg), "Char argument is required");
+```
 
 ### mutuallyExclusive()
 This is another assertion macro. This one accepts two argument structs, and the assertion will fail if both arguments 
@@ -530,7 +552,9 @@ usage string associated with it.
 This macro expands to nothing, and its purpose is for declaring empty type information in `argInit()` or `heapArgInit()`.
 For example, declaring a char in `argInit()` is as follows:
 
-`argInit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING)`
+```
+argInit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING);
+```
 
 A char variable has no type information on the right side of it, so right-side type information should be omitted. This 
 macro does precisely that.
