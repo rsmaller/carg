@@ -583,8 +583,9 @@ void libcargInit(int argc, char **argv) {
     argVector = (char **)calloc(argCount, sizeof(char *));
     _heapCheck(argVector);
     for (int i=0; i<argCount; i++) {
-        argVector[i] = cargStrdup(argv[i]);
-        _heapCheck(argVector[i]);
+        char *allocation = cargStrdup(argv[i]);
+        _heapCheck(allocation);
+        argVector[i] = allocation;
     }
     setArgs = (int *)calloc(argCount, sizeof(int));
     _heapCheck(setArgs);
@@ -628,9 +629,9 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
     }
     _checkForAssertion();
     if (argCount <= positionalArgCount) usage();
-    char *internalFormatter = cargStrdup(argFormatter);
-    _heapCheck(internalFormatter);
-    void *internalFormatterAllocation = internalFormatter;
+    char *internalFormatterAllocation = cargStrdup(argFormatter);
+    _heapCheck(internalFormatterAllocation);
+    void *internalFormatter = internalFormatterAllocation;
     char *savePointer = NULL;
     const char *currentFormatter = NULL;
     void *flagCopierPointer = NULL;
@@ -804,9 +805,9 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
     }
     va_list args;
     va_start(args, argFormatter);
-    char *argFormatterTokenCopy = cargStrdup(argFormatter);
-    _heapCheck(argFormatterTokenCopy);
-    void *argFormatterTokenAllocation = argFormatterTokenCopy;
+    char *argFormatterTokenAllocation = cargStrdup(argFormatter);
+    _heapCheck(argFormatterTokenAllocation);
+    void *argFormatterTokenCopy = argFormatterTokenAllocation;
     char *savePointer = NULL;
     argStruct *currentArg = NULL;
     while (1) {
@@ -845,9 +846,9 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
     }
     _checkForAssertion();
     if (argCount < 2) return;
-    char *internalFormatter = cargStrdup(argFormatter);
-    _heapCheck(internalFormatter);
-    void *internalFormatterAllocation = internalFormatter;
+    char *internalFormatterAllocation = cargStrdup(argFormatter);
+    _heapCheck(internalFormatterAllocation);
+    void *internalFormatter = internalFormatterAllocation;
     char *savePointer = NULL;
     const char *currentFlag = NULL;
     voidFuncPtr functionCursor = NULL;
@@ -1030,9 +1031,9 @@ int _compareFlag(const char *argument, const char *parameter) {
 }
 
 int _isFlag(const char *formatter, const char *toCheck) {
-    char *internalFormatter = cargStrdup(formatter);
-    _heapCheck(internalFormatter);
-    void *internalFormatterAllocation = internalFormatter;
+    char *internalFormatterAllocation = cargStrdup(formatter);
+    _heapCheck(internalFormatterAllocation);
+    void *internalFormatter = internalFormatterAllocation;
     char *savePointer = NULL;
     while (1) {
         char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
