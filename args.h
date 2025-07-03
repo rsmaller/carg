@@ -629,9 +629,9 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
     }
     _checkForAssertion();
     if (argCount <= positionalArgCount) usage();
-    char *internalFormatterAllocation = cargStrdup(argFormatter);
+    void *internalFormatterAllocation = cargStrdup(argFormatter);
     _heapCheck(internalFormatterAllocation);
-    void *internalFormatter = internalFormatterAllocation;
+    char *internalFormatter = (char *)internalFormatterAllocation;
     char *savePointer = NULL;
     const char *currentFormatter = NULL;
     void *flagCopierPointer = NULL;
@@ -805,9 +805,9 @@ void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
     }
     va_list args;
     va_start(args, argFormatter);
-    char *argFormatterTokenAllocation = cargStrdup(argFormatter);
+    void *argFormatterTokenAllocation = cargStrdup(argFormatter);
     _heapCheck(argFormatterTokenAllocation);
-    void *argFormatterTokenCopy = argFormatterTokenAllocation;
+    char *argFormatterTokenCopy = (char *)argFormatterTokenAllocation;
     char *savePointer = NULL;
     argStruct *currentArg = NULL;
     while (1) {
@@ -846,9 +846,9 @@ void argumentOverrideCallbacks(const char *argFormatter, ...) {
     }
     _checkForAssertion();
     if (argCount < 2) return;
-    char *internalFormatterAllocation = cargStrdup(argFormatter);
+    void *internalFormatterAllocation = cargStrdup(argFormatter);
     _heapCheck(internalFormatterAllocation);
-    void *internalFormatter = internalFormatterAllocation;
+    char *internalFormatter = (char *)internalFormatterAllocation;
     char *savePointer = NULL;
     const char *currentFlag = NULL;
     voidFuncPtr functionCursor = NULL;
@@ -1031,9 +1031,9 @@ int _compareFlag(const char *argument, const char *parameter) {
 }
 
 int _isFlag(const char *formatter, const char *toCheck) {
-    char *internalFormatterAllocation = cargStrdup(formatter);
+    void *internalFormatterAllocation = cargStrdup(formatter);
     _heapCheck(internalFormatterAllocation);
-    void *internalFormatter = internalFormatterAllocation;
+    char *internalFormatter = (char *)internalFormatterAllocation;
     char *savePointer = NULL;
     while (1) {
         char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
