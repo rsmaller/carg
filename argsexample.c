@@ -24,6 +24,8 @@ int main(int argc, char *argv[]) { // Example code
     basicArgInit(bool, boolArg3, 0, BOOLEAN_ARG, "--xarg");
 
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
+    heapArgInit(char *, stringArg2, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
+    heapArgDefaultValue(stringArg2, "bean", strlen("bean"));
     heapArgInit(char *, positionalStringArg, NONE, POSITIONAL_ARG, 100 * sizeof(char), NO_USAGE_STRING); // Heap string.
     heapArgInit(int *, multiIntArg, NONE, MULTI_ARG, sizeof(int), NO_USAGE_STRING);
     pointerArgInit(char, multiStringArg2, [1000], "default", MULTI_ARG, "-ff"); // Stack string.
@@ -87,11 +89,11 @@ int main(int argc, char *argv[]) { // Example code
     );
 
     //  Testing arguments
-    printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
+    printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], multiStringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
         positionalArgCount, positionalArgValue, positionalArg2Value,
         positionalStringArgValue, globalIntArgValue, intArg.argvIndexFound,
         keywordIntArgValue, keywordIntArg.argvIndexFound,
-        stringArgValue, stringArg.argvIndexFound, multiStringArg2Value,
+        stringArgValue, stringArg.argvIndexFound, stringArg2Value, stringArg2.argvIndexFound, multiStringArg2Value,
         multiStringArg2.argvIndexFound, floatArgValue, floatArg.argvIndexFound,
         boolArg1Value, boolArg1.argvIndexFound, boolArg2Value, boolArg2.argvIndexFound,
         boolArg3Value, boolArg3.argvIndexFound);

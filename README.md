@@ -298,6 +298,10 @@ This function-style macro will heap-allocate a variable for which an argument's 
 same arguments as `argInit()`, except it has no default value argument and a memory allocation size must be given as the 
 last argument to the macro.
 
+#### heapArgDefault()
+This function-style macro is simply a wrapper to memcpy() data into a heap-allocated argument as a default initializer.
+It takes in the heap argument struct, the data to copy in, and the number of bytes to copy.
+
 #### pointerArgInit()
 This macro will create an argument which contains a pointer which does not need to be automatically heap-allocated; the 
 level of indirection on the value pointer element in the argument struct created from this macro and the `heapArgInit()` 

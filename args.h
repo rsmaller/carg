@@ -355,6 +355,10 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, const char *nes
     varName.valueContainer = (struct multiArgLinkedList) {.next = NULL, .value = varName##Ptr};\
     varName.valueSize = size;
 
+//  This macro is for providing a heap-allocated argument with a default value.
+#define heapArgDefaultValue(varName, val, bytes)\
+    memcpy(varName.valueContainer.value, &val, bytes);
+
 //  This macro is for initializing arguments which point to memory that does not need to be freed by this library.
 #define pointerArgInit(leftType, varName, rightType, val, flagsArg, usageString)\
     argInit(leftType, varName, rightType, val, flagsArg, usageString)\
