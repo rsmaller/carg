@@ -174,14 +174,6 @@ uint64_t libcargInternalFlags = 0;
 
 #define TOKEN_TO_STRING(x) #x
 
-//  Internal Assertion and Error Macros
-#define _libcargError(...) do {\
-    fprintf(stderr, "libcargError: ");\
-    fprintf(stderr, __VA_ARGS__);\
-    libcargTerminate();\
-    exit(EXIT_FAILURE);\
-} while (0)
-
 //  Verifies that assertions are set after arguments are initialized.
 //  For internal use only.
 #define _checkForAssertion() do {\
@@ -457,6 +449,9 @@ int secure_vsprintf(char * const startPointer, char * const endPointer, char **c
 
 //  This is a cross-platform string duplication function.
 char *cargStrdup(const char *str);
+
+//  This function will print out an error message and terminate when an error state is encountered internally in this library.
+void _libcargError(const char * formatter, ...);
 
 //  This function verifies that a heap allocation was successful and terminates if not.
 void _heapCheck(void *ptr);
@@ -1017,6 +1012,16 @@ char *cargStrdup(const char *str) {
     strncpy(returnVal, str, size);
     returnVal[size] = '\0';
     return returnVal;
+}
+
+void _libcargError(const char *formatter, ...) {
+    va_list args;
+    va_start(args, formatter);
+    fprintf(stderr, "libcargError: ");
+    vfprintf(stderr, formatter, args);
+    va_end(args);
+    libcargTerminate();
+    exit(EXIT_FAILURE);
 }
 
 void _heapCheck(void *ptr) {
