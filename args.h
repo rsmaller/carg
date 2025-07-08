@@ -26,6 +26,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <inttypes.h>
 
 #define maxFormatterSize 128
 
@@ -979,6 +980,9 @@ int test_vsnprintf(const char *formatter, va_list args) { // NOLINT
 
 int secure_sprintf(char * const startPointer, char * const endPointer, char **cursor, const char * const formatter, ...) {
     if (startPointer > endPointer) return 0;
+    if (*endPointer) {
+        _libcargError("endPointer 0x%" PRIxPTR " does not point to a null terminator.\n", (uintptr_t)endPointer);
+    }
     va_list args;
     va_start(args, formatter);
     const int returnValue = vsnprintf(startPointer, endPointer - startPointer, formatter, args);
@@ -1216,7 +1220,6 @@ void _printAllNonPositionalArgsToUsageBuffer(void) {
 #endif
 
 #endif // For C standard compatibility check.
-
 
 #ifdef __cplusplus
 }
