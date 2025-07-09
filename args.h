@@ -378,8 +378,8 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, const char *nes
 #define printOutNonStringArgument(argument, typeArg) do {\
     printf("Argument passed in as %s:\n", (#argument));\
     printf("\tType: %s\n", (argument) -> type);\
-    printf("\tSize: %llu\n", (argument) -> valueSize);\
-    printf("\tFlags: %d\n", (argument) -> flags);\
+    printf("\tSize: %zu\n", (argument) -> valueSize);\
+    printf("\tFlags: %" PRIu64 "\n", (argument) -> flags);\
     printf("\tFound At: %d\n", (argument) -> argvIndexFound);\
     printf("\tHas Value: %d\n", (argument) -> hasValue);\
     if ((argument) -> usageString[0]) printf("\tUsage String: %s\n", (argument) -> usageString);\
