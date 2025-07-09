@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) { // Example code
 
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
     heapArgInit(char *, stringArg2, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
-    heapArgDefaultValue(stringArg2, "bean", strlen("bean"));
+    heapArgDefaultValue(&stringArg2, "bean", strlen("bean"));
     heapArgInit(char *, positionalStringArg, NONE, POSITIONAL_ARG, 100 * sizeof(char), NO_USAGE_STRING); // Heap string.
     heapArgInit(int *, multiIntArg, NONE, MULTI_ARG, sizeof(int), NO_USAGE_STRING);
     pointerArgInit(char, multiStringArg2, [1000], "default", MULTI_ARG, "-ff"); // Stack string.
