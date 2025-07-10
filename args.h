@@ -478,7 +478,7 @@ int _getArgCountFromFormatter(char *argFormatter);
 bool _adjustSetterForMultiArg(argStruct *currentArg, void **flagCopierPointer);
 
 //  Sets a specified named argument's values using a formatter, a pointer, and scanf().
-void _setNamedArgument(argStruct *currentArg, void **flagCopierPointer, const int argIndex, const char *formatterItem, const char *formatItemToCopy, void **internalFormatterAllocation, char **argumentFlagToCompare);
+void _setNamedArgumentInternal(argStruct *currentArg, void **flagCopierPointer, const int argIndex, const char *formatterItem, const char *formatItemToCopy, void **internalFormatterAllocation, char **argumentFlagToCompare);
 
 //  Ensures a formatter is a string formatter or another data specification within the bounds of this library.
 void _validateFormatterWithExtensions(const char *formatterItem);
@@ -496,9 +496,21 @@ bool _equalsSignAdjust(const int argIndex, const char *formatterItem, const char
 //  For internal use only.
 void _checkNamedArgAgainstFormatter(const int argIndex, const char *argFormatter, va_list outerArgs);
 
+//  Checks an argument passed from setFlagsFromPositionalArgs() to set arguments accordingly.
+// For internal use only.
+void _checkPositionalArgAgainstFormatter(argStruct *currentArg, const int i, void **internalFormatterAllocation, char **internalFormatter, char **savePointer, void **flagCopierPointer);
+
+//  Checks an argument passed from setFlagsFromGroupedBooleanArgs() to set arguments accordingly.
+// For internal use only.
+void _checkGroupedBooleanArgAgainstFormatter(const int i, const size_t j, const char *noPrefixArgFormatter, bool **flagCopierPointer, va_list args);
+
 //  Sets an individual nested argument's value.
 //  For internal use only.
 int _setFlagFromNestedArgInternal(argStruct *arg);
+
+//  Loops through a provided formatter to set each argument to its default value based on environment variables.
+//  For internal use only.
+void _setDefaultFlagsFromEnvInternal(char **argFormatterTokenCopy, char **savePointer, void **argFormatterTokenAllocation, va_list args);
 
 //  Inserts positional arguments into the usage message when auto-generating a usage message.
 //  For internal use only.
@@ -633,30 +645,14 @@ void setFlagsFromPositionalArgs(const char *argFormatter, ...) {
     if (argCount <= positionalArgCount) usage();
     void *internalFormatterAllocation = cargStrdup(argFormatter);
     _heapCheck(internalFormatterAllocation);
-    char *internalFormatter = (char *)internalFormatterAllocation;
     char *savePointer = NULL;
-    const char *currentFormatter = NULL;
+    char *internalFormatter = (char *)internalFormatterAllocation;
     void *flagCopierPointer = NULL;
     va_list formatterArgs;
     va_start(formatterArgs, argFormatter);
     for (int i=1; i<positionalArgCount+1; i++) {
-        currentFormatter = strtok_r(internalFormatter, " ", &savePointer);
-        internalFormatter = savePointer;
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
-        if (!hasFlag(currentArg -> flags, POSITIONAL_ARG)) {
-            _libcargError("Positional arg setter called on named argument. Please fix this!\n");
-        }
-        flagCopierPointer = currentArg -> valueContainer.value;
-        currentArg -> hasValue = sscanf(argVector[i], currentFormatter, flagCopierPointer);
-        setArgs[i] = currentArg -> hasValue;
-        if (!currentArg -> hasValue) {
-            _freeIf(&internalFormatterAllocation);
-            usage();
-        }
-        currentArg -> argvIndexFound = i;
-        if (currentFormatter) {
-            strncpy(currentArg -> formatterUsed, currentFormatter, maxFormatterSize - 1);
-        }
+        _checkPositionalArgAgainstFormatter(currentArg, i, &internalFormatterAllocation, &internalFormatter, &savePointer, &flagCopierPointer);
     }
     _freeIf(&internalFormatterAllocation);
     va_end(formatterArgs);
@@ -670,34 +666,59 @@ void setFlagsFromGroupedBooleanArgs(const char *argFormatter, ...) {
     const char prefixChar = argFormatter[0];
     const char *noPrefixArgFormatter = argFormatter + 1;
     va_list formatterArgs;
-    va_list formatterArgsSaveCopy;
     va_start(formatterArgs, argFormatter);
-    va_copy(formatterArgsSaveCopy, formatterArgs);
     bool *flagCopierPointer = NULL;
-    argStruct* currentArg = NULL;
     for (int i=1; i<argCount; i++) {
         if (argVector[i][0] != prefixChar || setArgs[i]) continue;
         if (strlen(argVector[i]) > 1 && argVector[i][1] == prefixChar) continue;
         for (size_t j=0; j<strlen(noPrefixArgFormatter); j++) {
-            if (charInString(argVector[i], noPrefixArgFormatter[j]) >= 0) {
-                for (size_t k=0; k<=j; k++) {
-                    currentArg = va_arg(formatterArgs, argStruct *);
-                    flagCopierPointer = (bool *)currentArg -> valueContainer.value;
-                }
-                va_end(formatterArgs);
-                va_copy(formatterArgs, formatterArgsSaveCopy);
-                if (flagCopierPointer && currentArg) {
-                    currentArg -> hasValue = 1;
-                    setArgs[i] = currentArg -> hasValue;
-                    currentArg -> argvIndexFound = i;
-                    *flagCopierPointer = !*flagCopierPointer;
-                }
+            _checkGroupedBooleanArgAgainstFormatter(i, j, noPrefixArgFormatter, &flagCopierPointer, formatterArgs);
+        }
+    }
+    setFlag(libcargInternalFlags, GROUPED_ARGS_SET);
+    va_end(formatterArgs);
+}
+
+void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
+    _libcargFlagConditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    va_list args;
+    va_start(args, argFormatter);
+    void *argFormatterTokenAllocation = cargStrdup(argFormatter);
+    _heapCheck(argFormatterTokenAllocation);
+    char *argFormatterTokenCopy = (char *)argFormatterTokenAllocation;
+    char *savePointer = NULL;
+    _setDefaultFlagsFromEnvInternal(&argFormatterTokenCopy, &savePointer, &argFormatterTokenAllocation, args);
+    va_end(args);
+    _freeIf(&argFormatterTokenAllocation);
+}
+
+void setFlagsFromNestedArgs(const int nestedArgumentCount, ...) {
+    _libcargFlagConditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    _libcargFlagConditional(NESTED_ARGS_SET, false, "Nested args initializer called multiple times. Please fix this!\n");
+    _libcargFlagConditional(GROUPED_ARGS_SET, false, "Grouped args initializer called before nested args initializer. Please fix this!\n");
+    va_list args;
+    va_start(args, nestedArgumentCount);
+    for (int x=0; x<nestedArgumentCount; x++) {
+        argStruct *argRoot = va_arg(args, argStruct *);
+        if (!hasFlag(argRoot -> flags, NESTED_ARG)) {
+            _libcargError("Nested flag setter called on non-nested argument. Fix this!\n");
+        }
+        if (!hasFlag(argRoot -> flags, NESTED_ARG_ROOT)) {
+            _libcargError("Nested flag setter called on non-root nested argument. Fix this!\n");
+        }
+        if (argRoot -> hasValue) {
+            _libcargError("Root nested element was set multiple times. Fix this!\n");
+        }
+        const argStruct *argCursor = argRoot;
+        if (!_setFlagFromNestedArgInternal(argRoot)) continue;
+        for (int i=0; i <= argCursor -> nestedArgFillIndex; i++) {
+            if (_setFlagFromNestedArgInternal(argCursor -> nestedArgs[i])) {
+                argCursor = argCursor -> nestedArgs[i];
+                i=-1; // i will get incremented to 0 right after this iteration.
             }
         }
     }
-    va_end(formatterArgs);
-    va_end(formatterArgsSaveCopy);
-    setFlag(libcargInternalFlags, GROUPED_ARGS_SET);
+    setFlag(libcargInternalFlags, NESTED_ARGS_SET);
 }
 
 argStruct *nestedBooleanArgumentInit(argStruct *arg, const char *argString, const uint64_t flagsArg) {
@@ -760,67 +781,6 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, const char *nes
     nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
     argToNest -> parentArg = nestIn;
     return argToNest;
-}
-
-void setFlagsFromNestedArgs(const int nestedArgumentCount, ...) {
-    _libcargFlagConditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
-    _libcargFlagConditional(NESTED_ARGS_SET, false, "Nested args initializer called multiple times. Please fix this!\n");
-    _libcargFlagConditional(GROUPED_ARGS_SET, false, "Grouped args initializer called before nested args initializer. Please fix this!\n");
-    va_list args;
-    va_start(args, nestedArgumentCount);
-    for (int x=0; x<nestedArgumentCount; x++) {
-        argStruct *argRoot = va_arg(args, argStruct *);
-        if (!hasFlag(argRoot -> flags, NESTED_ARG)) {
-            _libcargError("Nested flag setter called on non-nested argument. Fix this!\n");
-        }
-        if (!hasFlag(argRoot -> flags, NESTED_ARG_ROOT)) {
-            _libcargError("Nested flag setter called on non-root nested argument. Fix this!\n");
-        }
-        if (argRoot -> hasValue) {
-            _libcargError("Root nested element was set multiple times. Fix this!\n");
-        }
-        const argStruct *argCursor = argRoot;
-        if (!_setFlagFromNestedArgInternal(argRoot)) continue;
-        for (int i=0; i <= argCursor -> nestedArgFillIndex; i++) {
-            if (_setFlagFromNestedArgInternal(argCursor -> nestedArgs[i])) {
-                argCursor = argCursor -> nestedArgs[i];
-                i=-1; // i will get incremented to 0 right after this iteration.
-            }
-        }
-    }
-    setFlag(libcargInternalFlags, NESTED_ARGS_SET);
-}
-
-void setDefaultFlagsFromEnv(const char * const argFormatter, ...) {
-    _libcargFlagConditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
-    va_list args;
-    va_start(args, argFormatter);
-    void *argFormatterTokenAllocation = cargStrdup(argFormatter);
-    _heapCheck(argFormatterTokenAllocation);
-    char *argFormatterTokenCopy = (char *)argFormatterTokenAllocation;
-    char *savePointer = NULL;
-    argStruct *currentArg = NULL;
-    while (1) {
-        char *envVarName = strtok_r(argFormatterTokenCopy, ": ", &savePointer);
-        char *formatter = strtok_r(NULL, ": ", &savePointer);
-        argFormatterTokenCopy = savePointer;
-        _validateFlag(envVarName);
-        _validateFormatterWithoutExtensions(formatter);
-        if (!envVarName || !formatter) break;
-        const char *envVarValue = getenv(envVarName);
-        currentArg = va_arg(args, argStruct *);
-        if (!envVarValue) continue;
-        if (!currentArg -> hasValue) {
-            currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> valueContainer.value);
-        }
-        if (!currentArg -> hasValue) {
-            _freeIf(&argFormatterTokenAllocation);
-            _libcargError("Unable to grab environment variable %s\n", envVarName);
-        }
-        strncpy(currentArg -> formatterUsed, formatter, maxFormatterSize - 1);
-    }
-    va_end(args);
-    _freeIf(&argFormatterTokenAllocation);
 }
 
 void argumentOverrideCallbacks(const char *argFormatter, ...) {
@@ -1077,7 +1037,7 @@ bool _adjustSetterForMultiArg(argStruct *currentArg, void **flagCopierPointer) {
     return false;
 }
 
-void _setNamedArgument(argStruct *currentArg, void **flagCopierPointer, const int argIndex, const char *formatterItem, const char *formatItemToCopy, void **internalFormatterAllocation, char **argumentFlagToCompare) {
+void _setNamedArgumentInternal(argStruct *currentArg, void **flagCopierPointer, const int argIndex, const char *formatterItem, const char *formatItemToCopy, void **internalFormatterAllocation, char **argumentFlagToCompare) {
     if (!currentArg) return;
     if (currentArg -> hasValue && !hasFlag(currentArg -> flags, MULTI_ARG)) usage(); // Duplicate named arguments
     if (!_adjustSetterForMultiArg(currentArg, flagCopierPointer)) {
@@ -1157,12 +1117,52 @@ void _checkNamedArgAgainstFormatter(const int argIndex, const char *argFormatter
         argStruct *currentArg = va_arg(formatterArgs, argStruct *);
         if (!_equalsSignAdjust(argIndex, formatterItem, flagItem, &formatItemToCopy, argumentFlagToCompare)) continue;
         if (!strcmp(flagItem, argumentFlagToCompare)) {
-            _setNamedArgument(currentArg, &flagCopierPointer, argIndex, formatterItem, formatItemToCopy, &internalFormatterAllocation, &argumentFlagToCompare);
+            _setNamedArgumentInternal(currentArg, &flagCopierPointer, argIndex, formatterItem, formatItemToCopy, &internalFormatterAllocation, &argumentFlagToCompare);
             break;
         }
     }
     _freeIf(&internalFormatterAllocation);
     _freeIf(&argumentFlagToCompare);
+}
+
+void _checkPositionalArgAgainstFormatter(argStruct *currentArg, const int i, void **internalFormatterAllocation, char **internalFormatter, char **savePointer, void **flagCopierPointer) {
+    *internalFormatter = strtok_r(*internalFormatter, " ", savePointer);
+    if (!hasFlag(currentArg -> flags, POSITIONAL_ARG)) {
+        _libcargError("Positional arg setter called on named argument. Please fix this!\n");
+    }
+    *flagCopierPointer = currentArg -> valueContainer.value;
+    currentArg -> hasValue = sscanf(argVector[i], *internalFormatter, *flagCopierPointer);
+    setArgs[i] = currentArg -> hasValue;
+    if (!currentArg -> hasValue) {
+        _freeIf(internalFormatterAllocation);
+        usage();
+    }
+    currentArg -> argvIndexFound = i;
+    if (*internalFormatter) {
+        strncpy(currentArg -> formatterUsed, *internalFormatter, maxFormatterSize - 1);
+    }
+    *internalFormatter = *savePointer;
+}
+
+void _checkGroupedBooleanArgAgainstFormatter(const int i, const size_t j, const char *noPrefixArgFormatter, bool **flagCopierPointer, va_list args) {
+    va_list formatterArgs;
+    va_copy(formatterArgs, args);
+    if (charInString(argVector[i], noPrefixArgFormatter[j]) >= 0) {
+        argStruct *currentArg = NULL;
+        for (size_t k=0; k<=j; k++) {
+            currentArg = va_arg(formatterArgs, argStruct *);
+            *flagCopierPointer = (bool *)currentArg -> valueContainer.value;
+        }
+        va_end(formatterArgs);
+        va_copy(formatterArgs, args);
+        if (*flagCopierPointer && currentArg) {
+            currentArg -> hasValue = 1;
+            setArgs[i] = currentArg -> hasValue;
+            currentArg -> argvIndexFound = i;
+            **flagCopierPointer = !**flagCopierPointer;
+        }
+    }
+    va_end(formatterArgs);
 }
 
 int _setFlagFromNestedArgInternal(argStruct *arg) {
@@ -1195,6 +1195,32 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
         }
     }
     return 0;
+}
+
+void _setDefaultFlagsFromEnvInternal(char **argFormatterTokenCopy, char **savePointer, void **argFormatterTokenAllocation, va_list args) {
+    va_list formatterArgs;
+    va_copy(formatterArgs, args);
+    argStruct *currentArg = NULL;
+    while (1) {
+        char *envVarName = strtok_r(*argFormatterTokenCopy, ": ", savePointer);
+        char *formatter = strtok_r(NULL, ": ", savePointer);
+        *argFormatterTokenCopy = *savePointer;
+        _validateFlag(envVarName);
+        _validateFormatterWithoutExtensions(formatter);
+        if (!envVarName || !formatter) break;
+        const char *envVarValue = getenv(envVarName);
+        currentArg = va_arg(args, argStruct *);
+        if (!envVarValue) continue;
+        if (!currentArg -> hasValue) {
+            currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> valueContainer.value);
+        }
+        if (!currentArg -> hasValue) {
+            _freeIf(argFormatterTokenAllocation);
+            _libcargError("Unable to grab environment variable %s\n", envVarName);
+        }
+        strncpy(currentArg -> formatterUsed, formatter, maxFormatterSize - 1);
+    }
+    va_end(formatterArgs);
 }
 
 void _printAllPositionalArgsToUsageBuffer(void) {

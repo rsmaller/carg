@@ -25,53 +25,53 @@ int main(int argc, char *argv[]) { // Example code
 
     heapArgInit(char *, stringArg, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
     heapArgInit(char *, stringArg2, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
-    heapArgDefaultValue(&stringArg2, "bean", strlen("bean"));
+    heapArgDefaultValue(&stringArg2, "default2", strlen("default2"));
     heapArgInit(char *, positionalStringArg, NONE, POSITIONAL_ARG, 100 * sizeof(char), NO_USAGE_STRING); // Heap string.
     heapArgInit(int *, multiIntArg, NONE, MULTI_ARG, sizeof(int), NO_USAGE_STRING);
     pointerArgInit(char, multiStringArg2, [1000], "default", MULTI_ARG, "-ff"); // Stack string.
 
-    basicArgInit(bool, thing1, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, thing2, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, thing3, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, thing4, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, thing5, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, thing6, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, thing7, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, thing8, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    pointerArgInit(char, thing20, [100], "thing20_default", NO_FLAGS, NO_USAGE_STRING);
-    basicArgInit(int, thing21, 0, NO_FLAGS, NO_USAGE_STRING);
-    basicArgInit(int, thing22, 0, NO_FLAGS, NO_USAGE_STRING);
+    basicArgInit(bool, nestedArg1, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, nestedArg2, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, nestedArg3, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, nestedArg4, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, nestedArg5, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, nestedArg6, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, nestedArg7, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    basicArgInit(bool, nestedArg8, 0, BOOLEAN_ARG, NO_USAGE_STRING);
+    pointerArgInit(char, nestedArg20, [100], "nestedArg20_default", NO_FLAGS, NO_USAGE_STRING);
+    basicArgInit(int, nestedArg21, 0, NO_FLAGS, NO_USAGE_STRING);
+    basicArgInit(int, nestedArg22, 0, NO_FLAGS, NO_USAGE_STRING);
 
-    nestedBooleanArgumentInit(&thing1, "thing1", NO_FLAGS); {
-        nestBooleanArgument(&thing1, &thing2, "thing2");
-        nestBooleanArgument(&thing1, &thing4, "thing4");
-        nestArgument(&thing1, &thing21, "thing21", "%d"); {
-            nestArgument(&thing21, &thing22, "thing22", "%d");
+    nestedBooleanArgumentInit(&nestedArg1, "nestedArg1", NO_FLAGS); {
+        nestBooleanArgument(&nestedArg1, &nestedArg2, "nestedArg2");
+        nestBooleanArgument(&nestedArg1, &nestedArg4, "nestedArg4");
+        nestArgument(&nestedArg1, &nestedArg21, "nestedArg21", "%d"); {
+            nestArgument(&nestedArg21, &nestedArg22, "nestedArg22", "%d");
         }
     }
 
-    nestedBooleanArgumentInit(&thing3, "thing3", ENFORCE_NESTING_ORDER); {
-        nestBooleanArgument(&thing3, &thing4, "thing4");
-        nestBooleanArgument(&thing3, &thing5, "thing5"); {
-            nestBooleanArgument(&thing5, &thing6, "thing6"); {
-                nestBooleanArgument(&thing6, &thing7, "thing7");
-                nestBooleanArgument(&thing6, &thing8, "thing8");
+    nestedBooleanArgumentInit(&nestedArg3, "nestedArg3", ENFORCE_NESTING_ORDER); {
+        nestBooleanArgument(&nestedArg3, &nestedArg4, "nestedArg4");
+        nestBooleanArgument(&nestedArg3, &nestedArg5, "nestedArg5"); {
+            nestBooleanArgument(&nestedArg5, &nestedArg6, "nestedArg6"); {
+                nestBooleanArgument(&nestedArg6, &nestedArg7, "nestedArg7");
+                nestBooleanArgument(&nestedArg6, &nestedArg8, "nestedArg8");
             }
         }
     }
 
-    nestedArgumentInit(&thing20, "thing20", NO_FLAGS, "%99s");
-    //  thing1 -> thing2 or thing4 (not both)
-    //  thing3 -> thing4 or thing5 (not both)
-        // thing5 -> thing6
-            // thing6 -> thing7
-            // thing6 -> thing8
+    nestedArgumentInit(&nestedArg20, "nestedArg20", NO_FLAGS, "%99s");
+    //  nestedArg1 -> nestedArg2 or nestedArg4 (not both)
+    //  nestedArg3 -> nestedArg4 or nestedArg5 (not both)
+        // nestedArg5 -> nestedArg6
+            // nestedArg6 -> nestedArg7
+            // nestedArg6 -> nestedArg8
 
     usageMessageAutoGenerate();
 
     //  Argument Setting
     argumentOverrideCallbacks("-h -h2", help, help2);
-    setFlagsFromNestedArgs(3, &thing1, &thing3, &thing20);
+    setFlagsFromNestedArgs(3, &nestedArg1, &nestedArg3, &nestedArg20);
     setFlagsFromPositionalArgs("%d %d %20s", &positionalArg, &positionalArg2, &positionalStringArg);
     setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d --mynum:%d",
         &intArg, &stringArg, &stringArg, &multiStringArg2, &floatArg, &boolArg3, &keywordIntArg, &multiIntArg);
@@ -97,8 +97,8 @@ int main(int argc, char *argv[]) { // Example code
         multiStringArg2.argvIndexFound, floatArgValue, floatArg.argvIndexFound,
         boolArg1Value, boolArg1.argvIndexFound, boolArg2Value, boolArg2.argvIndexFound,
         boolArg3Value, boolArg3.argvIndexFound);
-    printf("\nNested arguments - thing1: %d, thing2: %d, thing3: %d, thing4: %d, thing5: %d, thing6: %d, thing7: %d thing8: %d, thing20: %s, thing21: %d, thing22: %d\n",
-        thing1Value, thing2Value, thing3Value, thing4Value, thing5Value, thing6Value, thing7Value, thing8Value, thing20Value, thing21Value, thing22Value);
+    printf("\nNested arguments - nestedArg1: %d, nestedArg2: %d, nestedArg3: %d, nestedArg4: %d, nestedArg5: %d, nestedArg6: %d, nestedArg7: %d nestedArg8: %d, nestedArg20: %s, nestedArg21: %d, nestedArg22: %d\n",
+        nestedArg1Value, nestedArg2Value, nestedArg3Value, nestedArg4Value, nestedArg5Value, nestedArg6Value, nestedArg7Value, nestedArg8Value, nestedArg20Value, nestedArg21Value, nestedArg22Value);
     // printOutNonStringArgument(&multiIntArg, int); // Uncomment these to see how the argument printing functions work.
     // printOutStringArgument(&stringArg);
     // printOutNonStringMultiArgument(&multiIntArg, int);
