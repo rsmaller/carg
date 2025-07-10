@@ -1106,7 +1106,7 @@ void _checkNamedArgAgainstFormatter(const int argIndex, const char *argFormatter
     void *flagCopierPointer = NULL;
     char *argumentFlagToCompare = cargStrdup(argVector[argIndex]);
     _heapCheck(argumentFlagToCompare);
-    const char *formatItemToCopy ;
+    const char *formatItemToCopy;
     if (argIndex < argCount - 1) formatItemToCopy = argVector[argIndex + 1];
     else formatItemToCopy = NULL;
     while (1) {
