@@ -1212,7 +1212,7 @@ void _setDefaultFlagsFromEnvInternal(char **argFormatterTokenCopy, char **savePo
         _validateFormatterWithoutExtensions(formatter);
         if (!envVarName || !formatter) break;
         const char *envVarValue = getenv(envVarName);
-        currentArg = va_arg(args, argStruct *);
+        currentArg = va_arg(formatterArgs, argStruct *);
         if (!envVarValue) continue;
         if (!currentArg -> hasValue) {
             currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> valueContainer.value);
