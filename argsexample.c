@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) { // Example code
     basicArgInit(int, nestedArg21, 0, NO_FLAGS, NO_USAGE_STRING);
     basicArgInit(int, nestedArg22, 0, NO_FLAGS, NO_USAGE_STRING);
 
-    nestedBooleanArgumentInit(&nestedArg1, "nestedArg1", NO_FLAGS); {
+    nestedBooleanArgumentInit(&nestedArg1, "nestedArg1", ENFORCE_NESTING_ORDER); {
         nestBooleanArgument(&nestedArg1, &nestedArg2, "nestedArg2");
         nestBooleanArgument(&nestedArg1, &nestedArg4, "nestedArg4");
         nestArgument(&nestedArg1, &nestedArg21, "nestedArg21", "%d"); {

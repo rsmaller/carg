@@ -106,9 +106,7 @@ uint64_t libcargInternalFlags = 0;
 
 #define ENFORCE_NESTING_ORDER (1ULL<<34ULL)
 
-#define ENFORCE_STRICT_NESTING_ORDER (1ULL<<35ULL)
-
-#define MULTI_ARG (1ULL<<36ULL)
+#define MULTI_ARG (1ULL<<35ULL)
 
 //  Getters and Setters.
 #define hasFlag(item, flag) (item & flag)
@@ -744,7 +742,8 @@ argStruct *nestBooleanArgument(argStruct *nestIn, argStruct *argToNest, const ch
         nestIn -> nestedArgArraySize = 4;
     }
     argToNest -> nestedArgString = nestedArgString;
-    setFlag(argToNest -> flags, NESTED_ARG);
+    argToNest -> flags |= nestIn -> flags;
+    setFlag(argToNest -> flags, NESTED_ARG | BOOLEAN_ARG);
     clearFlag(argToNest -> flags, NESTED_ARG_ROOT);
     nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
     argToNest -> parentArg = nestIn;
@@ -775,9 +774,11 @@ argStruct *nestArgument(argStruct *nestIn, argStruct *argToNest, const char *nes
         nestIn -> nestedArgArraySize = 4;
     }
     argToNest -> nestedArgString = nestedArgString;
+    argToNest -> flags |= nestIn -> flags;
     strncpy(argToNest -> formatterUsed, formatterToUse, sizeof(argToNest -> formatterUsed) - 1);
     setFlag(argToNest -> flags, NESTED_ARG);
     clearFlag(argToNest -> flags, NESTED_ARG_ROOT);
+    clearFlag(argToNest -> flags, BOOLEAN_ARG);
     nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
     argToNest -> parentArg = nestIn;
     return argToNest;
@@ -851,6 +852,14 @@ void libcargValidate(void) {
             fprintf(stderr, "Error: Unknown option \"%s\"\n", argVector[i]);
             errorFound = true;
         }
+    }
+    for (int i=0; i<=allArgs.fillIndex; i++) {
+        argStruct *arg = allArgs.array[i];
+        if (!arg -> parentArg || !arg -> hasValue) continue;
+        if ((!hasFlag(arg -> parentArg -> flags, BOOLEAN_ARG)) && (arg -> parentArg -> argvIndexFound == arg -> argvIndexFound - 1))
+            usage();
+        if (hasFlag(arg -> flags, ENFORCE_NESTING_ORDER) && (arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound))
+            usage();
     }
     if (errorFound) {
         libcargTerminate();
@@ -1185,14 +1194,6 @@ int _setFlagFromNestedArgInternal(argStruct *arg) {
             }
             setArgs[i] = arg -> hasValue;
             arg -> argvIndexFound = i;
-            if (arg -> parentArg && !hasFlag(arg -> parentArg -> flags, BOOLEAN_ARG) && arg -> parentArg -> argvIndexFound == arg -> argvIndexFound - 1) usage();
-            if (arg -> parentArg && !hasFlag(arg -> parentArg -> flags, BOOLEAN_ARG) && hasFlag(arg -> parentArg -> flags, ENFORCE_STRICT_NESTING_ORDER) && arg -> parentArg -> argvIndexFound != arg -> argvIndexFound - 2) usage();
-            if (hasFlag(arg -> flags, ENFORCE_STRICT_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound != arg -> argvIndexFound - 1) {
-                usage();
-            }
-            if (hasFlag(arg -> flags, ENFORCE_NESTING_ORDER) && arg -> parentArg && arg -> parentArg -> hasValue && arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound) {
-                usage();
-            }
             return 1;
         }
     }
