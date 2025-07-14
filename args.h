@@ -82,10 +82,10 @@ uint64_t cargInternalFlags = 0;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //  Generic Flags.
-#define NO_FLAGS                (0ULL)  // Set no flags when creating an argument.
-#define NO_DEFAULT_VALUE        {0}     // Set default argument to 0 in arg initializers, for readability purposes.
-#define NO_USAGE_STRING         ""      // To declare in an argument initializer that no usage string should be present.
-#define NONE                            // Empty and does nothing. For semantics in function-style macros like CARG_ARG_CREATE().
+#define NO_FLAGS                (0ULL)      // Set no flags when creating an argument.
+#define NO_DEFAULT_VALUE        {0}         // Set default argument to 0 in arg initializers, for readability purposes.
+#define NO_USAGE_STRING         (char *)""  // To declare in an argument initializer that no usage string should be present.
+#define NONE                                // Empty and does nothing. For semantics in function-style macros like CARG_ARG_CREATE().
 
 //  Argument Flags. (These should be set by the user.)
 #define POSITIONAL_ARG          (1ULL<<32ULL)
@@ -155,7 +155,7 @@ void          usage(void);
 void          carg_override_callbacks(const char *argFormatter, ...);
 void          carg_arg_assert(const int assertionCount, ...);
 
-ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t flagsArg, char *usageStringArg);
+ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t flagsArg, const char usageStringArg[]);
 ArgContainer *carg_nested_boolean_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg);
 ArgContainer *carg_nest_boolean_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString);
 ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg, const char * const formatterToUse);
@@ -172,27 +172,16 @@ void          carg_set_nested_args(const int nestedArgumentCount, ...);
 //  SECTION: User-Facing Macros
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#define CARG_PRINT_CONTAINER_DATA(argument) do  {\
-    printf("Argument passed in as %s:\n", (#argument));\
-    printf("\tSize: %zu\n", (argument) -> valueSize);\
-    printf("\tFlags: %" PRIu64 "\n", (argument) -> flags);\
-    printf("\tFound At: %d\n", (argument) -> argvIndexFound);\
-    printf("\tHas Value: %d\n", (argument) -> hasValue);\
-    if ((argument) -> usageString[0]) printf("\tUsage String: %s\n", (argument) -> usageString);\
-    printf("\tFormatter Used: %s\n", (argument) -> formatterUsed);\
-    if ((argument) -> nestedArgString[0]) printf("\tNested Argument String: %s\n", (argument) -> nestedArgString);\
-} while (0)
-
 #define CARG_PRINT_STRING_ARG(argument) do {\
-    CARG_PRINT_CONTAINER_DATA(argument);\
+    carg_print_container_data(argument);\
     printf("\tValue: ");\
-    if (!string_contains_char((argument) -> formatterUsed, '\n')) printf((argument) -> formatterUsed, (char *)(argument) -> valueContainer.value);\
-    else printf("%s", (char *)(argument) -> valueContainer.value);\
+    if (string_contains_char((argument) -> formatterUsed, '\n') >= 0) printf("%s", (char *)(argument) -> valueContainer.value); /* This allows the string scanf() formatter with spaces to work. */\
+    else printf((argument) -> formatterUsed, (char *)(argument) -> valueContainer.value);\
     printf("\n");\
 } while (0)
 
 #define CARG_PRINT_NON_STRING_ARG(argument, typeArg) do {\
-    CARG_PRINT_CONTAINER_DATA(argument);\
+    carg_print_container_data(argument);\
     printf("\tValue: ");\
     printf((argument) -> formatterUsed, *(typeArg *)(argument) -> valueContainer.value);\
     printf("\n");\
@@ -216,7 +205,7 @@ void          carg_set_nested_args(const int nestedArgumentCount, ...);
     ChainedArgContainer *cursor = argument -> valueContainer.next;\
     while (cursor) {\
         printf("\tValue: ");\
-        if (string_contains_char((argument) -> formatterUsed, '\n')) printf("%s", (cursor -> value)); /* This allows the string scanf() formatter with spaces to work. */\
+        if (string_contains_char((argument) -> formatterUsed, '\n') >= 0) printf("%s", (cursor -> value)); /* This allows the string scanf() formatter with spaces to work. */\
         else printf((argument) -> formatterUsed, cursor -> value);\
         printf("\n");\
         cursor = cursor -> next;\
@@ -275,7 +264,7 @@ void _carg_set_env_defaults_internal(char **argFormatterTokenCopy, char **savePo
 //  SECTION: User-Facing Function Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t flagsArg, char *usageStringArg) {
+ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t flagsArg, const char usageStringArg[]) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Attempt to initialize argument before library initialization. Please fix this!\n");
     ArgContainer *constructedArgument = (ArgContainer *)malloc(sizeof(ArgContainer));
     const ArgContainer constructedArgumentInternal = {
@@ -620,6 +609,7 @@ void carg_arg_assert(const int assertionCount, ...) {
 }
 
 void carg_print_container_data(ArgContainer *container) {
+    printf("Argument: \n");
     printf("\tSize: %llu\n", container -> valueSize);
     printf("\tFlags: %llu\n", container -> flags);
     printf("\tFound At: %d\n", container -> argvIndexFound);
