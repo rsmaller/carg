@@ -1,7 +1,5 @@
 #include "args.h"
 
-int globalIntArgValue = 0;
-
 void help(void) {
     printf("Help message here\n");
 }
@@ -12,97 +10,121 @@ void help2(void) {
 
 int main(int argc, char *argv[]) { // Example code
     //  Argument Initialization
-    libcargInit(argc, argv);
-    basicArgInit(int, positionalArg, NO_DEFAULT_VALUE, POSITIONAL_ARG, NO_USAGE_STRING);
-    basicArgInit(int, positionalArg2, NO_DEFAULT_VALUE, POSITIONAL_ARG, NO_USAGE_STRING);
-    basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n");
-    adjustArgumentCursor(&intArg, &globalIntArgValue);
-    basicArgInit(int, keywordIntArg, NO_DEFAULT_VALUE, NO_FLAGS, "-k");
-    basicArgInit(float, floatArg, 0.5f, NO_FLAGS, "-z");
-    basicArgInit(bool, boolArg1, 0, BOOLEAN_ARG, "-b");
-    basicArgInit(bool, boolArg2, 1, BOOLEAN_ARG, "-c");
-    basicArgInit(bool, boolArg3, 0, BOOLEAN_ARG, "--xarg");
+    carg_init(argc, argv);
 
-    heapArgInit(char *, stringArg, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
-    heapArgInit(char *, stringArg2, NONE, NO_FLAGS, 21 * sizeof(char), "-t|--term"); // Heap string.
-    heapArgDefaultValue(&stringArg2, "default2", strlen("default2"));
-    heapArgInit(char *, positionalStringArg, NONE, POSITIONAL_ARG, 100 * sizeof(char), NO_USAGE_STRING); // Heap string.
-    heapArgInit(int *, multiIntArg, NONE, MULTI_ARG, sizeof(int), NO_USAGE_STRING);
-    pointerArgInit(char, multiStringArg2, [1000], "default", MULTI_ARG, "-ff"); // Stack string.
+    int             positionalArgValue  = NO_DEFAULT_VALUE;
+    ArgContainer   *positionalArg       = carg_arg_create(&positionalArgValue, sizeof(int), POSITIONAL_ARG, NO_USAGE_STRING);
+    int             positionalArg2Value = NO_DEFAULT_VALUE;
+    ArgContainer   *positionalArg2      = carg_arg_create(&positionalArg2Value, sizeof(int), POSITIONAL_ARG, NO_USAGE_STRING);
+    char           *positionalStringArgValue = (char *)malloc(100 * sizeof(char));
+    ArgContainer   *positionalStringArg      = carg_arg_create(positionalStringArgValue, sizeof(char) * 100, POSITIONAL_ARG | HEAP_ALLOCATED, NO_USAGE_STRING);
 
-    basicArgInit(bool, nestedArg1, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, nestedArg2, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, nestedArg3, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, nestedArg4, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, nestedArg5, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, nestedArg6, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, nestedArg7, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    basicArgInit(bool, nestedArg8, 0, BOOLEAN_ARG, NO_USAGE_STRING);
-    pointerArgInit(char, nestedArg20, [100], "nestedArg20_default", NO_FLAGS, NO_USAGE_STRING);
-    basicArgInit(int, nestedArg21, 0, NO_FLAGS, NO_USAGE_STRING);
-    basicArgInit(int, nestedArg22, 0, NO_FLAGS, NO_USAGE_STRING);
+    int             intArgValue        = NO_DEFAULT_VALUE;
+    ArgContainer   *intArg             = carg_arg_create(&intArgValue, sizeof(int), NO_FLAGS, "-n <number>");
+    int             keywordIntArgValue = 0;
+    ArgContainer   *keywordIntArg      = carg_arg_create(&keywordIntArgValue, sizeof(int), NO_FLAGS, "-k <number>");
+    float           floatArgValue      = 0.5f;
+    ArgContainer   *floatArg           = carg_arg_create(&floatArgValue, sizeof(float), NO_FLAGS, "-z <float>");
+    bool            boolArg1Value      = false;
+    ArgContainer   *boolArg1           = carg_arg_create(&boolArg1Value, sizeof(bool), BOOLEAN_ARG, "-b");
+    bool            boolArg2Value      = true;
+    ArgContainer   *boolArg2           = carg_arg_create(&boolArg2Value, sizeof(bool), BOOLEAN_ARG, "-c");
+    bool            boolArg3Value      = false;
+    ArgContainer   *boolArg3           = carg_arg_create(&boolArg3Value, sizeof(bool), BOOLEAN_ARG, "--xarg");
+    char           *stringArgValue     = (char *)malloc(21 * sizeof(char));
+    ArgContainer   *stringArg          = carg_arg_create(stringArgValue, sizeof(char) * 21, HEAP_ALLOCATED, "-t|--term <string>");
+    carg_heap_default_value(stringArg, "default", strlen("default"));
 
-    nestedBooleanArgumentInit(&nestedArg1, "nestedArg1", ENFORCE_NESTING_ORDER); {
-        nestBooleanArgument(&nestedArg1, &nestedArg2, "nestedArg2");
-        nestBooleanArgument(&nestedArg1, &nestedArg4, "nestedArg4");
-        nestArgument(&nestedArg1, &nestedArg21, "nestedArg21", "%d"); {
-            nestArgument(&nestedArg21, &nestedArg22, "nestedArg22", "%d");
+    bool            nestedArg1Value = false;
+    ArgContainer   *nestedArg1      = carg_arg_create(&nestedArg1Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool            nestedArg2Value = false;
+    ArgContainer   *nestedArg2      = carg_arg_create(&nestedArg2Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool            nestedArg3Value = false;
+    ArgContainer   *nestedArg3      = carg_arg_create(&nestedArg3Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool            nestedArg4Value = false;
+    ArgContainer   *nestedArg4      = carg_arg_create(&nestedArg4Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool            nestedArg5Value = false;
+    ArgContainer   *nestedArg5      = carg_arg_create(&nestedArg5Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool            nestedArg6Value = false;
+    ArgContainer   *nestedArg6      = carg_arg_create(&nestedArg6Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool            nestedArg7Value = false;
+    ArgContainer   *nestedArg7      = carg_arg_create(&nestedArg7Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool            nestedArg8Value = false;
+    ArgContainer   *nestedArg8      = carg_arg_create(&nestedArg8Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+
+    char            nestedArg20Value[100] = "nestedArg20_default";
+    ArgContainer   *nestedArg20           = carg_arg_create(nestedArg20Value, sizeof(nestedArg20Value), NO_FLAGS, NO_USAGE_STRING);
+    int             nestedArg21Value      = 0;
+    ArgContainer   *nestedArg21           = carg_arg_create(&nestedArg21Value, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
+    int             nestedArg22Value      = 0;
+    ArgContainer   *nestedArg22           = carg_arg_create(&nestedArg22Value, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
+
+    int            *multiIntArgValue           = (int *)malloc(sizeof(int));
+    ArgContainer   *multiIntArg                = carg_arg_create(multiIntArgValue, sizeof(int), HEAP_ALLOCATED | MULTI_ARG, NO_USAGE_STRING);
+    char            multiStringArg2Value[1000] = "default";
+    ArgContainer   *multiStringArg2            = carg_arg_create(multiStringArg2Value, sizeof(multiStringArg2Value), MULTI_ARG, "-ff <string>");
+
+    carg_nested_boolean_container_create(nestedArg1, "nestedArg1", ENFORCE_NESTING_ORDER); {
+        carg_nest_boolean_container(nestedArg1, nestedArg2, "nestedArg2");
+        carg_nest_boolean_container(nestedArg1, nestedArg4, "nestedArg4");
+        carg_nest_container(nestedArg1, nestedArg21, "nestedArg21", "%d"); {
+            carg_nest_container(nestedArg21, nestedArg22, "nestedArg22", "%d");
         }
     }
 
-    nestedBooleanArgumentInit(&nestedArg3, "nestedArg3", ENFORCE_NESTING_ORDER); {
-        nestBooleanArgument(&nestedArg3, &nestedArg4, "nestedArg4");
-        nestBooleanArgument(&nestedArg3, &nestedArg5, "nestedArg5"); {
-            nestBooleanArgument(&nestedArg5, &nestedArg6, "nestedArg6"); {
-                nestBooleanArgument(&nestedArg6, &nestedArg7, "nestedArg7");
-                nestBooleanArgument(&nestedArg6, &nestedArg8, "nestedArg8");
+    carg_nested_boolean_container_create(nestedArg3, "nestedArg3", ENFORCE_NESTING_ORDER); {
+        carg_nest_boolean_container(nestedArg3, nestedArg4, "nestedArg4");
+        carg_nest_boolean_container(nestedArg3, nestedArg5, "nestedArg5"); {
+            carg_nest_boolean_container(nestedArg5, nestedArg6, "nestedArg6"); {
+                carg_nest_boolean_container(nestedArg6, nestedArg7, "nestedArg7");
+                carg_nest_boolean_container(nestedArg6, nestedArg8, "nestedArg8");
             }
         }
     }
 
-    nestedArgumentInit(&nestedArg20, "nestedArg20", NO_FLAGS, "%99s");
-    //  nestedArg1 -> nestedArg2 or nestedArg4 (not both)
-    //  nestedArg3 -> nestedArg4 or nestedArg5 (not both)
-        // nestedArg5 -> nestedArg6
-            // nestedArg6 -> nestedArg7
-            // nestedArg6 -> nestedArg8
+    carg_nested_container_create(nestedArg20, "nestedArg20", NO_FLAGS, "%99s");
+     // nestedArg1 -> nestedArg2 or nestedArg4 (not both)
+     // nestedArg3 -> nestedArg4 or nestedArg5 (not both)
+     //    nestedArg5 -> nestedArg6
+     //        nestedArg6 -> nestedArg7
+     //        nestedArg6 -> nestedArg8
 
-    usageMessageAutoGenerate();
+    carg_usage_message_autogen();
 
-    //  Argument Setting
-    argumentOverrideCallbacks("-h -h2", help, help2);
-    setFlagsFromNestedArgs(3, &nestedArg1, &nestedArg3, &nestedArg20);
-    setFlagsFromPositionalArgs("%d %d %20s", &positionalArg, &positionalArg2, &positionalStringArg);
-    setFlagsFromNamedArgs("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d --mynum:%d",
-        &intArg, &stringArg, &stringArg, &multiStringArg2, &floatArg, &boolArg3, &keywordIntArg, &multiIntArg);
-    setFlagsFromGroupedBooleanArgs("-bc", &boolArg1, &boolArg2);
-    setDefaultFlagsFromEnv("OS:%999[^\n] PATH:%7s", &multiStringArg2, &stringArg);
+     // Argument Setting
+    carg_override_callbacks("-h -h2", help, help2);
+    carg_set_nested_args(3, nestedArg1, nestedArg3, nestedArg20);
+    carg_set_positional_args("%d %d %20s", positionalArg, positionalArg2, positionalStringArg);
+    carg_set_named_args("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d --mynum:%d",
+        intArg, stringArg, stringArg, multiStringArg2, floatArg, boolArg3, keywordIntArg, multiIntArg);
+    carg_set_grouped_boolean_args("-bc", boolArg1, boolArg2);
+    carg_set_env_defaults("OS:%999[^\n] PATH:%7s", multiStringArg2, stringArg);
 
     //  Assertion, previews, and termination
-    libcargValidate();
-    argAssert(5,
-        globalIntArgValue > -1, "-n arg must be greater than or equal to 0",
-        requiredArgument(intArg), USAGE_MESSAGE,
-        mutuallyExclusive(boolArg1, boolArg3), "-b and --xarg cannot be toggled at the same time",
-        mutuallyRequired(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
+    carg_validate();
+    carg_arg_assert(5,
+        intArgValue > -1, "-n arg must be greater than or equal to 0",
+        REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
+        MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "-b and --xarg cannot be toggled at the same time",
+        MUTUALLY_REQUIRED(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
         positionalArgValue > 0, "First argument must be positive"
     );
 
-    //  Testing arguments
-    printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], stringArg2: %s[%d], multiStringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
+     // Testing arguments
+    printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], multiStringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
         positionalArgCount, positionalArgValue, positionalArg2Value,
-        positionalStringArgValue, globalIntArgValue, intArg.argvIndexFound,
-        keywordIntArgValue, keywordIntArg.argvIndexFound,
-        stringArgValue, stringArg.argvIndexFound, stringArg2Value, stringArg2.argvIndexFound, multiStringArg2Value,
-        multiStringArg2.argvIndexFound, floatArgValue, floatArg.argvIndexFound,
-        boolArg1Value, boolArg1.argvIndexFound, boolArg2Value, boolArg2.argvIndexFound,
-        boolArg3Value, boolArg3.argvIndexFound);
+        positionalStringArgValue, intArgValue, intArg -> argvIndexFound,
+        keywordIntArgValue, keywordIntArg -> argvIndexFound,
+        stringArgValue, stringArg -> argvIndexFound, multiStringArg2Value,
+        multiStringArg2 -> argvIndexFound, floatArgValue, floatArg -> argvIndexFound,
+        boolArg1Value, boolArg1 -> argvIndexFound, boolArg2Value, boolArg2 -> argvIndexFound,
+        boolArg3Value, boolArg3 -> argvIndexFound);
     printf("\nNested arguments - nestedArg1: %d, nestedArg2: %d, nestedArg3: %d, nestedArg4: %d, nestedArg5: %d, nestedArg6: %d, nestedArg7: %d nestedArg8: %d, nestedArg20: %s, nestedArg21: %d, nestedArg22: %d\n",
         nestedArg1Value, nestedArg2Value, nestedArg3Value, nestedArg4Value, nestedArg5Value, nestedArg6Value, nestedArg7Value, nestedArg8Value, nestedArg20Value, nestedArg21Value, nestedArg22Value);
-    // printOutNonStringArgument(&multiIntArg, int); // Uncomment these to see how the argument printing functions work.
-    // printOutStringArgument(&stringArg);
-    // printOutNonStringMultiArgument(&multiIntArg, int);
-    // printOutStringMultiArgument(&multiStringArg2);
-    libcargTerminate();
+    // CARG_PRINT_NON_STRING_ARG(multiIntArg, int); // Uncomment these to see how the argument printing macros work.
+    // CARG_PRINT_STRING_ARG(stringArg);
+    // CARG_PRINT_NON_STRING_MULTI_ARG(multiIntArg, int);
+    // CARG_PRINT_STRING_MULTI_ARG(multiStringArg2);
+    carg_terminate();
     return 0;
 }

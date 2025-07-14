@@ -15,18 +15,18 @@ put it in your environment's include path and include the header accordingly:
 #include "args.h"
 ```
 
-To set up the library to use your argument vector, call `libcargInit()` with the argument count and vector.
+To set up the library to use your argument vector, call `carg_init()` with the argument count and vector.
 
-At the end of your usage of this library, be sure to call `libcargTerminate()` to clean up any heap-allocated memory and
+At the end of your usage of this library, be sure to call `carg_terminate()` to clean up any heap-allocated memory and
 prevent memory leaks.
 
 ### Setting a Usage Message
 It's likely the first thing you will want to do is declare a usage message for your program.
-The `setUsageMessage()` function allows you to do this; it sets a usage message that caps out at 1023 characters.
+The `carg_set_usage_message()` function allows you to do this; it sets a usage message that caps out at 1023 characters.
 It accepts a string with formatters in it. This might look something like:
 
 ```
-setUsageMessage("USAGE: %s -n Arg1 -t Arg2", cargBasename(argv[0]));
+carg_set_usage_message("USAGE: %s -n Arg1 -t Arg2", carg_basename(argv[0]));
 ```
 
 The `usage()` function will print out this message and terminate the program.
@@ -34,34 +34,28 @@ The `usage()` function will print out this message and terminate the program.
 ### Initializing Arguments
 As for arguments, they are stored in structs and variables of their respective type.
 Structs serve to keep track of whether an argument has been specified by the user or not.
-To simplify the declaration of arguments, `argInit()` and `basicArgInit()` were created.
-Simply call `argInit()` or `basicArgInit()` with both a variable name to declare, type information, a default value, a bitmask representing toggled flags, and a usage string.
-To write explicitly that a variable should not have a default value, use the `NO_DEFAULT_VALUE` macro in place of a default value.
-This macro is only for readability, and it will zero-initialize the variable you create.
-To declare that an argument has no usage string associated with it, use the `NO_USAGE_STRING` macro.
-To enforce that an argument must be given a value, see `argAssert()` below.
-
-`argInit()`, `basicArgInit()` and `heapArgInit()` will create a struct from the variable name entered into them.
-Keep in mind the resulting struct uses a void pointer to reference the variable where the argument data will be stored.
-To access the data the user entered, add "Value" to the end of the struct's name.
-For arguments initialized with `heapArgInit()`, the "Value" variable contains a pointer to the heap-allocated memory.
-This pointer will be freed automatically via `libcargTerminate()`.
-For example, when declaring an int argument via:
+Declaring an argument is relatively simple; first, create a variable where the argument will be stored:
 
 ```
-basicArgInit(int, intArg, 1, NO_FLAGS, NO_USAGE_STRING);
+int myArg1 = 5;
 ```
 
-- `intArg` is a struct.
-- `intArg` contains a void pointer to `intArgValue`, an int representing whether the argument has been set by the user, and a flags bitmask.
-- `intArgValue` is an int where the value of the argument is stored. 
-- If the arg was declared as a char instead, the type of `intArgValue` would be char.
+In this case, the default value of the argument will be 5.
+Then, an argument can be initialized from this variable. Use the `carg_arg_create()` function to create an argument with
+the address of the variable created above:
+
+```
+ArgContainer *myArg1Container = carg_arg_create(&intArgValue, sizeof(int), NO_FLAGS, "-n <number>");
+```
+
+Note that the `carg_arg_create()` function returns a pointer to an argument container, which is initialized using the 
+address of the variable used, the size of the variable, a flags option, and a usage string.
 
 ### Setting Argument Values from The Argument Vector
 The value of an argument should only be accessed after setting the variables' values in accordance with user input.
-Keep in mind variables must be initialized via `argInit()`, `basicArgInit()`, `pointerArgInit()` or `heapArgInit()` before being set.
-To set argument values from the user, use the `setFlagsFromNamedArgs()` function. This function accepts the `argc` and `argv` parameters and a string formatter for arguments.
-`setFlagsFromNamedArgs()` accepts both flag parameters and string formatters associated with them.
+Keep in mind variables must be initialized via the `carg_arg_create()` function before being set.
+To set argument values from the user, use the `carg_set_named_args()` function. This function accepts the `argc` and `argv` parameters and a string formatter for arguments.
+`carg_set_named_args()` accepts both flag parameters and string formatters associated with them.
 That formatter might look like: `"-v:%s"` followed by a string argument struct.
 This would mean that the flag -v should be followed by a string:
 
@@ -73,33 +67,35 @@ Below is an example of the initializer and setter in conjunction.
 Keeping everything in mind, the char variable would need to be initialized first:
 
 ```
-basicArgInit(char, myString, 'c', NO_FLAGS, NO_USAGE_STRING);
+char myChar = 'c';
+ArgContainer *myCharContainer = carg_arg_create(&myChar, sizeof(char), NO_FLAGS, NO_USAGE_STRING)
 ```
 
 All arguments should be initialized before setting them, so let's add an int argument also:
 
 ```
-basicArgInit(int, myInt, 0, NO_FLAGS, NO_USAGE_STRING);
+int myInt = 0;
+ArgContainer *myIntContainer = carg_arg_create(&myInt, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
 ```
 
-Then, these values can be set using the `setFlagsFromNamedArgs()` function:
+Then, these argument containers can be set using the `carg_set_named_args()` function:
 
 ```
-setFlagsFromNamedArgs("-v:%s -i:%d", myString, myInt);
+carg_set_named_args("-v:%c -i:%d", myCharContainer, myIntContainer);
 ```
 
-The %s formatter corresponds to the argument struct `myString` and the %d formatter corresponds to the struct `myInt`.
+The `%c` formatter corresponds to the argument struct `myCharContainer` and the `%d` formatter corresponds to the struct `myIntContainer`.
 
-If you need to have spaces in your string, be sure to use the `%[^\n]` formatter instead of `%s`.
-String arguments with spaces need to be delimited with double quotes.
+If you need to have spaces in a string, be sure to use the `%[^\n]` formatter instead of `%s`.
+String arguments with spaces on the command line need to be delimited with double quotes regardless.
 
 Assuming the resulting program is run with the following arguments:
 
 ```
-example.exe -v yes -i 5
+example.exe -v y -i 5
 ```
 
-`myStringValue` will contain the string "yes" and `myIntValue` will contain the number 5.
+`myChar` will contain the character `'y'` and `myInt` will contain the number 5.
 
 We also declared default values for those, so if we instead ran:
 
@@ -107,27 +103,27 @@ We also declared default values for those, so if we instead ran:
 example.exe
 ```
 
-`myStringValue` would contain the string "default" and `myIntValue` would contain the number 5.
+`myChar` would contain the character `'c'` and `myInt` would contain the number 0.
 
 ### Argument Assertions
 You may want to make an argument required or limit which values the user can set it to, especially one that is initialized with NO_DEFAULT_VALUE.
 
-`argAssert()` is designed for this; it accepts the number of argument assertions as an argument. All assertions after that are two arguments each.
+`carg_arg_assert()` is designed for this; it accepts the number of argument assertions as an argument. All assertions after that are two arguments each.
 
 The first argument should be the condition that must be met. This can be any expression which can be evaluated as a zero versus nonzero value.
-If this condition is that the argument is required, use `requiredArgument()` with the corresponding argument struct.
-If two arguments should not be set at the same time, use `mutuallyExclusive()` with the corresponding structs.
-Lastly, `mutuallyRequired()` should be used to assert that two arguments must be set simultaneously when used.
+If this condition is that the argument is required, use `REQUIRED_ARGUMENT()` with the corresponding argument struct.
+If two arguments should not be set at the same time, use `MUTUALLY_EXCLUSIVE()` with the corresponding structs.
+Lastly, `MUTUALLY_REQUIRED()` should be used to assert that two arguments must be set simultaneously when used.
 
 The second argument should be the message to display if the condition is not met. Set this to `USAGE_MESSAGE` to use the usage message instead.
 
 For example:
 
 ```
-argAssert(3, 
-        myIntValue > -1, "Int 1 must not be negative",
-        requiredArgument(myInt), USAGE_MESSAGE,
-        requiredArgument(myString), USAGE_MESSAGE
+carg_arg_assert(3, 
+        myInt > -1, "Int 1 must not be negative",
+        REQUIRED_ARGUMENT(myInt), USAGE_MESSAGE,
+        REQUIRED_ARGUMENT(myString), USAGE_MESSAGE
 );
 ```
 
@@ -135,12 +131,12 @@ will print `"Int 1 must not be negative"`if a value less than or equal to -1 is 
 The usage message will show if arguments `myInt` or `myString` are not given values by the user.
 
 ### Arguments That Override Program Control Flow
-To specify arguments that make the program do something entirely different, primarily running a single function and then terminating, call the `argumentOverrideCallbacks()` function. This function accepts the argument count, argument vector, flags, and function pointers associated with them.
+To specify arguments that make the program do something entirely different, primarily running a single function and then terminating, call the `carg_override_callbacks()` function. This function accepts the argument count, argument vector, flags, and function pointers associated with them.
 
 For example, to declare arguments for a help-displaying function and another random helper function:
 
 ```
-argumentOverrideCallbacks("-h -r", &help, &randomHelperFunction);
+carg_override_callbacks("-h -r", &help, &randomHelperFunction);
 ```
 
 This function should be called before any other arguments are set.
@@ -152,20 +148,22 @@ These arguments should always come before named arguments to prevent argument am
 To use positional arguments alongside named arguments, initialize both first:
 
 ```
-basicArgInit(int, positionalArg, 0, POSITIONAL_ARG, NO_USAGE_STRING);
-basicArgInit(char, namedArg, 'a', NO_FLAGS, NO_USAGE_STRING);
+int positionalArg = 0;
+char namedArg = 'a';
+ArgContainer *positionalArgContainer = carg_arg_create(&positionalArg, sizeof(int), POSITIONAL_ARG, NO_USAGE_STRING);
+ArgContainer *namedArgContainer = carg_arg_create(&namedArg, sizeof(char), NO_FLAGS, NO_USAGE_STRING);
 ```
 
 Then, set the values for positional arguments first:
 
 ```
-setFlagsFromPositionalArgs("%d", &positionalArg);
+carg_set_positional_args("%d", positionalArg);
 ```
 
 Lastly, set the values for named arguments:
 
 ```
-setFlagsFromNamedArgs("-n:%d", &namedArg);
+carg_set_named_args("-n:%d", namedArg);
 ```
 
 Keep in mind that positional arguments are required regardless if they are enforced with an assertion or not.
@@ -176,144 +174,105 @@ Positional arguments can be used in assertions the same way as named arguments.
 
 ### Generic Functions
 
-#### libcargInit()
+#### carg_init()
 Pass `argc` and `argv` into this to initialize the library to use the command line arguments passed in to your program.
 
-#### contains()
-The `contains()` function will return the pointer where a substring starts in another string. If the substring is not 
+#### string_contains_substr()
+The `string_contains_substr()` function will return the pointer where a substring starts in another string. If the substring is not 
 a part of the greater string, it returns `NULL`.
 
-#### charInString()
-The `charInString()` function returns the index of the first occurrence of a character in a string. If the character is 
+#### string_contains_char()
+The `string_contains_char()` function returns the index of the first occurrence of a character in a string. If the character is 
 not in the string, it returns -1.
 
-#### cargBasename()
-The `cargBasename()` function is similar to the function often included in `libgen.h` in POSIX systems; considering this 
-header is not officially supported on other compilers, a basic implementation of `cargBasename` is included in this 
+#### carg_basename()
+The `carg_basename()` function is similar to the function often included in `libgen.h` in POSIX systems; considering this 
+header is not officially supported on other compilers, a basic implementation of `carg_basename` is included in this 
 argument library.
 A basename function takes a full file path string and returns the very last item in the file tree, or more specifically 
-the substring following all forward or backward slashes. For example, `cargBasename("C:\Users\User1\test.exe")` will return 
+the substring following all forward or backward slashes. For example, `carg_basename("C:\Users\User1\test.exe")` will return 
 `test.exe`. This is useful for truncating the name of your program as it appears in the argument vector.
 
 #### usage()
 This simply prints out the usage message and terminates the program.
 
-#### setUsageMessage()
+#### carg_set_usage_message()
 This function-style macro accepts a string formatter and variadic arguments. It uses both of those pieces of information 
 to manually generate and set a usage message for your program.
 
-#### setUsageFunc()
+#### carg_set_usage_function()
 This function will set a function to use for showing the usage message. If you want a custom usage message, it is 
-recommended to use setUsageMessage() instead, though this function can be used if special functionality is required for 
+recommended to use carg_set_usage_message() instead, though this function can be used if special functionality is required for 
 your usage messages.
 
-#### usageMessageAutoGenerate()
+#### carg_usage_message_autogen()
 This function will automatically generate a usage message based on initialized arguments. As such, it should be called 
-after all arguments have been initialized, and it should not be called alongside `setUsageMessage()`. Furthermore, the
+after all arguments have been initialized, and it should not be called alongside `carg_set_usage_message()`. Furthermore, the
 usage message should be set before running any assertions.
 
-This function works by combining the usage string set via `argInit()` variadic arguments with the auto-generated type 
-string of the argument, which may be something like `<int>` or `<char *>`. It displays positional arguments first, then 
-boolean arguments, nested argument roots, then named arguments. Keep in mind that *only* nested argument roots will be 
-shown in the usage message to avoid clutter; non-root nested arguments are not shown in the usage message.
+This function works by combining the usage strings set via `carg_arg_create()` with boolean flags and nested argument flags
+to generate a usage message.
 
-For example, calling `basicArgInit()` as follows:
+For example:
 
 ```
-basicArgInit(int, intArg, NO_DEFAULT_VALUE, NO_FLAGS, "-n", NO_USAGE_STRING);
+int arg1 = 0;
+ArgContainer *arg1Container = carg_arg_create(&arg1, sizeof(int), NO_FLAGS, "-n <number>");
 ```
 
-Will add `-n <int>` to the usage message.
+Will add `-n <number>` to the usage string.
 
-#### printOutStringArgument() and printOutNonStringArgument()
+#### CARG_PRINT_STRING_ARG() and CARG_PRINT_NON_STRING_ARG()
 These macros both print out an individual argument, though the handling of the values in each argument is different
 for string versus non-string printed types. Use the respective macro to fetch data about an argument of any type.
 Both macros accept an argument struct pointer to print from.
 Note that printing functions are type-agnostic when printing pointer values because the pointer type is grabbed from the 
-formatter; therefore, `printOutStringArgument()` requires no type to be passed in.
-However, `printOutNonStringArgument()` does require a provided type.
+formatter; therefore, `CARG_PRINT_STRING_ARG()` requires no type to be passed in.
+However, `CARG_PRINT_NON_STRING_ARG()` does require a provided type.
 For arguments which are stored as pointers, the indirection is handled internally; only the type which will be printed 
 out should be passed in to these macros (i.e. `int *` arguments should be passed to the macros as `int` types).
 
 For example:
 
 ```
-printOutNonStringArgument(&intArg, int);
-printOutStringArgument(&stringArg);
+CARG_PRINT_NON_STRING_ARG(intArg, int);
+CARG_PRINT_STRING_ARG(stringArg);
 ```
 
 would be the conventional way to call these macros.
 
-#### printOutStringMultiArgument() and printOutNonStringMultiArgument()
+#### CARG_PRINT_STRING_MULTI_ARG() and CARG_PRINT_NON_STRING_MULTI_ARG()
 These are the respective macro variants for printing out multi-argument versions of the above macros.
-Similar to above, `printOutStringMultiArgument()` does not accept a type as a parameter. Furthermore, pointer indirection
+Similar to above, `CARG_PRINT_STRING_MULTI_ARG()` does not accept a type as a parameter. Furthermore, pointer indirection
 likewise applies here.
 
 These macros may be used as shown below:
 
 ```
-printOutNonStringMultiArgument(&multiIntArg, int);
-printOutStringMultiArgument(&multiStringArg);
+CARG_PRINT_NON_STRING_MULTI_ARG(multiIntArg, int);
+CARG_PRINT_STRING_MULTI_ARG(multiStringArg);
 ```
 
-#### libcargTerminate()
+#### carg_terminate()
 This function will clean up heap allocations this library uses to parse and set arguments, particularly for automatic 
 usage message generation. This should be called after all arguments have been set and after any usage message can be 
 generated or printed, or at the end of the program's runtime. Therefore, it should be called after assertions are made.
 
 ### Argument Initialization
 
-- As a short side note, all initialized arguments accept a variadic argument for a usage string. It is most helpful to 
-put the expected flag both here and in the setter functions. This argument is not required, however. 
+#### carg_arg_create()
+This function takes in the address of a variable which stores an argument's data, the memory capacity available for
+storing data in that variable (which is usually the size of the variable unless it is heap-allocated), the flags for the
+argument to create, and a usage string, which is semantic and can be anything.
 
-#### argInit()
-This function-style macro initializes an argument via a variable where the result goes and a struct which contains a 
-void pointer to that variable. It accepts split type information, a variable name, a default value, flags, and a usage string where the expected flag might go.
-For example, to initialize a simple character argument, the following might be used:
-
-```
-arginit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING);
-```
-
-To initialize an array of 100 characters, that would look like:
-
-```
-arginit(char, charArrayArg, [100], NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING);
-```
-
-These arguments could later be accessed with `charArgValue` and `charArrayArgValue` respectively.
-For use in argument setting functions, however, `charArg` and `charArrayArg` should be used.
-
-#### basicArgInit()
-This macro is a wrapper for `argInit()` which only specifies basic type information; arrays and function pointers cannot 
-be declared with this macro. To declare the char argument like in `argInit()`, but with a default value of 2,
-do the following:
-
-```
-basicArginit(char, charArg, 2, NO_FLAGS, NO_USAGE_STRING);
-```
-
-#### heapArgInit()
-This function-style macro will heap-allocate a variable for which an argument's value will be copied into. It takes the 
-same arguments as `argInit()`, except it has no default value argument and a memory allocation size must be given as the 
-last argument to the macro.
-
-#### heapArgDefault()
-This function-style macro is simply a wrapper to memcpy() data into a heap-allocated argument as a default initializer.
-It takes in the heap argument struct, the data to copy in, and the number of bytes to copy.
-
-#### pointerArgInit()
-This macro will create an argument which contains a pointer which does not need to be automatically heap-allocated; the 
-level of indirection on the value pointer element in the argument struct created from this macro and the `heapArgInit()` 
-macro is one less than in the other argument initializers.
-
-#### adjustArgumentCursor()
-This function can change what variable an argument struct points to. This is useful if you would like to rename a 
-variable, use a global variable, or do some pointer abstractions.
+### carg_heap_default_value()
+This function will `memcpy()` a piece of data into a heap-allocated argument. Provide it with an argument container, a 
+piece of memory to copy in, like the address of an integer for example, and the number of bytes to copy, which would 
+most likely be 4 in this example.
 
 ### Argument Setting
 
-#### setFlagsFromNamedArgs()
+#### carg_set_named_args()
 This function is variadic; it accepts the argument count, the argument vector, a string formatter, and a sequence of
 arguments which are the addresses of argument structs. This data is used to set arguments based on what is passed from 
 the command line. The argument structs should correspond to flags in the string formatter. Each argument should be a 
@@ -321,7 +280,7 @@ flag plus a colon plus the corresponding string formatter. Each argument should 
 example:
 
 ```
-setFlagsFromNamedArgs("-n:%d -t:%10s -b:bool", &intArg, &stringArg, &boolArg)
+carg_set_named_args("-n:%d -t:%10s -b:bool", &intArg, &stringArg, &boolArg)
 ```
 
 - Will use the `-n` flag plus a digit value to set the `intArg` argument and subsequently the `intArgValue` variable.
@@ -331,22 +290,22 @@ setFlagsFromNamedArgs("-n:%d -t:%10s -b:bool", &intArg, &stringArg, &boolArg)
 When passed in via the command line, the flag and its value may be separated by a space or an `=`, like in keyword argument
 syntax: `-n=5`. Using this syntax with a boolean argument will toggle the boolean while discarding the value provided.
 
-#### setFlagsFromPositionalArgs()
-This function works similarly to `setFlagsFromNamedArgs()`, but it has a few key differences:
+#### carg_set_positional_args()
+This function works similarly to `carg_set_named_args()`, but it has a few key differences:
 - Arguments are "positional", meaning they are defined based on their order and not any flags.
 - The string formatter passed in should not have any flags in it as a result.
 
 For example:
 
 ```
-setFlagsFromPositionalArgs("%d %d %20s", &positionalArg, &positionalArg2, &positionalStringArg);
+carg_set_positional_args("%d %d %20s", &positionalArg, &positionalArg2, &positionalStringArg);
 ```
 
  - Will use a digit formatter to set `positionalArg` to the value passed in as the very first command line argument.
  - Will use a digit formatter to set `positionalArg2` to the value passed in as the second command line argument.
  - Will use a string formatter to set `positionalStringArg` to the value passed in as the third command line argument.
 
-#### setFlagsFromGroupedBooleanArgs()
+#### carg_set_grouped_boolean_args()
 This function takes in a string, which should be a prefix plus a series of characters, each one representing a boolean
 flag in order. The order of the characters in the string match up to the boolean argument structs passed in to this 
 function. This function gives similar functionality to `getopt()` on UNIX systems because it allows for different
@@ -357,7 +316,7 @@ example, that have characters which match those in the boolean grouped flags str
 have been grabbed by named arguments will be marked as such and skipped by this function. Therefore, this function must
 be called after all other non-default arguments are initialized.
 
-#### setDefaultFlagsFromEnv()
+#### carg_set_env_defaults()
 This function takes in a string with flags and formatters in it, like the other setters in this library. This function
 expects the flags to contain the name of an environment variable, which it will then fetch and `sscanf()` into an 
 argument value using the corresponding formatter. The environment variable is only copied into the argument if the 
@@ -365,13 +324,13 @@ argument is not set; if setting an argument value to an environment variable unc
 to call this function after any other setter functions.
 
 ```
-setDefaultFlagsFromEnv("PATH:%s", &string1);
+carg_set_env_defaults("PATH:%s", &string1);
 ```
 -   This will copy the value contained in the `$PATH` variable into the string `string1`.
 
 ### Argument Nesting
 
-Argument nesting can be a little tricky, and to use it, create a few boolean arguments using something like `argInit()`.
+Argument nesting can be a little tricky, so it is best to start out creating boolean arguments for nesting purposes.
 At least one of these booleans will serve as a root node, meaning the node where a tree of boolean options starts.
 
 For the sake of clarification, nested arguments are meant to give options conditional to other options passed in. For
@@ -384,20 +343,20 @@ mycommand push now
 might be configured via a nested argument. The push option could be stored as a root nested node that has now nested
 inside of it. In this case, the keyword `now` would only have meaning if `push` is supplied alongside it.
 
-#### nestedBooleanArgumentInit()
+#### carg_nested_boolean_container_create()
 This function will initialize a boolean argument as a nested argument root node. This function takes the argument, a 
 string, and new flags; the string is the argument the program will search for to match and toggle that boolean argument.
 
-#### nestBooleanArgument()
+#### carg_nest_boolean_container()
 This function will nest a boolean argument in another nested argument, whether it is a root node or not. As of now, each 
 individual nested boolean argument can only directly nest 256 other arguments. Since arguments will always end up nested
 inside a root node, you can use curly braces to make the nesting a little easier to read. On a basic level, it looks
 like:
 
 ```
-nestedArgumentInit(&arg1, "arg", NO_FLAGS); { // Initialize arg1.
-    nestArgument(&arg1, &arg2, "thing2"); // Nest arg2 in arg1 with the string representing being "thing2".
-    nestArgument(&arg1, &arg3, "thing3"); // Nest arg3 in arg1 with the string being "thing3".
+carg_nested_container_create(arg1, "arg", NO_FLAGS); { // Initialize arg1.
+    carg_nest_container(arg1, arg2, "thing2"); // Nest arg2 in arg1 with the string representing being "thing2".
+    carg_nest_container(arg1, arg3, "thing3"); // Nest arg3 in arg1 with the string being "thing3".
 }
 ```
 
@@ -409,19 +368,19 @@ program.exe arg thing2 thing3
 
 which will set all three booleans, provided that arg and thing2 are passed alongside thing3.
 
-#### nestedArgumentInit() and nestArgument()
+#### carg_nested_container_create() and carg_nest_container()
 These are the non-boolean versions of the nested argument functions. They accept the same parameters as their boolean
 counterparts, and they also require a `scanf()` formatter after their nested name, as such:
 
 ```
-nestedArgumentInit(&thing20, "thing20", NO_FLAGS, "%99s"); { // Initialize thing20 as a root with %99s formatter.
-    nestArgument(&thing20, &thing21, "thing21", "%d"); { // Nest thing21 in thing20 with %d formatter
-        nestArgument(&thing21, &thing22, "thing22", "%d"); // Nest thing22 in thing21 with %d formatter
+carg_nested_container_create(thing20, "thing20", NO_FLAGS, "%99s"); { // Initialize thing20 as a root with %99s formatter.
+    carg_nest_container(thing20, thing21, "thing21", "%d"); { // Nest thing21 in thing20 with %d formatter
+        carg_nest_container(thing21, thing22, "thing22", "%d"); // Nest thing22 in thing21 with %d formatter
     }
 }
 ```
 
-#### setFlagsFromNestedArgs()
+#### carg_set_nested_args()
 This function accepts a variable number of root nested nodes after an integer representing the number of root nested 
 nodes passed into it. It will then look through the argument vector to initialize boolean flags in accordance with 
 implemented nesting logic.
@@ -460,7 +419,7 @@ program.exe flag2
 
 ### Control Flow Interrupts
 
-#### argumentOverrideCallbacks()
+#### carg_override_callbacks()
 This function accepts the argument count and vector, plus a series of variadic arguments, mainly a formatter and 
 function pointers which accept no arguments and return nothing. This function type is referred to as `voidFuncPtr` in
 the `args.h` header. It will set flags where, when passed by the user, will run a specific function and terminate the 
@@ -470,42 +429,42 @@ functions.
 For example:
 
 ```
-argumentOverrideCallbacks("-h -h2", &help, &help2);
+carg_override_callbacks("-h -h2", &help, &help2);
 ```
 
  - Means the `-h` flag will run the `help()` function and then terminate the program.
  - Means the `-h2` flag will run the `help2()` function and then terminate the program.
 
-#### argAssert()
-This function accepts variadic arguments for assertions plus assertion messages. `argAssert()` keeps track of this via 
+#### carg_arg_assert()
+This function accepts variadic arguments for assertions plus assertion messages. `carg_arg_assert()` keeps track of this via 
 an assertion count, which is the first argument this function accepts. Each assertion should test some value
 for an argument, like `intArgValue > 0` for example. Assertion messages are what gets printed when the assertion fails.
 
 An assertion might look like:
 
 ```
-argAssert(1, intArgValue > 0, "Int argument must be positive");
+carg_arg_assert(1, intArgValue > 0, "Int argument must be positive");
 ```
 
 You can otherwise specify `NULL` to print out the usage message instead. The `USAGE_MESSAGE` macro expands to NULL and 
 can also be used; it exists for readability purposes.
 
-#### libcargValidate()
+#### carg_validate()
 This function will do a final pass to ensure every argument in the argument vector has been used for something. If it
 encounters a redundant or unused argument, it will show the argument in an error message and terminate the program. Of 
 course, this function should be called after any argument setters.
 
 ## Assertion Macros
 
-### requiredArgument()
+### REQUIRED_ARGUMENT()
 This is a function-style macro which accepts an argument struct as an argument. This is an assertion which will fail if 
-an argument is not given a value by the user. This should be used in `argAssert()`:
+an argument is not given a value by the user. This should be used in `carg_arg_assert()`:
 
 ```
-argAssert(1, requiredArgument(charArg), "Char argument is required");
+carg_arg_assert(1, REQUIRED_ARGUMENT(charArg), "Char argument is required");
 ```
 
-### mutuallyExclusive()
+### MUTUALLY_EXCLUSIVE()
 This is another assertion macro. This one accepts two argument structs, and the assertion will fail if both arguments 
 have been provided a value by the user. In other words, this assertion forces the user to pick at most one of two 
 arguments.
@@ -513,27 +472,26 @@ arguments.
 ## Initializer Flags
 
 ### NO_FLAGS
-This is a macro which expands to `0`. This is a semantic choice to show in `argInit()` that an argument has no custom 
+This is a macro which expands to `0`. This is a semantic choice to show in `carg_arg_create()` that an argument has no custom 
 flags.
 
 ### POSITIONAL_ARG
-This macro should be passed in to the flags section of `argInit()` to specify an argument should be 
+This macro should be passed in to the flags section of `carg_arg_create()` to specify an argument should be 
 given a value without any sort of flag preceding it.
 
 ### BOOLEAN_ARG
 When specifying an argument should simply be a flag which toggles some variable on or off, two things must be done. The 
-argument must be initialized as a boolean, which is what this flag is for. Pass this flag into `argInit()` and later 
-reference the generated argument in `setFlagsFromNamedArgs()` with `bool` to create a boolean argument. Boolean arguments
+argument must be initialized as a boolean, which is what this flag is for. Pass this flag into `carg_arg_create()` and later 
+reference the generated argument in `carg_set_named_args()` with `bool` to create a boolean argument. Boolean arguments
 are always flags, and they can therefore never appear as a positional argument.
 
 ### HEAP_ALLOCATED
-This is a flag for declaring an argument as heap-allocated. In practice, this should never be used. This library 
-automatically handles setting this flag when using the `heapArgInit()` function-style macro. Setting this manually may
-cause the library to free a pointer which has not been heap-allocated. Doing so may result in segmentation faults/crashes.
+This is a flag for declaring an argument as heap-allocated. Doing so will cause this library to automatically free the
+allocation when it terminates.
 
 ### ENFORCE_NESTING_ORDER
 This is a flag for declaring the root of a nested argument as not order-agnostic; this flag should be set in
-`nestedArgumentInit()`, and the library will do runtime checks in `setFlagsFromNestedArgs()` to ensure arguments nested
+`carg_nested_container_create()`, and the library will do runtime checks in `carg_set_nested_args()` to ensure arguments nested
 within other arguments come after their parent arguments in the argument vector.
 
 <!-- ### ENFORCE_STRICT_NESTING_ORDER
@@ -544,22 +502,17 @@ This flag should be used to declare that an argument should be a linked list of 
 an argument is found. When an argument is toggled with this flag, it is allowed to be repeated in the argument vector.
 
 ### NO_DEFAULT_VALUE
-This macro expands to `{0}`, and any argument initialized with it in `argInit()` will be zero-initialized. To enforce 
-this argument should have no default value, or in other words must be given a value by the user, use `argAssert()` in 
-combination with this.
+This macro expands to `{0}` and should be used for argument variables which are not intended to have a default value. 
+For example:
+
+```
+int noDefault = NO_DEFAULT_VALUE;
+```
 
 ### NO_USAGE_STRING
-This macro expands to `""`, or the empty string. Its purpose is in `argInit()` to declare that an argument has no 
+This macro expands to `""`, or the empty string. Its purpose is in `carg_arg_create()` to declare that an argument has no 
 usage string associated with it.
 
 ### NONE
-This macro expands to nothing, and its purpose is for declaring empty type information in `argInit()` or `heapArgInit()`.
-For example, declaring a char in `argInit()` is as follows:
-
-```
-argInit(char, charArg, NONE, NO_DEFAULT_VALUE, NO_FLAGS, NO_USAGE_STRING);
-```
-
-A char variable has no type information on the right side of it, so right-side type information should be omitted. This 
-macro does precisely that.
+This macro expands to nothing, and it exists to prevent macros from misbehaving.
 
