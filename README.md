@@ -501,6 +501,17 @@ This flag declares that nested arguments should be passed all in sequence, witho
 This flag should be used to declare that an argument should be a linked list of values from which to add on to each time
 an argument is found. When an argument is toggled with this flag, it is allowed to be repeated in the argument vector.
 
+To utilize the data stored in multi-argument vectors, the function `carg_fetch_multi_arg_entry()` exists. This function 
+is a linked list iterator which returns a void pointer, meaning the pointer should be casted and dereferenced accordingly
+when accessed. For example, 
+
+```
+int multi = *(int *)carg_fetch_multi_arg_entry(multiIntArg, 1);
+```
+
+Will set `multi` to the second integer passed as an argument to `multiIntArg`. If no second integer exists, this function
+will throw an error.
+
 ### NO_DEFAULT_VALUE
 This macro expands to `{0}` and should be used for argument variables which are not intended to have a default value. 
 For example:

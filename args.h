@@ -35,16 +35,14 @@ typedef struct ChainedArgContainer {
 } ChainedArgContainer;
 
 typedef struct ArgContainer {
-    ChainedArgContainer  valueContainer;
-
-    size_t               valueSize;
-    bool                 hasValue;
-    int                  argvIndexFound;
-    uint64_t             flags;
-
-    const char * const   usageString;
-    char                 formatterUsed[maxFormatterSize];
-
+    ChainedArgContainer   valueContainer;
+    int                   chainedArgIndex;
+    size_t                valueSize;
+    bool                  hasValue;
+    int                   argvIndexFound;
+    uint64_t              flags;
+    const char * const    usageString;
+    char                  formatterUsed[maxFormatterSize];
     const char           *nestedArgString;
     int                   nestedArgFillIndex;
     size_t                nestedArgArraySize;
@@ -143,6 +141,7 @@ void          carg_validate(void);
 void          carg_terminate(void);
 
 void          carg_print_container_data(ArgContainer *container);
+void         *carg_fetch_multi_arg_entry(ArgContainer *container, int index);
 
 char         *string_contains_substr(char *testString, const char *substring);
 int           string_contains_char(const char *testString, char subchar);
@@ -269,6 +268,7 @@ ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t fla
     ArgContainer *constructedArgument = (ArgContainer *)malloc(sizeof(ArgContainer));
     const ArgContainer constructedArgumentInternal = {
         {.next = NULL, .value = argMemory}, /* valueContainer */
+        0,                                  /* chainedArgIndex */
         expectedSize,                       /* valueSize */
         0,                                  /* hasValue */
         -1,                                 /* argvIndexFound */
@@ -619,6 +619,17 @@ void carg_print_container_data(ArgContainer *container) {
     if (container -> nestedArgString[0]) printf("\tNested Argument String: %s\n", container -> nestedArgString);
 }
 
+void *carg_fetch_multi_arg_entry(ArgContainer *container, int index) {
+    if (container -> chainedArgIndex < index) {
+        _carg_error("%d is past the bounds of the multi argument being accessed (max index is %d)\n", index, container -> chainedArgIndex);
+    }
+    ChainedArgContainer *cursor = &container -> valueContainer;
+    for (int i=0; i<index; i++) {
+        cursor = cursor -> next;
+    }
+    return cursor -> value;
+}
+
 void carg_validate(void) {
     _carg_flag_conditional(ASSERTIONS_SET | NAMED_ARGS_SET | POSITIONAL_ARGS_SET | GROUPED_ARGS_SET | NESTED_ARGS_SET, true, "Argument validator called before arguments were set. Fix this!\n");
     bool errorFound = false;
@@ -809,6 +820,7 @@ bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **flagCopierPo
         multiArgCursor -> next -> value = malloc(currentArg -> valueSize);
         _carg_heap_check(multiArgCursor -> next -> value);
         *flagCopierPointer = multiArgCursor -> next -> value;
+        currentArg -> chainedArgIndex++;
         return true;
     }
     return false;
