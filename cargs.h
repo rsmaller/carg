@@ -144,23 +144,23 @@ void          carg_terminate(void);
 void          carg_print_container_data(ArgContainer *container);
 void         *carg_fetch_multi_arg_entry(ArgContainer *container, int index);
 
-char         *carg_string_contains_substr(char *testString, const char *substring);
+char         *carg_string_contains_substr(char *container, const char *substr);
 int           carg_string_contains_char(const char *testString, char subchar);
 const char   *carg_basename(const char * pathStart);
     
 void          carg_set_usage_message(const char *formatter, ...);
 void          carg_usage_message_autogen(void);
-void          carg_set_usage_function(CargCallbackFunc funcArg);
+void          carg_set_usage_function(CargCallbackFunc usageFunc);
 void          usage(void);
 void          carg_override_callbacks(const char *format, ...);
 void          carg_arg_assert(const int assertionCount, ...);
 
-ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t flagsArg, const char usageStringArg[]);
-ArgContainer *carg_nested_boolean_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg);
+ArgContainer *carg_arg_create(void *argVarPtr, size_t varSize, uint64_t flagsArg, const char usageStringArg[]);
+ArgContainer *carg_nested_boolean_container_create(ArgContainer *arg, const char *nestedArgString, const uint64_t flagsArg);
 ArgContainer *carg_nest_boolean_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString);
-ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg, const char * const formatterToUse);
-ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString, const char * const formatterToUse);
-void          carg_heap_default_value(const ArgContainer *varName, const void *val, size_t bytes);
+ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *nestedArgString, const uint64_t flagsArg, const char * const formatt);
+ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString, const char * const format);
+void          carg_heap_default_value(const ArgContainer *heapArg, const void *val, size_t bytes);
 
 void          carg_set_named_args(const char * const format, ...);
 void          carg_set_positional_args(const char *format, ...);
@@ -193,7 +193,7 @@ CargCallbackFunc _carg_usage_ptr = _carg_usage_default;
 void             _carg_print_positional_usage_buffer(void);
 void             _carg_print_non_positional_usage_buffer(void);
 
-bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **flagCopierPointer);
+bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **varDataPtr);
 bool _carg_adjust_named_assign(const int argIndex, const char *formatToken, const char *flagToken, const char **argToFormat, char *argumentFlagToCompare);
 
 void _carg_validate_formatter_extended(const char *formatToken);
@@ -201,10 +201,10 @@ void _carg_validate_formatter(const char *formatToken);
 void _carg_validate_flag(const char *flagToken);
 
 void _carg_reference_named_arg_formatter(const int argIndex, const char *format, va_list outerArgs);
-void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **flagCopierPointer);
-void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixFormat, bool **flagCopierPointer, va_list args);
+void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr);
+void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixFormat, bool **varDataPtr, va_list args);
 
-void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCopierPointer, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare);
+void _carg_set_named_arg_internal(ArgContainer *currentArg, void **varDataPtr, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare);
 int  _carg_set_nested_arg_internal(ArgContainer *arg);
 void _carg_set_env_defaults_internal(char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args);
 

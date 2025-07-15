@@ -359,30 +359,35 @@ inside a root node, you can use curly braces to make the nesting a little easier
 like:
 
 ```
-carg_nested_container_create(arg1, "arg", NO_FLAGS); { // Initialize arg1.
-    carg_nest_container(arg1, arg2, "thing2"); // Nest arg2 in arg1 with the string representing being "thing2".
-    carg_nest_container(arg1, arg3, "thing3"); // Nest arg3 in arg1 with the string being "thing3".
-}
+carg_nested_boolean_container_create(nestedArg3, "nestedArg3", ENFORCE_STRICT_NESTING_ORDER); {
+        carg_nest_boolean_container(nestedArg3, nestedArg4, "nestedArg4");
+        carg_nest_boolean_container(nestedArg3, nestedArg5, "nestedArg5"); {
+            carg_nest_boolean_container(nestedArg5, nestedArg6, "nestedArg6"); {
+                carg_nest_boolean_container(nestedArg6, nestedArg7, "nestedArg7");
+                carg_nest_boolean_container(nestedArg6, nestedArg8, "nestedArg8");
+            }
+        }
+    }
 ```
 
-This might be uses as such:
+This might be used as such:
 
 ```
-program.exe arg thing2 thing3
+program.exe nestedArg3 nestedArg5 nestedArg6
 ```
-
-which will set all three booleans, provided that arg and thing2 are passed alongside thing3.
 
 #### carg_nested_container_create() and carg_nest_container()
 These are the non-boolean versions of the nested argument functions. They accept the same parameters as their boolean
 counterparts, and they also require a `scanf()` formatter after their nested name, as such:
 
 ```
-carg_nested_container_create(thing20, "thing20", NO_FLAGS, "%99s"); { // Initialize thing20 as a root with %99s formatter.
-    carg_nest_container(thing20, thing21, "thing21", "%d"); { // Nest thing21 in thing20 with %d formatter
-        carg_nest_container(thing21, thing22, "thing22", "%d"); // Nest thing22 in thing21 with %d formatter
+carg_nested_boolean_container_create(nestedArg1, "nestedArg1", ENFORCE_NESTING_ORDER); {
+        carg_nest_boolean_container(nestedArg1, nestedArg2, "nestedArg2");
+        carg_nest_boolean_container(nestedArg1, nestedArg4, "nestedArg4");
+        carg_nest_container(nestedArg1, nestedArg21, "nestedArg21", "%d"); {
+            carg_nest_container(nestedArg21, nestedArg22, "nestedArg22", "%d");
+        }
     }
-}
 ```
 
 #### carg_set_nested_args()
@@ -410,7 +415,7 @@ program.exe flag1 flag2
 ```
 program.exe flag2 flag1
 ```
-- So will this.
+- So will this if nesting order is not enforced.
 
 ```
 program.exe flag1
@@ -420,14 +425,14 @@ program.exe flag1
 ```
 program.exe flag2
 ```
-- This will toggle nothing.
+- This will return an error for an unknown argument. `flag2` means nothing without its parent, `flag1`.
 
 ### Control Flow Interrupts
 
 #### carg_override_callbacks()
 This function accepts the argument count and vector, plus a series of variadic arguments, mainly a formatter and 
-function pointers which accept no arguments and return nothing. This function type is referred to as `voidFuncPtr` in
-the `args.h` header. It will set flags where, when passed by the user, will run a specific function and terminate the 
+function pointers which accept no arguments and return nothing. This function type is referred to as `CargCallbackFunc` in
+the `cargs.h` header. It will set flags where, when passed by the user, will run a specific function and terminate the 
 program, essentially overriding the control flow of the program. This function should be called before any setter 
 functions.
 
@@ -474,6 +479,9 @@ carg_arg_assert(1, REQUIRED_ARGUMENT(charArg), "Char argument is required");
 This is another assertion macro. This one accepts two argument structs, and the assertion will fail if both arguments 
 have been provided a value by the user. In other words, this assertion forces the user to pick at most one of two 
 arguments.
+
+### MUTUALLY_REQUIRED()
+Lastly, this assertion requires that two argument structs passed into it both have values set by the user. The assertion will fail otherwise.
 
 ## Initializer Flags
 
@@ -527,6 +535,8 @@ For example:
 ```
 int noDefault = NO_DEFAULT_VALUE;
 ```
+
+This macro is entirely semantic because it only zero-initializes whatever it is passed into. Please assert the respective argument as a required argument if it should not have a default value.
 
 ### NO_USAGE_STRING
 This macro expands to `""`, or the empty string. Its purpose is in `carg_arg_create()` to declare that an argument has no 

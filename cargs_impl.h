@@ -10,16 +10,16 @@
 #include <stdarg.h>
 #include <inttypes.h>
 
-inline ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t flagsArg, const char usageStringArg[]) {
+inline ArgContainer *carg_arg_create(void *argVarPtr, size_t varSize, uint64_t flagsArg, const char usageStringArg[]) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Attempt to initialize argument before library initialization. Please fix this!\n");
     ArgContainer *constructedArgument = (ArgContainer *)malloc(sizeof(ArgContainer));
     const ArgContainer constructedArgumentInternal = {
         .valueContainer = {
             .next = NULL,
-            .value = argMemory
+            .value = argVarPtr
         },
         .multiArgIndex = 0,
-        .valueSize = expectedSize,
+        .valueSize = varSize,
         .hasValue = false,
         .argvIndexFound = -1,
         .flags = flagsArg,
@@ -52,20 +52,20 @@ inline ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint6
     return constructedArgument;
 }
 
-inline char *carg_string_contains_substr(char *testString, const char *substring) {
-    while (strlen(testString) >= strlen(substring)) {
-        if (!strncmp(testString, substring, strlen(substring))) {
-            return testString;
+inline char *carg_string_contains_substr(char *container, const char *substr) {
+    while (strlen(container) >= strlen(substr)) {
+        if (!strncmp(container, substr, strlen(substr))) {
+            return container;
         }
-        testString++;
+        container++;
     }
     return NULL;
 }
 
-inline int carg_string_contains_char(const char *testString, const char subchar) {
-    if (!testString) return -1;
-    for (int i=0; i<strlen(testString); i++) {
-        if (testString[i] == subchar) {
+inline int carg_string_contains_char(const char *container, const char subchar) {
+    if (!container) return -1;
+    for (int i=0; i<strlen(container); i++) {
+        if (container[i] == subchar) {
             return i;
         }
     }
@@ -102,9 +102,9 @@ inline void carg_usage_message_autogen(void) {
     SET_FLAG(cargInternalFlags, USAGE_MESSAGE_SET);
 }
 
-inline void carg_set_usage_function(CargCallbackFunc funcArg) {
+inline void carg_set_usage_function(CargCallbackFunc usageFunc) {
     _carg_flag_conditional(USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
-    _carg_usage_ptr = funcArg;
+    _carg_usage_ptr = usageFunc;
     SET_FLAG(cargInternalFlags, USAGE_MESSAGE_SET);
 }
 
@@ -128,11 +128,11 @@ inline void carg_init(int argc, char **argv) {
     SET_FLAG(cargInternalFlags, LIBCARGS_INITIALIZED);
 }
 
-inline void carg_heap_default_value(const ArgContainer *varName, const void *val, size_t bytes) {
-    if (!HAS_FLAG(varName -> flags, HEAP_ALLOCATED)) {
+inline void carg_heap_default_value(const ArgContainer *heapArg, const void *val, size_t bytes) {
+    if (!HAS_FLAG(heapArg -> flags, HEAP_ALLOCATED)) {
         _carg_error("Heap argument default value setter called on non-heap-allocated argument. Please fix this!\n");
     }
-    memcpy(varName -> valueContainer.value, val, bytes);
+    memcpy(heapArg -> valueContainer.value, val, bytes);
 }
 
 inline void carg_set_named_args(const char * const format, ...) {
@@ -159,12 +159,12 @@ inline void carg_set_positional_args(const char *format, ...) {
     _carg_heap_check(formatToTokenizeAllocation);
     char *tokenSavePointer = NULL;
     char *formatToTokenize = (char *)formatToTokenizeAllocation;
-    void *flagCopierPointer = NULL;
+    void *varDataPtr = NULL;
     va_list args;
     va_start(args, format);
     for (int i=1; i<positionalArgCount+1; i++) {
         ArgContainer *currentArg = va_arg(args, ArgContainer *);
-        _carg_reference_positional_arg_formatter(currentArg, i, &formatToTokenizeAllocation, &formatToTokenize, &tokenSavePointer, &flagCopierPointer);
+        _carg_reference_positional_arg_formatter(currentArg, i, &formatToTokenizeAllocation, &formatToTokenize, &tokenSavePointer, &varDataPtr);
     }
     _carg_free_nullify(&formatToTokenizeAllocation);
     va_end(args);
@@ -179,12 +179,12 @@ inline void carg_set_grouped_boolean_args(const char *format, ...) {
     const char *noPrefixFormat = format + 1;
     va_list args;
     va_start(args, format);
-    bool *flagCopierPointer = NULL;
+    bool *varDataPtr = NULL;
     for (int i=1; i<argCount; i++) {
         if (argVector[i][0] != prefixChar || setArgs[i]) continue;
         if (strlen(argVector[i]) > 1 && argVector[i][1] == prefixChar) continue;
         for (size_t j=0; j<strlen(noPrefixFormat); j++) {
-            _carg_reference_grouped_boolean_arg_formatter(i, j, noPrefixFormat, &flagCopierPointer, args);
+            _carg_reference_grouped_boolean_arg_formatter(i, j, noPrefixFormat, &varDataPtr, args);
         }
     }
     SET_FLAG(cargInternalFlags, GROUPED_ARGS_SET);
@@ -233,12 +233,12 @@ inline void carg_set_nested_args(const int nestedArgumentCount, ...) {
     SET_FLAG(cargInternalFlags, NESTED_ARGS_SET);
 }
 
-inline ArgContainer *carg_nested_boolean_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg) {
+inline ArgContainer *carg_nested_boolean_container_create(ArgContainer *arg, const char *nestedArgString, const uint64_t flagsArg) {
     if (!HAS_FLAG(arg -> flags, BOOLEAN_ARG)) {
         _carg_error("Boolean nested argument initializer called on non-boolean flag. Fix this!\n");
     }
     SET_FLAG(arg -> flags, NESTED_ARG | NESTED_ARG_ROOT | flagsArg);
-    arg -> nestedArgString = argString;
+    arg -> nestedArgString = nestedArgString;
     return arg;
 }
 
@@ -264,17 +264,17 @@ inline ArgContainer *carg_nest_boolean_container(ArgContainer *nestIn, ArgContai
     return argToNest;
 }
 
-inline ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg, const char * const formatterToUse) {
+inline ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *nestedArgString, const uint64_t flagsArg, const char * const format) {
     if (HAS_FLAG(arg -> flags, BOOLEAN_ARG)) {
         _carg_error("Non-boolean nested argument initializer called on boolean flag. Fix this!\n");
     }
-    strncpy(arg -> formatterUsed, formatterToUse, sizeof(arg -> formatterUsed) - 1);
+    strncpy(arg -> formatterUsed, format, sizeof(arg -> formatterUsed) - 1);
     SET_FLAG(arg -> flags, NESTED_ARG | NESTED_ARG_ROOT | flagsArg);
-    arg -> nestedArgString = argString;
+    arg -> nestedArgString = nestedArgString;
     return arg;
 }
 
-inline ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString, const char * const formatterToUse) {
+inline ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString, const char * const format) {
     if (HAS_FLAG(argToNest -> flags, BOOLEAN_ARG)) {
         _carg_error("Only non-boolean arguments can be nested with this nesting function. Fix this!\n");
     }
@@ -289,7 +289,7 @@ inline ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *arg
     }
     argToNest -> nestedArgString = nestedArgString;
     argToNest -> flags |= nestIn -> flags;
-    strncpy(argToNest -> formatterUsed, formatterToUse, sizeof(argToNest -> formatterUsed) - 1);
+    strncpy(argToNest -> formatterUsed, format, sizeof(argToNest -> formatterUsed) - 1);
     SET_FLAG(argToNest -> flags, NESTED_ARG);
     CLEAR_FLAG(argToNest -> flags, NESTED_ARG_ROOT);
     CLEAR_FLAG(argToNest -> flags, BOOLEAN_ARG);
@@ -562,7 +562,7 @@ inline void _carg_usage_default(void) {
     printf("%s\n", usageString);
 }
 
-inline bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **flagCopierPointer) {
+inline bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **varDataPtr) {
     if (HAS_FLAG(currentArg -> flags, MULTI_ARG) && currentArg -> hasValue) {
         MultiArgContainer *multiArgCursor = &currentArg->valueContainer;
         while (multiArgCursor -> next) {
@@ -573,32 +573,32 @@ inline bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **flagC
         multiArgCursor -> next -> next = NULL;
         multiArgCursor -> next -> value = malloc(currentArg -> valueSize);
         _carg_heap_check(multiArgCursor -> next -> value);
-        *flagCopierPointer = multiArgCursor -> next -> value;
+        *varDataPtr = multiArgCursor -> next -> value;
         currentArg -> multiArgIndex++;
         return true;
     }
     return false;
 }
 
-inline void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCopierPointer, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare) {
+inline void _carg_set_named_arg_internal(ArgContainer *currentArg, void **varDataPtr, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare) {
     if (!currentArg) return;
     if (currentArg -> hasValue && !HAS_FLAG(currentArg -> flags, MULTI_ARG)) {
         usage();
     }
-    if (!_carg_adjust_multi_arg_setter(currentArg, flagCopierPointer)) {
-        *flagCopierPointer = currentArg -> valueContainer.value;
+    if (!_carg_adjust_multi_arg_setter(currentArg, varDataPtr)) {
+        *varDataPtr = currentArg -> valueContainer.value;
     }
-    if (!*flagCopierPointer) return;
+    if (!*varDataPtr) return;
     if (_carg_cmp_flag(formatToken, "bool")) {
         if (!HAS_FLAG(currentArg -> flags, BOOLEAN_ARG)) {
             _carg_error("Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.\n");
         }
-        *(bool *)*flagCopierPointer = !*(bool *)*flagCopierPointer; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
+        *(bool *)*varDataPtr = !*(bool *)*varDataPtr; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
         currentArg -> hasValue = 1;
         setArgs[argIndex] = currentArg -> hasValue;
     } else {
         if (argIndex >= argCount - 1 && !(carg_string_contains_char(argVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool"))) usage();
-        currentArg -> hasValue = sscanf(argToFormat, formatToken, *flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
+        currentArg -> hasValue = sscanf(argToFormat, formatToken, *varDataPtr); // If an argument is passed in that does not match its formatter, the value remains default.
         setArgs[argIndex] = currentArg -> hasValue;
         if (!(carg_string_contains_char(argVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool"))) setArgs[argIndex + 1] = currentArg -> hasValue;
         if (!currentArg -> hasValue) {
@@ -646,7 +646,7 @@ inline void _carg_reference_named_arg_formatter(const int argIndex, const char *
     va_copy(argsCopy, args);
     char *formatToTokenize = _carg_strtok_string_init(format);
     _carg_heap_check(formatToTokenize);
-    void *flagCopierPointer = NULL;
+    void *varDataPtr = NULL;
     char *argumentFlagToCompare = carg_strdup(argVector[argIndex]);
     _carg_heap_check(argumentFlagToCompare);
     const char *argToFormat;
@@ -662,7 +662,7 @@ inline void _carg_reference_named_arg_formatter(const int argIndex, const char *
         ArgContainer *currentArg = va_arg(argsCopy, ArgContainer *);
         if (!_carg_adjust_named_assign(argIndex, formatToken, flagToken, &argToFormat, argumentFlagToCompare)) continue;
         if (!strcmp(flagToken, argumentFlagToCompare)) {
-            _carg_set_named_arg_internal(currentArg, &flagCopierPointer, argIndex, formatToken, argToFormat, &formatToTokenize, &argumentFlagToCompare);
+            _carg_set_named_arg_internal(currentArg, &varDataPtr, argIndex, formatToken, argToFormat, &formatToTokenize, &argumentFlagToCompare);
             break;
         }
     }
@@ -670,13 +670,13 @@ inline void _carg_reference_named_arg_formatter(const int argIndex, const char *
     _carg_free_nullify(&argumentFlagToCompare);
 }
 
-inline void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **flagCopierPointer) {
+inline void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr) {
     *formatToTokenize = strtok_r(*formatToTokenize, " ", tokenSavePointer);
     if (!HAS_FLAG(currentArg -> flags, POSITIONAL_ARG)) {
         _carg_error("Positional arg setter called on named argument. Please fix this!\n");
     }
-    *flagCopierPointer = currentArg -> valueContainer.value;
-    currentArg -> hasValue = sscanf(argVector[i], *formatToTokenize, *flagCopierPointer);
+    *varDataPtr = currentArg -> valueContainer.value;
+    currentArg -> hasValue = sscanf(argVector[i], *formatToTokenize, *varDataPtr);
     setArgs[i] = currentArg -> hasValue;
     if (!currentArg -> hasValue) {
         _carg_free_nullify(formatToTokenizeAllocation);
@@ -689,22 +689,22 @@ inline void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, c
     *formatToTokenize = *tokenSavePointer;
 }
 
-inline void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixFormat, bool **flagCopierPointer, va_list args) {
+inline void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixFormat, bool **varDataPtr, va_list args) {
     va_list argsCopy;
     va_copy(argsCopy, args);
     if (carg_string_contains_char(argVector[i], noPrefixFormat[j]) >= 0) {
         ArgContainer *currentArg = NULL;
         for (size_t k=0; k<=j; k++) {
             currentArg = va_arg(argsCopy, ArgContainer *);
-            *flagCopierPointer = (bool *)currentArg -> valueContainer.value;
+            *varDataPtr = (bool *)currentArg -> valueContainer.value;
         }
         va_end(argsCopy);
         va_copy(argsCopy, args);
-        if (*flagCopierPointer && currentArg) {
+        if (*varDataPtr && currentArg) {
             currentArg -> hasValue = 1;
             setArgs[i] = currentArg -> hasValue;
             currentArg -> argvIndexFound = i;
-            **flagCopierPointer = !**flagCopierPointer;
+            **varDataPtr = !**varDataPtr;
         }
     }
     va_end(argsCopy);
