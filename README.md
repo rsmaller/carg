@@ -17,6 +17,9 @@ put it in your environment's include path and include the header accordingly:
 
 Make sure to put the `cargs_impl.h` implementation header in your project directory as well.
 
+If for any reason you would like to create your own implementation for this library, define `CARGS_CUSTOM_IMPL`
+before including the `cargs.h` header.
+
 To set up the library to use your argument vector, call `carg_init()` with the argument count and vector.
 
 At the end of your usage of this library, be sure to call `carg_terminate()` to clean up any heap-allocated memory and

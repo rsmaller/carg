@@ -52,7 +52,7 @@ inline ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint6
     return constructedArgument;
 }
 
-inline char *string_contains_substr(char *testString, const char *substring) {
+inline char *carg_string_contains_substr(char *testString, const char *substring) {
     while (strlen(testString) >= strlen(substring)) {
         if (!strncmp(testString, substring, strlen(substring))) {
             return testString;
@@ -62,7 +62,7 @@ inline char *string_contains_substr(char *testString, const char *substring) {
     return NULL;
 }
 
-inline int string_contains_char(const char *testString, const char subchar) {
+inline int carg_string_contains_char(const char *testString, const char subchar) {
     if (!testString) return -1;
     for (int i=0; i<strlen(testString); i++) {
         if (testString[i] == subchar) {
@@ -102,7 +102,7 @@ inline void carg_usage_message_autogen(void) {
     SET_FLAG(cargInternalFlags, USAGE_MESSAGE_SET);
 }
 
-inline void carg_set_usage_function(voidfuncptr_t funcArg) {
+inline void carg_set_usage_function(CargCallbackFunc funcArg) {
     _carg_flag_conditional(USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
     _carg_usage_ptr = funcArg;
     SET_FLAG(cargInternalFlags, USAGE_MESSAGE_SET);
@@ -135,73 +135,73 @@ inline void carg_heap_default_value(const ArgContainer *varName, const void *val
     memcpy(varName -> valueContainer.value, val, bytes);
 }
 
-inline void carg_set_named_args(const char * const argFormatter, ...) {
+inline void carg_set_named_args(const char * const format, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(NAMED_ARGS_SET, false, "Named args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called before named args initializer. Please fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
-    va_list formatterArgs;
-    va_start(formatterArgs, argFormatter);
+    va_list args;
+    va_start(args, format);
     for (int i=positionalArgCount + 1; i<argCount; i++) {
-        _carg_reference_named_arg_formatter(i, argFormatter, formatterArgs);
+        _carg_reference_named_arg_formatter(i, format, args);
     }
-    va_end(formatterArgs);
+    va_end(args);
     SET_FLAG(cargInternalFlags, NAMED_ARGS_SET);
 }
 
-inline void carg_set_positional_args(const char *argFormatter, ...) {
+inline void carg_set_positional_args(const char *format, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(POSITIONAL_ARGS_SET, false, "Positional args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called before positional args initializer. Please fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
     if (argCount <= positionalArgCount) usage();
-    void *internalFormatterAllocation = carg_strdup(argFormatter);
-    _carg_heap_check(internalFormatterAllocation);
-    char *savePointer = NULL;
-    char *internalFormatter = (char *)internalFormatterAllocation;
+    void *formatToTokenizeAllocation = carg_strdup(format);
+    _carg_heap_check(formatToTokenizeAllocation);
+    char *tokenSavePointer = NULL;
+    char *formatToTokenize = (char *)formatToTokenizeAllocation;
     void *flagCopierPointer = NULL;
-    va_list formatterArgs;
-    va_start(formatterArgs, argFormatter);
+    va_list args;
+    va_start(args, format);
     for (int i=1; i<positionalArgCount+1; i++) {
-        ArgContainer *currentArg = va_arg(formatterArgs, ArgContainer *);
-        _carg_reference_positional_arg_formatter(currentArg, i, &internalFormatterAllocation, &internalFormatter, &savePointer, &flagCopierPointer);
+        ArgContainer *currentArg = va_arg(args, ArgContainer *);
+        _carg_reference_positional_arg_formatter(currentArg, i, &formatToTokenizeAllocation, &formatToTokenize, &tokenSavePointer, &flagCopierPointer);
     }
-    _carg_free_nullify(&internalFormatterAllocation);
-    va_end(formatterArgs);
+    _carg_free_nullify(&formatToTokenizeAllocation);
+    va_end(args);
     SET_FLAG(cargInternalFlags, POSITIONAL_ARGS_SET);
 }
 
-inline void carg_set_grouped_boolean_args(const char *argFormatter, ...) {
+inline void carg_set_grouped_boolean_args(const char *format, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
-    const char prefixChar = argFormatter[0];
-    const char *noPrefixArgFormatter = argFormatter + 1;
-    va_list formatterArgs;
-    va_start(formatterArgs, argFormatter);
+    const char prefixChar = format[0];
+    const char *noPrefixFormat = format + 1;
+    va_list args;
+    va_start(args, format);
     bool *flagCopierPointer = NULL;
     for (int i=1; i<argCount; i++) {
         if (argVector[i][0] != prefixChar || setArgs[i]) continue;
         if (strlen(argVector[i]) > 1 && argVector[i][1] == prefixChar) continue;
-        for (size_t j=0; j<strlen(noPrefixArgFormatter); j++) {
-            _carg_reference_grouped_boolean_arg_formatter(i, j, noPrefixArgFormatter, &flagCopierPointer, formatterArgs);
+        for (size_t j=0; j<strlen(noPrefixFormat); j++) {
+            _carg_reference_grouped_boolean_arg_formatter(i, j, noPrefixFormat, &flagCopierPointer, args);
         }
     }
     SET_FLAG(cargInternalFlags, GROUPED_ARGS_SET);
-    va_end(formatterArgs);
+    va_end(args);
 }
 
-inline void carg_set_env_defaults(const char * const argFormatter, ...) {
+inline void carg_set_env_defaults(const char * const format, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     va_list args;
-    va_start(args, argFormatter);
-    void *argFormatterTokenAllocation = carg_strdup(argFormatter);
-    _carg_heap_check(argFormatterTokenAllocation);
-    char *argFormatterTokenCopy = (char *)argFormatterTokenAllocation;
-    char *savePointer = NULL;
-    _carg_set_env_defaults_internal(&argFormatterTokenCopy, &savePointer, &argFormatterTokenAllocation, args);
+    va_start(args, format);
+    void *formatTokenAllocation = carg_strdup(format);
+    _carg_heap_check(formatTokenAllocation);
+    char *formatCopy = (char *)formatTokenAllocation;
+    char *tokenSavePointer = NULL;
+    _carg_set_env_defaults_internal(&formatCopy, &tokenSavePointer, &formatTokenAllocation, args);
     va_end(args);
-    _carg_free_nullify(&argFormatterTokenAllocation);
+    _carg_free_nullify(&formatTokenAllocation);
 }
 
 inline void carg_set_nested_args(const int nestedArgumentCount, ...) {
@@ -298,41 +298,37 @@ inline ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *arg
     return argToNest;
 }
 
-inline void carg_override_callbacks(const char *argFormatter, ...) {
+inline void carg_override_callbacks(const char *format, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Argument override called before library initialization. Please fix this!\n");
     _carg_flag_conditional(OVERRIDE_CALLBACKS_SET, false, "Override callback args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET | NAMED_ARGS_SET | POSITIONAL_ARGS_SET | GROUPED_ARGS_SET | NESTED_ARGS_SET, false, "Callback override initialized after arguments were set. Fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
     if (argCount < 2) return;
-    void *internalFormatterAllocation = carg_strdup(argFormatter);
-    _carg_heap_check(internalFormatterAllocation);
-    char *internalFormatter = (char *)internalFormatterAllocation;
-    char *savePointer = NULL;
+    char *formatToTokenize = _carg_strtok_string_init(format);
+    _carg_heap_check(formatToTokenize);
     const char *currentFlag = NULL;
-    voidfuncptr_t functionCursor = NULL;
+    CargCallbackFunc functionCursor = NULL;
     va_list args;
-    va_list args_copy;
-    va_start(args, argFormatter);
-    va_copy(args_copy, args);
+    va_list argsCopy;
+    va_start(args, format);
+    va_copy(argsCopy, args);
     for (int i=1; i<argCount; i++) {
-        while ((currentFlag = strtok_r(internalFormatter, " ", &savePointer))) {
-            internalFormatter = savePointer;
-            functionCursor = va_arg(args_copy, voidfuncptr_t);
+        _carg_strtok_register_string(formatToTokenize);
+        while ((currentFlag = strtok(NULL, " "))) {
+            functionCursor = va_arg(argsCopy, CargCallbackFunc);
             if (_carg_cmp_flag(currentFlag, argVector[i])) {
                 functionCursor();
-                _carg_free_nullify(&internalFormatterAllocation);
+                _carg_free_nullify(&formatToTokenize);
                 carg_terminate();
                 exit(EXIT_SUCCESS);
             }
         }
-        _carg_free_nullify(&internalFormatterAllocation);
-        va_copy(args_copy, args);
-        internalFormatter = carg_strdup(argFormatter);
-        _carg_heap_check(internalFormatter);
-        internalFormatterAllocation = internalFormatter;
-        savePointer = NULL;
+        _carg_free_nullify(&formatToTokenize);
+        va_copy(argsCopy, args);
+        formatToTokenize = _carg_strtok_string_init(format);
+        _carg_heap_check(formatToTokenize);
     }
-    _carg_free_nullify(&internalFormatterAllocation);
+    _carg_free_nullify(&formatToTokenize);
     va_end(args);
     SET_FLAG(cargInternalFlags, OVERRIDE_CALLBACKS_SET);
 }
@@ -475,16 +471,16 @@ inline int secure_sprintf_concat(char * const startPointer, char * const endPoin
 
 inline int secure_vsprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, va_list argsToCopy) {
     if (startPointer > endPointer) return 0;
-    va_list args;
-    va_copy(args, argsToCopy);
-    const int returnValue = vsnprintf(startPointer, endPointer - startPointer, formatter, args);
+    va_list argsCopy;
+    va_copy(argsCopy, argsToCopy);
+    const int returnValue = vsnprintf(startPointer, endPointer - startPointer, formatter, argsCopy);
     if (*cursor + returnValue > endPointer) {
         *cursor = endPointer;
     } else {
         *cursor += returnValue;
     }
     *(endPointer - 1) = '\0';
-    va_end(args);
+    va_end(argsCopy);
     return returnValue;
 }
 
@@ -527,28 +523,38 @@ inline void _carg_free_nullify(void *ptr) {
     }
 }
 
+inline char *_carg_strtok_string_init(const char *str) {
+    char *returnVal = (char *)calloc(strlen(str) + 4, sizeof(char));
+    strcpy(returnVal, str);
+    memmove(returnVal + 3, returnVal, strlen(returnVal));
+    memcpy(returnVal, "\x03\x01\x03", 3);
+    return returnVal;
+}
+
+inline void _carg_strtok_register_string(char *str) {
+    strtok(str, "\x03");
+}
+
 inline int _carg_cmp_flag(const char *argument, const char *parameter) {
     return !strcmp(argument, parameter);
 }
 
 inline int _carg_is_flag(const char *formatter, const char *toCheck) {
-    void *internalFormatterAllocation = carg_strdup(formatter);
-    _carg_heap_check(internalFormatterAllocation);
-    char *internalFormatter = (char *)internalFormatterAllocation;
-    char *savePointer = NULL;
+    char *formatToTokenize = _carg_strtok_string_init(formatter);
+    _carg_heap_check(formatToTokenize);
+    _carg_strtok_register_string(formatToTokenize);
     while (1) {
-        char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
-        strtok_r(NULL, ": ", &savePointer); // Discard formatter item
-        internalFormatter = savePointer;
-        if (!flagItem) {
+        char *flagToken = strtok(NULL, ": ");
+        strtok(NULL, ": "); // Discard formatter item
+        if (!flagToken) {
             break;
         }
-        if (_carg_cmp_flag(toCheck, flagItem)) {
-            _carg_free_nullify(&internalFormatterAllocation);
+        if (_carg_cmp_flag(toCheck, flagToken)) {
+            _carg_free_nullify(&formatToTokenize);
             return 1;
         }
     }
-    _carg_free_nullify(&internalFormatterAllocation);
+    _carg_free_nullify(&formatToTokenize);
     return 0;
 }
 
@@ -574,7 +580,7 @@ inline bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **flagC
     return false;
 }
 
-inline void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCopierPointer, const int argIndex, const char *formatterItem, const char *formatItemToCopy, void **internalFormatterAllocation, char **argumentFlagToCompare) {
+inline void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCopierPointer, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare) {
     if (!currentArg) return;
     if (currentArg -> hasValue && !HAS_FLAG(currentArg -> flags, MULTI_ARG)) {
         usage();
@@ -583,7 +589,7 @@ inline void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCo
         *flagCopierPointer = currentArg -> valueContainer.value;
     }
     if (!*flagCopierPointer) return;
-    if (_carg_cmp_flag(formatterItem, "bool")) {
+    if (_carg_cmp_flag(formatToken, "bool")) {
         if (!HAS_FLAG(currentArg -> flags, BOOLEAN_ARG)) {
             _carg_error("Argument struct does not contain the BOOLEAN_ARG flag; argument items should be initialized with this flag for readability.\n");
         }
@@ -591,111 +597,109 @@ inline void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCo
         currentArg -> hasValue = 1;
         setArgs[argIndex] = currentArg -> hasValue;
     } else {
-        if (argIndex >= argCount - 1 && !(string_contains_char(argVector[argIndex], '=') >= 0 && strcmp(formatterItem, "bool"))) usage();
-        currentArg -> hasValue = sscanf(formatItemToCopy, formatterItem, *flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
+        if (argIndex >= argCount - 1 && !(carg_string_contains_char(argVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool"))) usage();
+        currentArg -> hasValue = sscanf(argToFormat, formatToken, *flagCopierPointer); // If an argument is passed in that does not match its formatter, the value remains default.
         setArgs[argIndex] = currentArg -> hasValue;
-        if (!(string_contains_char(argVector[argIndex], '=') >= 0 && strcmp(formatterItem, "bool"))) setArgs[argIndex + 1] = currentArg -> hasValue;
+        if (!(carg_string_contains_char(argVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool"))) setArgs[argIndex + 1] = currentArg -> hasValue;
         if (!currentArg -> hasValue) {
-            _carg_free_nullify(internalFormatterAllocation);
+            _carg_free_nullify(formatToTokenize);
             _carg_free_nullify(argumentFlagToCompare);
             usage();
         }
     }
     currentArg -> argvIndexFound = argIndex;
-    if (formatterItem) strncpy(currentArg -> formatterUsed, formatterItem, maxFormatterSize - 1);
+    if (formatToken) strncpy(currentArg -> formatterUsed, formatToken, maxFormatterSize - 1);
 }
 
-inline void _carg_validate_formatter_extended(const char *formatterItem) {
-    if (formatterItem && !_carg_cmp_flag(formatterItem, "bool") && formatterItem[0] != '%') {
-        _carg_error("Cannot parse token %s\n", formatterItem);
+inline void _carg_validate_formatter_extended(const char *formatToken) {
+    if (formatToken && !_carg_cmp_flag(formatToken, "bool") && formatToken[0] != '%') {
+        _carg_error("Cannot parse token %s\n", formatToken);
     }
 }
 
-inline void _carg_validate_formatter(const char *formatterItem) {
-    if (formatterItem && formatterItem[0] != '%') {
-        _carg_error("Cannot parse token %s\n", formatterItem);
+inline void _carg_validate_formatter(const char *formatToken) {
+    if (formatToken && formatToken[0] != '%') {
+        _carg_error("Cannot parse token %s\n", formatToken);
     }
 }
 
-inline void _validateFlag(const char *flagItem) {
-    if (flagItem && string_contains_char(flagItem, '%') > -1) {
-        _carg_error("Cannot parse token %s\n", flagItem);
+inline void _validateFlag(const char *flagToken) {
+    if (flagToken && carg_string_contains_char(flagToken, '%') > -1) {
+        _carg_error("Cannot parse token %s\n", flagToken);
     }
 }
 
-inline bool _carg_adjust_named_assign(const int argIndex, const char *formatterItem, const char *flagItem, const char **formatItemToCopy, char *argumentFlagToCompare) {
-    if (argumentFlagToCompare && string_contains_char(argVector[argIndex], '=') >= 0 && strcmp(formatterItem, "bool")) {
+inline bool _carg_adjust_named_assign(const int argIndex, const char *formatToken, const char *flagToken, const char **argToFormat, char *argumentFlagToCompare) {
+    if (argumentFlagToCompare && carg_string_contains_char(argVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool")) {
         int ncompare = 0;
         while (argVector[argIndex][ncompare] != '=') ncompare++;
-        if (strncmp(flagItem, argVector[argIndex], ncompare)) return false;
+        if (strncmp(flagToken, argVector[argIndex], ncompare)) return false;
         argumentFlagToCompare[ncompare] = '\0';
-        *formatItemToCopy = argVector[argIndex]+ncompare+1;
+        *argToFormat = argVector[argIndex]+ncompare+1;
     }
     return true;
 }
 
-inline void _carg_reference_named_arg_formatter(const int argIndex, const char *argFormatter, va_list outerArgs) { // NOLINT
+inline void _carg_reference_named_arg_formatter(const int argIndex, const char *format, va_list args) { // NOLINT
     if (setArgs[argIndex]) return;
-    va_list formatterArgs;
-    va_copy(formatterArgs, outerArgs);
-    char *internalFormatter = carg_strdup(argFormatter);
-    _carg_heap_check(internalFormatter);
-    void *internalFormatterAllocation = internalFormatter;
-    char *savePointer = NULL;
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    char *formatToTokenize = _carg_strtok_string_init(format);
+    _carg_heap_check(formatToTokenize);
     void *flagCopierPointer = NULL;
     char *argumentFlagToCompare = carg_strdup(argVector[argIndex]);
     _carg_heap_check(argumentFlagToCompare);
-    const char *formatItemToCopy;
-    if (argIndex < argCount - 1) formatItemToCopy = argVector[argIndex + 1];
-    else formatItemToCopy = NULL;
+    const char *argToFormat;
+    if (argIndex < argCount - 1) argToFormat = argVector[argIndex + 1];
+    else argToFormat = NULL;
+    _carg_strtok_register_string(formatToTokenize);
     while (1) {
-        const char *flagItem = strtok_r(internalFormatter, ": ", &savePointer);
-        const char *formatterItem = strtok_r(NULL, ": ", &savePointer);
-        internalFormatter = savePointer;
-        if (!flagItem) break;
-        _validateFlag(flagItem);
-        _carg_validate_formatter_extended(formatterItem);
-        ArgContainer *currentArg = va_arg(formatterArgs, ArgContainer *);
-        if (!_carg_adjust_named_assign(argIndex, formatterItem, flagItem, &formatItemToCopy, argumentFlagToCompare)) continue;
-        if (!strcmp(flagItem, argumentFlagToCompare)) {
-            _carg_set_named_arg_internal(currentArg, &flagCopierPointer, argIndex, formatterItem, formatItemToCopy, &internalFormatterAllocation, &argumentFlagToCompare);
+        const char *flagToken = strtok(NULL, ": ");
+        const char *formatToken = strtok(NULL, ": ");
+        if (!flagToken) break;
+        _validateFlag(flagToken);
+        _carg_validate_formatter_extended(formatToken);
+        ArgContainer *currentArg = va_arg(argsCopy, ArgContainer *);
+        if (!_carg_adjust_named_assign(argIndex, formatToken, flagToken, &argToFormat, argumentFlagToCompare)) continue;
+        if (!strcmp(flagToken, argumentFlagToCompare)) {
+            _carg_set_named_arg_internal(currentArg, &flagCopierPointer, argIndex, formatToken, argToFormat, &formatToTokenize, &argumentFlagToCompare);
             break;
         }
     }
-    _carg_free_nullify(&internalFormatterAllocation);
+    _carg_free_nullify(&formatToTokenize);
     _carg_free_nullify(&argumentFlagToCompare);
 }
 
-inline void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **internalFormatterAllocation, char **internalFormatter, char **savePointer, void **flagCopierPointer) {
-    *internalFormatter = strtok_r(*internalFormatter, " ", savePointer);
+inline void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **flagCopierPointer) {
+    *formatToTokenize = strtok_r(*formatToTokenize, " ", tokenSavePointer);
     if (!HAS_FLAG(currentArg -> flags, POSITIONAL_ARG)) {
         _carg_error("Positional arg setter called on named argument. Please fix this!\n");
     }
     *flagCopierPointer = currentArg -> valueContainer.value;
-    currentArg -> hasValue = sscanf(argVector[i], *internalFormatter, *flagCopierPointer);
+    currentArg -> hasValue = sscanf(argVector[i], *formatToTokenize, *flagCopierPointer);
     setArgs[i] = currentArg -> hasValue;
     if (!currentArg -> hasValue) {
-        _carg_free_nullify(internalFormatterAllocation);
+        _carg_free_nullify(formatToTokenizeAllocation);
         usage();
     }
     currentArg -> argvIndexFound = i;
-    if (*internalFormatter) {
-        strncpy(currentArg -> formatterUsed, *internalFormatter, maxFormatterSize - 1);
+    if (*formatToTokenize) {
+        strncpy(currentArg -> formatterUsed, *formatToTokenize, maxFormatterSize - 1);
     }
-    *internalFormatter = *savePointer;
+    *formatToTokenize = *tokenSavePointer;
 }
 
-inline void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixArgFormatter, bool **flagCopierPointer, va_list args) {
-    va_list formatterArgs;
-    va_copy(formatterArgs, args);
-    if (string_contains_char(argVector[i], noPrefixArgFormatter[j]) >= 0) {
+inline void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixFormat, bool **flagCopierPointer, va_list args) {
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    if (carg_string_contains_char(argVector[i], noPrefixFormat[j]) >= 0) {
         ArgContainer *currentArg = NULL;
         for (size_t k=0; k<=j; k++) {
-            currentArg = va_arg(formatterArgs, ArgContainer *);
+            currentArg = va_arg(argsCopy, ArgContainer *);
             *flagCopierPointer = (bool *)currentArg -> valueContainer.value;
         }
-        va_end(formatterArgs);
-        va_copy(formatterArgs, args);
+        va_end(argsCopy);
+        va_copy(argsCopy, args);
         if (*flagCopierPointer && currentArg) {
             currentArg -> hasValue = 1;
             setArgs[i] = currentArg -> hasValue;
@@ -703,7 +707,7 @@ inline void _carg_reference_grouped_boolean_arg_formatter(const int i, const siz
             **flagCopierPointer = !**flagCopierPointer;
         }
     }
-    va_end(formatterArgs);
+    va_end(argsCopy);
 }
 
 inline int _carg_set_nested_arg_internal(ArgContainer *arg) {
@@ -730,30 +734,30 @@ inline int _carg_set_nested_arg_internal(ArgContainer *arg) {
     return 0;
 }
 
-inline void _carg_set_env_defaults_internal(char **argFormatterTokenCopy, char **savePointer, void **argFormatterTokenAllocation, va_list args) {
-    va_list formatterArgs;
-    va_copy(formatterArgs, args);
+inline void _carg_set_env_defaults_internal(char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args) {
+    va_list argsCopy;
+    va_copy(argsCopy, args);
     ArgContainer *currentArg = NULL;
     while (1) {
-        char *envVarName = strtok_r(*argFormatterTokenCopy, ": ", savePointer);
-        char *formatter = strtok_r(NULL, ": ", savePointer);
-        *argFormatterTokenCopy = *savePointer;
-        _validateFlag(envVarName);
-        _carg_validate_formatter(formatter);
-        if (!envVarName || !formatter) break;
-        const char *envVarValue = getenv(envVarName);
-        currentArg = va_arg(formatterArgs, ArgContainer *);
+        char *envVarToken = strtok_r(*stringToTokenize, ": ", tokenSavePointer);
+        char *formatToken = strtok_r(NULL, ": ", tokenSavePointer);
+        *stringToTokenize = *tokenSavePointer;
+        _validateFlag(envVarToken);
+        _carg_validate_formatter(formatToken);
+        if (!envVarToken || !formatToken) break;
+        const char *envVarValue = getenv(envVarToken);
+        currentArg = va_arg(argsCopy, ArgContainer *);
         if (!envVarValue) continue;
         if (!currentArg -> hasValue) {
-            currentArg -> hasValue = sscanf(envVarValue, formatter, currentArg -> valueContainer.value);
+            currentArg -> hasValue = sscanf(envVarValue, formatToken, currentArg -> valueContainer.value);
         }
         if (!currentArg -> hasValue) {
-            _carg_free_nullify(argFormatterTokenAllocation);
-            _carg_error("Unable to grab environment variable %s\n", envVarName);
+            _carg_free_nullify(stringAllocation);
+            _carg_error("Unable to grab environment variable %s\n", envVarToken);
         }
-        strncpy(currentArg -> formatterUsed, formatter, maxFormatterSize - 1);
+        strncpy(currentArg -> formatterUsed, formatToken, maxFormatterSize - 1);
     }
-    va_end(formatterArgs);
+    va_end(argsCopy);
 }
 
 inline void _carg_print_positional_usage_buffer(void) {
@@ -792,7 +796,7 @@ inline void _carg_print_non_positional_usage_buffer(void) {
 #define CARG_PRINT_STRING_ARG(argument) do {\
     carg_print_container_data(argument);\
     printf("\tValue: ");\
-    if (string_contains_char((argument) -> formatterUsed, '\n') >= 0) printf("%s", (char *)(argument) -> valueContainer.value); /* This allows the string scanf() formatter with spaces to work. */\
+    if (carg_string_contains_char((argument) -> formatterUsed, '\n') >= 0) printf("%s", (char *)(argument) -> valueContainer.value); /* This allows the string scanf() formatter with spaces to work. */\
     else printf((argument) -> formatterUsed, (char *)(argument) -> valueContainer.value);\
     printf("\n");\
 } while (0)
@@ -822,7 +826,7 @@ inline void _carg_print_non_positional_usage_buffer(void) {
     MultiArgContainer *cursor = argument -> valueContainer.next;\
     while (cursor) {\
         printf("\tValue: ");\
-        if (string_contains_char((argument) -> formatterUsed, '\n') >= 0) printf("%s", (cursor -> value)); /* This allows the string scanf() formatter with spaces to work. */\
+        if (carg_string_contains_char((argument) -> formatterUsed, '\n') >= 0) printf("%s", (cursor -> value)); /* This allows the string scanf() formatter with spaces to work. */\
         else printf((argument) -> formatterUsed, cursor -> value);\
         printf("\n");\
         cursor = cursor -> next;\

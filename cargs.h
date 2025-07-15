@@ -22,12 +22,8 @@ extern "C" {
     #pragma warning(disable:4003) // Some variadic macros in this library do not use their variadic arguments.
 #endif
 
-#include <string.h>
-#include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdbool.h>
-#include <inttypes.h>
 
 #define maxFormatterSize 128
 
@@ -58,7 +54,7 @@ typedef struct argArray {
     ArgContainer    **array;
 } argArray;
 
-typedef void (*voidfuncptr_t)(void);
+typedef void (*CargCallbackFunc)(void);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Global Variables and Definitions
@@ -146,15 +142,15 @@ void          carg_terminate(void);
 void          carg_print_container_data(ArgContainer *container);
 void         *carg_fetch_multi_arg_entry(ArgContainer *container, int index);
 
-char         *string_contains_substr(char *testString, const char *substring);
-int           string_contains_char(const char *testString, char subchar);
+char         *carg_string_contains_substr(char *testString, const char *substring);
+int           carg_string_contains_char(const char *testString, char subchar);
 const char   *carg_basename(const char * pathStart);
     
 void          carg_set_usage_message(const char *formatter, ...);
 void          carg_usage_message_autogen(void);
-void          carg_set_usage_function(voidfuncptr_t funcArg);
+void          carg_set_usage_function(CargCallbackFunc funcArg);
 void          usage(void);
-void          carg_override_callbacks(const char *argFormatter, ...);
+void          carg_override_callbacks(const char *format, ...);
 void          carg_arg_assert(const int assertionCount, ...);
 
 ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t flagsArg, const char usageStringArg[]);
@@ -164,10 +160,10 @@ ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *argStr
 ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString, const char * const formatterToUse);
 void          carg_heap_default_value(const ArgContainer *varName, const void *val, size_t bytes);
 
-void          carg_set_named_args(const char * const argFormatter, ...);
-void          carg_set_positional_args(const char *argFormatter, ...);
-void          carg_set_grouped_boolean_args(const char *argFormatter, ...);
-void          carg_set_env_defaults(const char * const argFormatter, ...);
+void          carg_set_named_args(const char * const format, ...);
+void          carg_set_positional_args(const char *format, ...);
+void          carg_set_grouped_boolean_args(const char *format, ...);
+void          carg_set_env_defaults(const char * const format, ...);
 void          carg_set_nested_args(const int nestedArgumentCount, ...);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -185,28 +181,30 @@ void  _carg_error(const char * formatter, ...);
 void  _carg_heap_check(void *ptr);
 void  _carg_free_nullify(void *ptr);
 
+char *_carg_strtok_string_init(const char *str);
+void  _carg_strtok_register_string(char *str);
 int   _carg_cmp_flag(const char *argument, const char *parameter);
 int   _carg_is_flag(const char *formatter, const char *toCheck);
 
-void          _carg_usage_default(void);
-voidfuncptr_t _carg_usage_ptr = _carg_usage_default;
-void          _carg_print_positional_usage_buffer(void);
-void          _carg_print_non_positional_usage_buffer(void);
+void             _carg_usage_default(void);
+CargCallbackFunc _carg_usage_ptr = _carg_usage_default;
+void             _carg_print_positional_usage_buffer(void);
+void             _carg_print_non_positional_usage_buffer(void);
 
 bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **flagCopierPointer);
-bool _carg_adjust_named_assign(const int argIndex, const char *formatterItem, const char *flagItem, const char **formatItemToCopy, char *argumentFlagToCompare);
+bool _carg_adjust_named_assign(const int argIndex, const char *formatToken, const char *flagToken, const char **argToFormat, char *argumentFlagToCompare);
 
-void _carg_validate_formatter_extended(const char *formatterItem);
-void _carg_validate_formatter(const char *formatterItem);
-void _validateFlag(const char *flagItem);
+void _carg_validate_formatter_extended(const char *formatToken);
+void _carg_validate_formatter(const char *formatToken);
+void _validateFlag(const char *flagToken);
 
-void _carg_reference_named_arg_formatter(const int argIndex, const char *argFormatter, va_list outerArgs);
-void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **internalFormatterAllocation, char **internalFormatter, char **savePointer, void **flagCopierPointer);
-void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixArgFormatter, bool **flagCopierPointer, va_list args);
+void _carg_reference_named_arg_formatter(const int argIndex, const char *format, va_list outerArgs);
+void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **flagCopierPointer);
+void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixFormat, bool **flagCopierPointer, va_list args);
 
-void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCopierPointer, const int argIndex, const char *formatterItem, const char *formatItemToCopy, void **internalFormatterAllocation, char **argumentFlagToCompare);
+void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCopierPointer, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare);
 int  _carg_set_nested_arg_internal(ArgContainer *arg);
-void _carg_set_env_defaults_internal(char **argFormatterTokenCopy, char **savePointer, void **argFormatterTokenAllocation, va_list args);
+void _carg_set_env_defaults_internal(char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Platform Compatibility Enforcement
@@ -218,7 +216,9 @@ void _carg_set_env_defaults_internal(char **argFormatterTokenCopy, char **savePo
     #error args.h is only supported on the C99 standard and above.
 #else
 
-#include "cargs_impl.h" // NOLINT
+#ifndef CARGS_CUSTOM_IMPL
+    #include "cargs_impl.h" // NOLINT
+#endif
 
 // Reset macro definitions to not interfere with other included libraries.
 #ifdef _MSC_VER 
