@@ -188,10 +188,10 @@ void  _carg_free_nullify(void *ptr);
 int   _carg_cmp_flag(const char *argument, const char *parameter);
 int   _carg_is_flag(const char *formatter, const char *toCheck);
 
-void        _carg_usage_default(void);
+void          _carg_usage_default(void);
 voidfuncptr_t _carg_usage_ptr = _carg_usage_default;
-void        _carg_print_positional_usage_buffer(void);
-void        _carg_print_non_positional_usage_buffer(void);
+void          _carg_print_positional_usage_buffer(void);
+void          _carg_print_non_positional_usage_buffer(void);
 
 bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **flagCopierPointer);
 bool _carg_adjust_named_assign(const int argIndex, const char *formatterItem, const char *flagItem, const char **formatItemToCopy, char *argumentFlagToCompare);
