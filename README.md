@@ -8,12 +8,14 @@ Because this library uses string formatters, you should only use types that supp
 For example, there is no formatter for an array of 100 pointers to functions that accept integers and return a character.
 Nor should you expect data remotely resembling that from a user.
 
-This library is a header-only library. Everything is in the `args.h` header, so to add this library into your project,
+This library is a header-only library. Everything is in the `cargs.h` header, so to add this library into your project,
 put it in your environment's include path and include the header accordingly:
 
 ```
-#include "args.h"
+#include "cargs.h"
 ```
+
+Make sure to put the `cargs_impl.h` implementation header in your project directory as well.
 
 To set up the library to use your argument vector, call `carg_init()` with the argument count and vector.
 
@@ -452,7 +454,8 @@ can also be used; it exists for readability purposes.
 #### carg_validate()
 This function will do a final pass to ensure every argument in the argument vector has been used for something. If it
 encounters a redundant or unused argument, it will show the argument in an error message and terminate the program. Of 
-course, this function should be called after any argument setters.
+course, this function should be called after any argument setters. Furthermore, if `ENFORCE_NESTING_ORDER` is passed as
+a flag to any nested argument, calling this function is necessary for enforcing the nesting order.
 
 ## Assertion Macros
 
@@ -491,11 +494,13 @@ allocation when it terminates.
 
 ### ENFORCE_NESTING_ORDER
 This is a flag for declaring the root of a nested argument as not order-agnostic; this flag should be set in
-`carg_nested_container_create()`, and the library will do runtime checks in `carg_set_nested_args()` to ensure arguments nested
-within other arguments come after their parent arguments in the argument vector.
+`carg_nested_container_create()`. The library will do runtime checks in `carg_validate()` to ensure arguments nested
+within other arguments come after their parent arguments in the argument vector, so make sure to call this function to 
+enable nesting order enforcement.
 
-<!-- ### ENFORCE_STRICT_NESTING_ORDER
-This flag declares that nested arguments should be passed all in sequence, without any arguments in-between. -->
+### ENFORCE_STRICT_NESTING_ORDER
+This flag declares that nested arguments should be passed all in sequence, without any arguments in-between. Like
+`ENFORCE_NESTING_ORDER`, this property is enforced in `carg_validate()`.
 
 ### MULTI_ARG
 This flag should be used to declare that an argument should be a linked list of values from which to add on to each time

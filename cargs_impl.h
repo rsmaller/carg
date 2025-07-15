@@ -1,24 +1,7 @@
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Includes and Type Definitions
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #pragma once
-
-#ifdef __cplusplus
-extern "C" {
+#ifndef CARGS_IMPL_H
+    #define CARGS_IMPL_H
 #endif
-
-//  ReSharper disable CppNonInlineFunctionDefinitionInHeaderFile
-#if defined(__INTELLISENSE__)
-    #define true 1
-    #define false 0
-#endif
-
-#ifdef _MSC_VER
-    #define strtok_r strtok_s
-    #define _CRT_SECURE_NO_WARNINGS // sscanf() is required for this project.
-    #pragma warning(disable:4003) // Some variadic macros in this library do not use their variadic arguments.
-#endif
-
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -27,259 +10,26 @@ extern "C" {
 #include <stdarg.h>
 #include <inttypes.h>
 
-#define maxFormatterSize 128
-
-typedef struct ChainedArgContainer {
-        struct ChainedArgContainer *next;
-        void                       *value;
-} ChainedArgContainer;
-
-typedef struct ArgContainer {
-    ChainedArgContainer   valueContainer;
-    int                   chainedArgIndex;
-    size_t                valueSize;
-    bool                  hasValue;
-    int                   argvIndexFound;
-    uint64_t              flags;
-    const char * const    usageString;
-    char                  formatterUsed[maxFormatterSize];
-    const char           *nestedArgString;
-    int                   nestedArgFillIndex;
-    size_t                nestedArgArraySize;
-    struct ArgContainer  *parentArg;
-    struct ArgContainer **nestedArgs;
-} ArgContainer;
-
-typedef struct argArray {
-    size_t          size;
-    int             fillIndex;
-    ArgContainer    **array;
-} argArray;
-
-typedef void (*voidFuncPtr)(void);
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Global Variables and Definitions
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-int argCount           = 1;
-char **argVector       = NULL;
-argArray allArgs       = {.size = 0, .fillIndex = -1, .array = NULL};
-int *setArgs           = NULL;
-int positionalArgCount = 0;
-
-#define usageStringSize 2048U
-char         usageString[usageStringSize] = "Please specify a usage message in your client code. You can do this via carg_set_usage_message() or carg_usage_message_autogen().";
-char *       usageStringCursor            = usageString; // The default usage message should be immediately overwritten when a usage message setter is called.
-char * const usageStringEnd               = usageString + usageStringSize - 1;
-
-uint64_t cargInternalFlags = 0;
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Flags, Flag Checkers, and Initializer Macros
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-//  Generic Flags.
-#define NO_FLAGS                (0ULL)      // Set no flags when creating an argument.
-#define NO_DEFAULT_VALUE        {0}         // Set default argument to 0 in arg initializers, for readability purposes.
-#define NO_USAGE_STRING         (char *)""  // To declare in an argument initializer that no usage string should be present.
-#define NONE                                // Empty and does nothing. For semantics in function-style macros like CARG_ARG_CREATE().
-
-//  Argument Flags. (These should be set by the user.)
-#define POSITIONAL_ARG          (1ULL<<32ULL)
-#define BOOLEAN_ARG             (1ULL<<33ULL)
-#define ENFORCE_NESTING_ORDER   (1ULL<<34ULL)
-#define MULTI_ARG               (1ULL<<35ULL)
-#define HEAP_ALLOCATED          (1ULL<<36ULL)
-
-//  Getters and Setters.
-#define HAS_FLAG(item, flag)    (item & flag)
-#define SET_FLAG(item, flag)    (item |= flag)
-#define CLEAR_FLAG(item, flag)  (item &= ~flag)
-#define TOGGLE_FLAG(item, flag) (item ^= flag)
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Assertion Macros
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-#define REQUIRED_ARGUMENT(varName)              (varName -> hasValue)
-#define MUTUALLY_EXCLUSIVE(varName1, varName2)  (!(varName1 -> hasValue && varName2 -> hasValue))
-#define MUTUALLY_REQUIRED(varName1, varName2)   (varName1 -> hasValue ? varName2 -> hasValue : 1)
-#define USAGE_MESSAGE                           NULL
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Internal Macros
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-//  Function Initializer Flags for cargInternalFlags.
-#define LIBCARGS_INITIALIZED      (1ULL<<0ULL)
-#define NAMED_ARGS_SET            (1ULL<<1ULL)
-#define POSITIONAL_ARGS_SET       (1ULL<<2ULL)
-#define GROUPED_ARGS_SET          (1ULL<<3ULL)
-#define NESTED_ARGS_SET           (1ULL<<4ULL)
-#define OVERRIDE_CALLBACKS_SET    (1ULL<<5ULL)
-#define ASSERTIONS_SET            (1ULL<<6ULL)
-#define USAGE_MESSAGE_SET         (1ULL<<7ULL)
-
-//  Internal Argument Flags.
-#define NESTED_ARG                (1ULL<<1ULL)
-#define NESTED_ARG_ROOT           (1ULL<<2ULL)
-
-//  Tokenization Macros
-#define VA_ARG_1(arg1, ...)       arg1
-#define VA_ARG_2(arg1, arg2, ...) arg2
-#define EXPAND(x)                 x
-#define EXPAND_R(x)               EXPAND(x)
-#define TOKEN_TO_STRING(x)        #x
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: User-Facing Function Prototypes
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    
-void          carg_init(int argc, char **argv);
-void          carg_validate(void);
-void          carg_terminate(void);
-
-void          carg_print_container_data(ArgContainer *container);
-void         *carg_fetch_multi_arg_entry(ArgContainer *container, int index);
-
-char         *string_contains_substr(char *testString, const char *substring);
-int           string_contains_char(const char *testString, char subchar);
-const char   *carg_basename(const char * pathStart);
-    
-void          carg_set_usage_message(const char *formatter, ...);
-void          carg_usage_message_autogen(void);
-void          carg_set_usage_function(voidFuncPtr funcArg);
-void          usage(void);
-void          carg_override_callbacks(const char *argFormatter, ...);
-void          carg_arg_assert(const int assertionCount, ...);
-
-ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t flagsArg, const char usageStringArg[]);
-ArgContainer *carg_nested_boolean_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg);
-ArgContainer *carg_nest_boolean_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString);
-ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg, const char * const formatterToUse);
-ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString, const char * const formatterToUse);
-void          carg_heap_default_value(const ArgContainer *varName, const void *val, size_t bytes);
-
-void          carg_set_named_args(const char * const argFormatter, ...);
-void          carg_set_positional_args(const char *argFormatter, ...);
-void          carg_set_grouped_boolean_args(const char *argFormatter, ...);
-void          carg_set_env_defaults(const char * const argFormatter, ...);
-void          carg_set_nested_args(const int nestedArgumentCount, ...);
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: User-Facing Macros
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-#define CARG_PRINT_STRING_ARG(argument) do {\
-    carg_print_container_data(argument);\
-    printf("\tValue: ");\
-    if (string_contains_char((argument) -> formatterUsed, '\n') >= 0) printf("%s", (char *)(argument) -> valueContainer.value); /* This allows the string scanf() formatter with spaces to work. */\
-    else printf((argument) -> formatterUsed, (char *)(argument) -> valueContainer.value);\
-    printf("\n");\
-} while (0)
-
-#define CARG_PRINT_NON_STRING_ARG(argument, typeArg) do {\
-    carg_print_container_data(argument);\
-    printf("\tValue: ");\
-    printf((argument) -> formatterUsed, *(typeArg *)(argument) -> valueContainer.value);\
-    printf("\n");\
-} while (0)
-
-#define CARG_PRINT_NON_STRING_MULTI_ARG(argument, typeArg) do {\
-    CARG_PRINT_NON_STRING_ARG(argument, typeArg);\
-    if (!(argument) -> formatterUsed[0]) break;\
-    ChainedArgContainer *cursor = argument -> valueContainer.next;\
-    while (cursor) {\
-        printf("\tValue: ");\
-        printf((argument) -> formatterUsed, *(typeArg *)cursor -> value);\
-        printf("\n");\
-        cursor = cursor -> next;\
-    }\
-} while (0)
-
-#define CARG_PRINT_STRING_MULTI_ARG(argument) do {\
-    CARG_PRINT_STRING_ARG(argument);\
-    if (!(argument) -> formatterUsed[0]) break;\
-    ChainedArgContainer *cursor = argument -> valueContainer.next;\
-    while (cursor) {\
-        printf("\tValue: ");\
-        if (string_contains_char((argument) -> formatterUsed, '\n') >= 0) printf("%s", (cursor -> value)); /* This allows the string scanf() formatter with spaces to work. */\
-        else printf((argument) -> formatterUsed, cursor -> value);\
-        printf("\n");\
-        cursor = cursor -> next;\
-    }\
-} while (0)
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Internal Function Prototypes
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    
-int   test_printf(char *formatter, ...);
-int   test_vsnprintf(const char *formatter, va_list args);
-int   secure_sprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, ...);
-int   secure_vsprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, va_list argsToCopy);
-char *carg_strdup(const char *str);
-
-void  _carg_flag_conditional(uint64_t flag, bool truthiness, const char * const errorMessage);
-void  _carg_error(const char * formatter, ...);
-void  _carg_heap_check(void *ptr);
-void  _carg_free_nullify(void *ptr);
-
-int   _carg_cmp_flag(const char *argument, const char *parameter);
-int   _carg_is_flag(const char *formatter, const char *toCheck);
-
-void        _carg_usage_default(void);
-voidFuncPtr _carg_usage_ptr = _carg_usage_default;
-void        _carg_print_positional_usage_buffer(void);
-void        _carg_print_non_positional_usage_buffer(void);
-
-bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **flagCopierPointer);
-bool _carg_adjust_named_assign(const int argIndex, const char *formatterItem, const char *flagItem, const char **formatItemToCopy, char *argumentFlagToCompare);
-
-void _carg_validate_formatter_extended(const char *formatterItem);
-void _carg_validate_formatter(const char *formatterItem);
-void _validateFlag(const char *flagItem);
-
-void _carg_reference_named_arg_formatter(const int argIndex, const char *argFormatter, va_list outerArgs);
-void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **internalFormatterAllocation, char **internalFormatter, char **savePointer, void **flagCopierPointer);
-void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixArgFormatter, bool **flagCopierPointer, va_list args);
-
-void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCopierPointer, const int argIndex, const char *formatterItem, const char *formatItemToCopy, void **internalFormatterAllocation, char **argumentFlagToCompare);
-int  _carg_set_nested_arg_internal(ArgContainer *arg);
-void _carg_set_env_defaults_internal(char **argFormatterTokenCopy, char **savePointer, void **argFormatterTokenAllocation, va_list args);
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Platform Compatibility Enforcement
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-//  Provide C standard errors for those using outdated standards.
-//  None of the functions will have bodies if this condition is met.
-#if (__STDC_VERSION__ < 199901L || !defined(__STDC_VERSION__)) && !defined(__cplusplus) && !defined(_MSC_VER)
-    #error args.h is only supported on the C99 standard and above.
-#else
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: User-Facing Function Definitions
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t flagsArg, const char usageStringArg[]) {
+inline ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t flagsArg, const char usageStringArg[]) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Attempt to initialize argument before library initialization. Please fix this!\n");
     ArgContainer *constructedArgument = (ArgContainer *)malloc(sizeof(ArgContainer));
     const ArgContainer constructedArgumentInternal = {
-        {.next = NULL, .value = argMemory}, /* valueContainer */
-        0,                                  /* chainedArgIndex */
-        expectedSize,                       /* valueSize */
-        0,                                  /* hasValue */
-        -1,                                 /* argvIndexFound */
-        flagsArg,                           /* flags */
-        usageStringArg,                     /* usageString */
-        {0},                                /* formatterUsed */
-        "",                                 /* nestedArgString */
-        -1,                                 /* nestedArgFillIndex */
-        0,                                  /* nestedArgArraySize */
-        NULL,                               /* parentArg */
-        NULL                                /* nestedArgs */
+        .valueContainer = {
+            .next = NULL,
+            .value = argMemory
+        },
+        .multiArgIndex = 0,
+        .valueSize = expectedSize,
+        .hasValue = false,
+        .argvIndexFound = -1,
+        .flags = flagsArg,
+        .usageString = usageStringArg,
+        .formatterUsed = {0},
+        .nestedArgString = "",
+        .nestedArgFillIndex = -1,
+        .nestedArgArraySize = 0,
+        .parentArg = NULL,
+        .nestedArgs = NULL
     };
     memcpy(constructedArgument, &constructedArgumentInternal, sizeof(ArgContainer));
     if (HAS_FLAG(flagsArg, POSITIONAL_ARG)) positionalArgCount++;
@@ -302,7 +52,7 @@ ArgContainer *carg_arg_create(void *argMemory, size_t expectedSize, uint64_t fla
     return constructedArgument;
 }
 
-char *string_contains_substr(char *testString, const char *substring) {
+inline char *string_contains_substr(char *testString, const char *substring) {
     while (strlen(testString) >= strlen(substring)) {
         if (!strncmp(testString, substring, strlen(substring))) {
             return testString;
@@ -312,7 +62,7 @@ char *string_contains_substr(char *testString, const char *substring) {
     return NULL;
 }
 
-int string_contains_char(const char *testString, const char subchar) {
+inline int string_contains_char(const char *testString, const char subchar) {
     if (!testString) return -1;
     for (int i=0; i<strlen(testString); i++) {
         if (testString[i] == subchar) {
@@ -322,7 +72,7 @@ int string_contains_char(const char *testString, const char subchar) {
     return -1;
 }
 
-const char *carg_basename(const char * const pathStart) {
+inline const char *carg_basename(const char * const pathStart) {
     const char * const pathEnd = pathStart + strlen(pathStart);
     const char *result = pathEnd;
     while (result > pathStart && *result != '/' && *result != '\\') {
@@ -334,7 +84,7 @@ const char *carg_basename(const char * const pathStart) {
     return result;
 }
 
-void carg_set_usage_message(const char *formatter, ...) {
+inline void carg_set_usage_message(const char *formatter, ...) {
     va_list args;
     va_start(args, formatter);
     _carg_flag_conditional(USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
@@ -343,7 +93,7 @@ void carg_set_usage_message(const char *formatter, ...) {
     va_end(args);
 }
 
-void carg_usage_message_autogen(void) {
+inline void carg_usage_message_autogen(void) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Usage message auto-generated before library initialization. Please fix this!\n");
     _carg_flag_conditional(USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
     secure_sprintf_concat(usageStringCursor, usageStringEnd, &usageStringCursor, "%s%s ", "Usage: ", carg_basename(argVector[0]));
@@ -352,19 +102,19 @@ void carg_usage_message_autogen(void) {
     SET_FLAG(cargInternalFlags, USAGE_MESSAGE_SET);
 }
 
-void carg_set_usage_function(voidFuncPtr funcArg) {
+inline void carg_set_usage_function(voidfuncptr_t funcArg) {
     _carg_flag_conditional(USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
     _carg_usage_ptr = funcArg;
     SET_FLAG(cargInternalFlags, USAGE_MESSAGE_SET);
 }
 
-void usage(void) {
+inline void usage(void) {
     _carg_usage_ptr();
     carg_terminate();
     exit(EXIT_SUCCESS);
 }
 
-void carg_init(int argc, char **argv) {
+inline void carg_init(int argc, char **argv) {
     argCount = argc;
     argVector = (char **)calloc(argCount, sizeof(char *));
     _carg_heap_check(argVector);
@@ -378,14 +128,14 @@ void carg_init(int argc, char **argv) {
     SET_FLAG(cargInternalFlags, LIBCARGS_INITIALIZED);
 }
 
-void carg_heap_default_value(const ArgContainer *varName, const void *val, size_t bytes) {
+inline void carg_heap_default_value(const ArgContainer *varName, const void *val, size_t bytes) {
     if (!HAS_FLAG(varName -> flags, HEAP_ALLOCATED)) {
         _carg_error("Heap argument default value setter called on non-heap-allocated argument. Please fix this!\n");
     }
     memcpy(varName -> valueContainer.value, val, bytes);
 }
 
-void carg_set_named_args(const char * const argFormatter, ...) {
+inline void carg_set_named_args(const char * const argFormatter, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(NAMED_ARGS_SET, false, "Named args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called before named args initializer. Please fix this!\n");
@@ -399,7 +149,7 @@ void carg_set_named_args(const char * const argFormatter, ...) {
     SET_FLAG(cargInternalFlags, NAMED_ARGS_SET);
 }
 
-void carg_set_positional_args(const char *argFormatter, ...) {
+inline void carg_set_positional_args(const char *argFormatter, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(POSITIONAL_ARGS_SET, false, "Positional args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called before positional args initializer. Please fix this!\n");
@@ -421,7 +171,7 @@ void carg_set_positional_args(const char *argFormatter, ...) {
     SET_FLAG(cargInternalFlags, POSITIONAL_ARGS_SET);
 }
 
-void carg_set_grouped_boolean_args(const char *argFormatter, ...) {
+inline void carg_set_grouped_boolean_args(const char *argFormatter, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
@@ -441,7 +191,7 @@ void carg_set_grouped_boolean_args(const char *argFormatter, ...) {
     va_end(formatterArgs);
 }
 
-void carg_set_env_defaults(const char * const argFormatter, ...) {
+inline void carg_set_env_defaults(const char * const argFormatter, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     va_list args;
     va_start(args, argFormatter);
@@ -454,7 +204,7 @@ void carg_set_env_defaults(const char * const argFormatter, ...) {
     _carg_free_nullify(&argFormatterTokenAllocation);
 }
 
-void carg_set_nested_args(const int nestedArgumentCount, ...) {
+inline void carg_set_nested_args(const int nestedArgumentCount, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(NESTED_ARGS_SET, false, "Nested args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called before nested args initializer. Please fix this!\n");
@@ -483,7 +233,7 @@ void carg_set_nested_args(const int nestedArgumentCount, ...) {
     SET_FLAG(cargInternalFlags, NESTED_ARGS_SET);
 }
 
-ArgContainer *carg_nested_boolean_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg) {
+inline ArgContainer *carg_nested_boolean_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg) {
     if (!HAS_FLAG(arg -> flags, BOOLEAN_ARG)) {
         _carg_error("Boolean nested argument initializer called on non-boolean flag. Fix this!\n");
     }
@@ -492,7 +242,7 @@ ArgContainer *carg_nested_boolean_container_create(ArgContainer *arg, const char
     return arg;
 }
 
-ArgContainer *carg_nest_boolean_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString) {
+inline ArgContainer *carg_nest_boolean_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString) {
     if (!HAS_FLAG(nestIn -> flags, BOOLEAN_ARG) || !HAS_FLAG(argToNest -> flags, BOOLEAN_ARG)) {
         _carg_error("Only boolean arguments can be nested with this nesting function. Fix this!\n");
     }
@@ -514,7 +264,7 @@ ArgContainer *carg_nest_boolean_container(ArgContainer *nestIn, ArgContainer *ar
     return argToNest;
 }
 
-ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg, const char * const formatterToUse) {
+inline ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *argString, const uint64_t flagsArg, const char * const formatterToUse) {
     if (HAS_FLAG(arg -> flags, BOOLEAN_ARG)) {
         _carg_error("Non-boolean nested argument initializer called on boolean flag. Fix this!\n");
     }
@@ -524,7 +274,7 @@ ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *argStr
     return arg;
 }
 
-ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString, const char * const formatterToUse) {
+inline ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString, const char * const formatterToUse) {
     if (HAS_FLAG(argToNest -> flags, BOOLEAN_ARG)) {
         _carg_error("Only non-boolean arguments can be nested with this nesting function. Fix this!\n");
     }
@@ -548,7 +298,7 @@ ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *argToNest,
     return argToNest;
 }
 
-void carg_override_callbacks(const char *argFormatter, ...) {
+inline void carg_override_callbacks(const char *argFormatter, ...) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Argument override called before library initialization. Please fix this!\n");
     _carg_flag_conditional(OVERRIDE_CALLBACKS_SET, false, "Override callback args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET | NAMED_ARGS_SET | POSITIONAL_ARGS_SET | GROUPED_ARGS_SET | NESTED_ARGS_SET, false, "Callback override initialized after arguments were set. Fix this!\n");
@@ -559,7 +309,7 @@ void carg_override_callbacks(const char *argFormatter, ...) {
     char *internalFormatter = (char *)internalFormatterAllocation;
     char *savePointer = NULL;
     const char *currentFlag = NULL;
-    voidFuncPtr functionCursor = NULL;
+    voidfuncptr_t functionCursor = NULL;
     va_list args;
     va_list args_copy;
     va_start(args, argFormatter);
@@ -567,7 +317,7 @@ void carg_override_callbacks(const char *argFormatter, ...) {
     for (int i=1; i<argCount; i++) {
         while ((currentFlag = strtok_r(internalFormatter, " ", &savePointer))) {
             internalFormatter = savePointer;
-            functionCursor = va_arg(args_copy, voidFuncPtr);
+            functionCursor = va_arg(args_copy, voidfuncptr_t);
             if (_carg_cmp_flag(currentFlag, argVector[i])) {
                 functionCursor();
                 _carg_free_nullify(&internalFormatterAllocation);
@@ -587,7 +337,7 @@ void carg_override_callbacks(const char *argFormatter, ...) {
     SET_FLAG(cargInternalFlags, OVERRIDE_CALLBACKS_SET);
 }
 
-void carg_arg_assert(const int assertionCount, ...) {
+inline void carg_arg_assert(const int assertionCount, ...) {
     _carg_flag_conditional(ASSERTIONS_SET, false, "Assertion args initializer called multiple times. Please fix this!\n");
     va_list args;
     va_start(args, assertionCount);
@@ -608,10 +358,10 @@ void carg_arg_assert(const int assertionCount, ...) {
     SET_FLAG(cargInternalFlags, ASSERTIONS_SET);
 }
 
-void carg_print_container_data(ArgContainer *container) {
+inline void carg_print_container_data(ArgContainer *container) {
     printf("Argument: \n");
-    printf("\tSize: %llu\n", container -> valueSize);
-    printf("\tFlags: %llu\n", container -> flags);
+    printf("\tSize: %zu\n", container -> valueSize);
+    printf("\tFlags: %" PRIu64 "\n", container -> flags);
     printf("\tFound At: %d\n", container -> argvIndexFound);
     printf("\tHas Value: %d\n", container -> hasValue);
     if (container -> usageString[0]) printf("\tUsage String: %s\n", container -> usageString);
@@ -619,18 +369,18 @@ void carg_print_container_data(ArgContainer *container) {
     if (container -> nestedArgString[0]) printf("\tNested Argument String: %s\n", container -> nestedArgString);
 }
 
-void *carg_fetch_multi_arg_entry(ArgContainer *container, int index) {
-    if (container -> chainedArgIndex < index) {
-        _carg_error("%d is past the bounds of the multi argument being accessed (max index is %d)\n", index, container -> chainedArgIndex);
+inline void *carg_fetch_multi_arg_entry(ArgContainer *container, int index) {
+    if (container -> multiArgIndex < index) {
+        _carg_error("%d is past the bounds of the multi argument being accessed (max index is %d)\n", index, container -> multiArgIndex);
     }
-    ChainedArgContainer *cursor = &container -> valueContainer;
+    MultiArgContainer *cursor = &container -> valueContainer;
     for (int i=0; i<index; i++) {
         cursor = cursor -> next;
     }
     return cursor -> value;
 }
 
-void carg_validate(void) {
+inline void carg_validate(void) {
     _carg_flag_conditional(ASSERTIONS_SET | NAMED_ARGS_SET | POSITIONAL_ARGS_SET | GROUPED_ARGS_SET | NESTED_ARGS_SET, true, "Argument validator called before arguments were set. Fix this!\n");
     bool errorFound = false;
     for (int i=1; i<argCount; i++) {
@@ -640,11 +390,13 @@ void carg_validate(void) {
         }
     }
     for (int i=0; i<=allArgs.fillIndex; i++) {
-        ArgContainer *arg = allArgs.array[i];
+        const ArgContainer *arg = allArgs.array[i];
         if (!arg -> parentArg || !arg -> hasValue) continue;
-        if ((!HAS_FLAG(arg -> parentArg -> flags, BOOLEAN_ARG)) && (arg -> parentArg -> argvIndexFound == arg -> argvIndexFound - 1))
+        if (!HAS_FLAG(arg -> parentArg -> flags, BOOLEAN_ARG) && arg -> parentArg -> argvIndexFound == arg -> argvIndexFound - 1)
             usage();
-        if (HAS_FLAG(arg -> flags, ENFORCE_NESTING_ORDER) && (arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound))
+        if (HAS_FLAG(arg -> flags, ENFORCE_NESTING_ORDER) && arg -> parentArg -> argvIndexFound >= arg -> argvIndexFound)
+            usage();
+        if (HAS_FLAG(arg-> flags, ENFORCE_STRICT_NESTING_ORDER) && arg -> parentArg -> argvIndexFound != arg -> argvIndexFound - 1)
             usage();
     }
     if (errorFound) {
@@ -653,7 +405,7 @@ void carg_validate(void) {
     }
 }
 
-void carg_terminate(void) {
+inline void carg_terminate(void) {
     if (HAS_FLAG(cargInternalFlags, LIBCARGS_INITIALIZED)) {
         if (allArgs.array) {
             for (int i=0; i<=allArgs.fillIndex; i++) {
@@ -665,8 +417,8 @@ void carg_terminate(void) {
                 }
                 if (allArgs.array[i] -> valueContainer.next) {
                     _carg_free_nullify(&allArgs.array[i] -> valueContainer.next -> value);
-                    ChainedArgContainer *cursor = allArgs.array[i] -> valueContainer.next -> next;
-                    ChainedArgContainer *cursorToFree = allArgs.array[i] -> valueContainer.next;
+                    MultiArgContainer *cursor = allArgs.array[i] -> valueContainer.next -> next;
+                    MultiArgContainer *cursorToFree = allArgs.array[i] -> valueContainer.next;
                     _carg_free_nullify(&cursorToFree);
                     while (cursor) {
                         _carg_free_nullify(&cursor -> value);
@@ -690,11 +442,7 @@ void carg_terminate(void) {
     CLEAR_FLAG(cargInternalFlags, LIBCARGS_INITIALIZED);
 }
 
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Internal Function Definitions
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-int test_printf(char *formatter, ...) {
+inline int test_printf(char *formatter, ...) {
     va_list args;
     va_start(args, formatter);
     const int returnValue = vsnprintf(NULL, 0, formatter, args);
@@ -707,7 +455,7 @@ int test_vsnprintf(const char *formatter, va_list args) { // NOLINT
     return returnValue;
 }
 
-int secure_sprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char * const formatter, ...) {
+inline int secure_sprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char * const formatter, ...) {
     if (startPointer > endPointer) return 0;
     if (*endPointer) {
         _carg_error("endPointer 0x%" PRIxPTR " does not point to a null terminator.\n", (uintptr_t)endPointer);
@@ -725,7 +473,7 @@ int secure_sprintf_concat(char * const startPointer, char * const endPointer, ch
     return returnValue;
 }
 
-int secure_vsprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, va_list argsToCopy) {
+inline int secure_vsprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, va_list argsToCopy) {
     if (startPointer > endPointer) return 0;
     va_list args;
     va_copy(args, argsToCopy);
@@ -740,7 +488,7 @@ int secure_vsprintf_concat(char * const startPointer, char * const endPointer, c
     return returnValue;
 }
 
-char *carg_strdup(const char *str) {
+inline char *carg_strdup(const char *str) {
     const size_t size = strlen(str);
     char *returnVal = (char *)malloc(sizeof(char) * (size + 1));
     strncpy(returnVal, str, size);
@@ -748,13 +496,13 @@ char *carg_strdup(const char *str) {
     return returnVal;
 }
 
-void _carg_flag_conditional(uint64_t flag, bool truthiness, const char * const errorMessage) {
+inline void _carg_flag_conditional(uint64_t flag, bool truthiness, const char * const errorMessage) {
     if ((bool)HAS_FLAG(cargInternalFlags, flag) != truthiness) {
         _carg_error(errorMessage);
     }
 }
 
-void _carg_error(const char *formatter, ...) {
+inline void _carg_error(const char *formatter, ...) {
     va_list args;
     va_start(args, formatter);
     fprintf(stderr, "cargError: ");
@@ -764,7 +512,7 @@ void _carg_error(const char *formatter, ...) {
     exit(EXIT_FAILURE);
 }
 
-void _carg_heap_check(void *ptr) {
+inline void _carg_heap_check(void *ptr) {
     if (!ptr) {
         printf("Heap allocation failure. Terminating\n");
         carg_terminate();
@@ -772,18 +520,18 @@ void _carg_heap_check(void *ptr) {
     }
 }
 
-void _carg_free_nullify(void *ptr) {
+inline void _carg_free_nullify(void *ptr) {
     if (*(void **)ptr) {
         free(*(void **)ptr);
         *(void **)ptr = NULL;
     }
 }
 
-int _carg_cmp_flag(const char *argument, const char *parameter) {
+inline int _carg_cmp_flag(const char *argument, const char *parameter) {
     return !strcmp(argument, parameter);
 }
 
-int _carg_is_flag(const char *formatter, const char *toCheck) {
+inline int _carg_is_flag(const char *formatter, const char *toCheck) {
     void *internalFormatterAllocation = carg_strdup(formatter);
     _carg_heap_check(internalFormatterAllocation);
     char *internalFormatter = (char *)internalFormatterAllocation;
@@ -804,29 +552,29 @@ int _carg_is_flag(const char *formatter, const char *toCheck) {
     return 0;
 }
 
-void _carg_usage_default(void) {
+inline void _carg_usage_default(void) {
     printf("%s\n", usageString);
 }
 
-bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **flagCopierPointer) {
+inline bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **flagCopierPointer) {
     if (HAS_FLAG(currentArg -> flags, MULTI_ARG) && currentArg -> hasValue) {
-        ChainedArgContainer *multiArgCursor = &currentArg->valueContainer;
+        MultiArgContainer *multiArgCursor = &currentArg->valueContainer;
         while (multiArgCursor -> next) {
             multiArgCursor = multiArgCursor -> next;
         }
-        multiArgCursor -> next = (ChainedArgContainer *)malloc(sizeof(ChainedArgContainer));
+        multiArgCursor -> next = (MultiArgContainer *)malloc(sizeof(MultiArgContainer));
         _carg_heap_check(multiArgCursor -> next);
         multiArgCursor -> next -> next = NULL;
         multiArgCursor -> next -> value = malloc(currentArg -> valueSize);
         _carg_heap_check(multiArgCursor -> next -> value);
         *flagCopierPointer = multiArgCursor -> next -> value;
-        currentArg -> chainedArgIndex++;
+        currentArg -> multiArgIndex++;
         return true;
     }
     return false;
 }
 
-void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCopierPointer, const int argIndex, const char *formatterItem, const char *formatItemToCopy, void **internalFormatterAllocation, char **argumentFlagToCompare) {
+inline void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCopierPointer, const int argIndex, const char *formatterItem, const char *formatItemToCopy, void **internalFormatterAllocation, char **argumentFlagToCompare) {
     if (!currentArg) return;
     if (currentArg -> hasValue && !HAS_FLAG(currentArg -> flags, MULTI_ARG)) {
         usage();
@@ -857,25 +605,25 @@ void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCopierPoi
     if (formatterItem) strncpy(currentArg -> formatterUsed, formatterItem, maxFormatterSize - 1);
 }
 
-void _carg_validate_formatter_extended(const char *formatterItem) {
+inline void _carg_validate_formatter_extended(const char *formatterItem) {
     if (formatterItem && !_carg_cmp_flag(formatterItem, "bool") && formatterItem[0] != '%') {
         _carg_error("Cannot parse token %s\n", formatterItem);
     }
 }
 
-void _carg_validate_formatter(const char *formatterItem) {
+inline void _carg_validate_formatter(const char *formatterItem) {
     if (formatterItem && formatterItem[0] != '%') {
         _carg_error("Cannot parse token %s\n", formatterItem);
     }
 }
 
-void _validateFlag(const char *flagItem) {
+inline void _validateFlag(const char *flagItem) {
     if (flagItem && string_contains_char(flagItem, '%') > -1) {
         _carg_error("Cannot parse token %s\n", flagItem);
     }
 }
 
-bool _carg_adjust_named_assign(const int argIndex, const char *formatterItem, const char *flagItem, const char **formatItemToCopy, char *argumentFlagToCompare) {
+inline bool _carg_adjust_named_assign(const int argIndex, const char *formatterItem, const char *flagItem, const char **formatItemToCopy, char *argumentFlagToCompare) {
     if (argumentFlagToCompare && string_contains_char(argVector[argIndex], '=') >= 0 && strcmp(formatterItem, "bool")) {
         int ncompare = 0;
         while (argVector[argIndex][ncompare] != '=') ncompare++;
@@ -886,7 +634,7 @@ bool _carg_adjust_named_assign(const int argIndex, const char *formatterItem, co
     return true;
 }
 
-void _carg_reference_named_arg_formatter(const int argIndex, const char *argFormatter, va_list outerArgs) { // NOLINT
+inline void _carg_reference_named_arg_formatter(const int argIndex, const char *argFormatter, va_list outerArgs) { // NOLINT
     if (setArgs[argIndex]) return;
     va_list formatterArgs;
     va_copy(formatterArgs, outerArgs);
@@ -918,7 +666,7 @@ void _carg_reference_named_arg_formatter(const int argIndex, const char *argForm
     _carg_free_nullify(&argumentFlagToCompare);
 }
 
-void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **internalFormatterAllocation, char **internalFormatter, char **savePointer, void **flagCopierPointer) {
+inline void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **internalFormatterAllocation, char **internalFormatter, char **savePointer, void **flagCopierPointer) {
     *internalFormatter = strtok_r(*internalFormatter, " ", savePointer);
     if (!HAS_FLAG(currentArg -> flags, POSITIONAL_ARG)) {
         _carg_error("Positional arg setter called on named argument. Please fix this!\n");
@@ -937,7 +685,7 @@ void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const in
     *internalFormatter = *savePointer;
 }
 
-void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixArgFormatter, bool **flagCopierPointer, va_list args) {
+inline void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixArgFormatter, bool **flagCopierPointer, va_list args) {
     va_list formatterArgs;
     va_copy(formatterArgs, args);
     if (string_contains_char(argVector[i], noPrefixArgFormatter[j]) >= 0) {
@@ -958,7 +706,7 @@ void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, 
     va_end(formatterArgs);
 }
 
-int _carg_set_nested_arg_internal(ArgContainer *arg) {
+inline int _carg_set_nested_arg_internal(ArgContainer *arg) {
     if (!arg) return 0;
     if (!HAS_FLAG(arg -> flags, NESTED_ARG)) {
         _carg_error("Nested flag setter called on non-nested argument. Fix this!\n");
@@ -982,7 +730,7 @@ int _carg_set_nested_arg_internal(ArgContainer *arg) {
     return 0;
 }
 
-void _carg_set_env_defaults_internal(char **argFormatterTokenCopy, char **savePointer, void **argFormatterTokenAllocation, va_list args) {
+inline void _carg_set_env_defaults_internal(char **argFormatterTokenCopy, char **savePointer, void **argFormatterTokenAllocation, va_list args) {
     va_list formatterArgs;
     va_copy(formatterArgs, args);
     ArgContainer *currentArg = NULL;
@@ -1008,7 +756,7 @@ void _carg_set_env_defaults_internal(char **argFormatterTokenCopy, char **savePo
     va_end(formatterArgs);
 }
 
-void _carg_print_positional_usage_buffer(void) {
+inline void _carg_print_positional_usage_buffer(void) {
     for (int i=0; i<=allArgs.fillIndex; i++) {
         if (!allArgs.array[i]) break;
         if (!HAS_FLAG(allArgs.array[i] -> flags, POSITIONAL_ARG)) continue;
@@ -1017,7 +765,7 @@ void _carg_print_positional_usage_buffer(void) {
     }
 }
 
-void _carg_print_non_positional_usage_buffer(void) {
+inline void _carg_print_non_positional_usage_buffer(void) {
     for (int i=0; i<=allArgs.fillIndex; i++) {
         if (HAS_FLAG(allArgs.array[i] -> flags, BOOLEAN_ARG && allArgs.array[i] -> usageString[0])) {
             secure_sprintf_concat(usageStringCursor, usageStringEnd, &usageStringCursor, "%s ", allArgs.array[i]->usageString);
@@ -1041,16 +789,42 @@ void _carg_print_non_positional_usage_buffer(void) {
     }
 }
 
-// Reset macro definitions to not interfere with other included libraries.
-#ifdef _MSC_VER 
-    #undef strtok_r
-    #undef _CRT_SECURE_NO_WARNINGS
-#endif
+#define CARG_PRINT_STRING_ARG(argument) do {\
+    carg_print_container_data(argument);\
+    printf("\tValue: ");\
+    if (string_contains_char((argument) -> formatterUsed, '\n') >= 0) printf("%s", (char *)(argument) -> valueContainer.value); /* This allows the string scanf() formatter with spaces to work. */\
+    else printf((argument) -> formatterUsed, (char *)(argument) -> valueContainer.value);\
+    printf("\n");\
+} while (0)
 
-#endif // For C standard compatibility check.
+#define CARG_PRINT_NON_STRING_ARG(argument, typeArg) do {\
+    carg_print_container_data(argument);\
+    printf("\tValue: ");\
+    printf((argument) -> formatterUsed, *(typeArg *)(argument) -> valueContainer.value);\
+    printf("\n");\
+} while (0)
 
-#ifdef __cplusplus
-}
+#define CARG_PRINT_NON_STRING_MULTI_ARG(argument, typeArg) do {\
+    CARG_PRINT_NON_STRING_ARG(argument, typeArg);\
+    if (!(argument) -> formatterUsed[0]) break;\
+    MultiArgContainer *cursor = argument -> valueContainer.next;\
+    while (cursor) {\
+        printf("\tValue: ");\
+        printf((argument) -> formatterUsed, *(typeArg *)cursor -> value);\
+        printf("\n");\
+        cursor = cursor -> next;\
+    }\
+} while (0)
 
-// For C++ linking compatibility
-#endif
+#define CARG_PRINT_STRING_MULTI_ARG(argument) do {\
+    CARG_PRINT_STRING_ARG(argument);\
+    if (!(argument) -> formatterUsed[0]) break;\
+    MultiArgContainer *cursor = argument -> valueContainer.next;\
+    while (cursor) {\
+        printf("\tValue: ");\
+        if (string_contains_char((argument) -> formatterUsed, '\n') >= 0) printf("%s", (cursor -> value)); /* This allows the string scanf() formatter with spaces to work. */\
+        else printf((argument) -> formatterUsed, cursor -> value);\
+        printf("\n");\
+        cursor = cursor -> next;\
+    }\
+} while (0)

@@ -1,4 +1,4 @@
-#include "args.h"
+#include "cargs.h"
 
 void help(void) {
     printf("Help message here\n");
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) { // Example code
         }
     }
 
-    carg_nested_boolean_container_create(nestedArg3, "nestedArg3", ENFORCE_NESTING_ORDER); {
+    carg_nested_boolean_container_create(nestedArg3, "nestedArg3", ENFORCE_STRICT_NESTING_ORDER); {
         carg_nest_boolean_container(nestedArg3, nestedArg4, "nestedArg4");
         carg_nest_boolean_container(nestedArg3, nestedArg5, "nestedArg5"); {
             carg_nest_boolean_container(nestedArg5, nestedArg6, "nestedArg6"); {
