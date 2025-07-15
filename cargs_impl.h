@@ -612,20 +612,20 @@ inline void _carg_set_named_arg_internal(ArgContainer *currentArg, void **flagCo
 }
 
 inline void _carg_validate_formatter_extended(const char *formatToken) {
-    if (formatToken && !_carg_cmp_flag(formatToken, "bool") && formatToken[0] != '%') {
-        _carg_error("Cannot parse token %s\n", formatToken);
+    if (formatToken && !_carg_cmp_flag(formatToken, "bool") && formatToken[0] != '%' || carg_string_contains_char(formatToken + 1, '%') >= 0) {
+        _carg_error("Cannot parse format token %s\n", formatToken);
     }
 }
 
 inline void _carg_validate_formatter(const char *formatToken) {
-    if (formatToken && formatToken[0] != '%') {
-        _carg_error("Cannot parse token %s\n", formatToken);
+    if (formatToken && formatToken[0] != '%' || carg_string_contains_char(formatToken + 1, '%') >= 0) {
+        _carg_error("Cannot parse format token %s\n", formatToken);
     }
 }
 
-inline void _validateFlag(const char *flagToken) {
+inline void _carg_validate_flag(const char *flagToken) {
     if (flagToken && carg_string_contains_char(flagToken, '%') > -1) {
-        _carg_error("Cannot parse token %s\n", flagToken);
+        _carg_error("Cannot parse flag token %s\n", flagToken);
     }
 }
 
@@ -654,10 +654,10 @@ inline void _carg_reference_named_arg_formatter(const int argIndex, const char *
     else argToFormat = NULL;
     _carg_strtok_register_string(formatToTokenize);
     while (1) {
-        const char *flagToken = strtok(NULL, ": ");
-        const char *formatToken = strtok(NULL, ": ");
+        const char *flagToken = strtok(NULL, ":");
+        const char *formatToken = strtok(NULL, " ");
         if (!flagToken) break;
-        _validateFlag(flagToken);
+        _carg_validate_flag(flagToken);
         _carg_validate_formatter_extended(formatToken);
         ArgContainer *currentArg = va_arg(argsCopy, ArgContainer *);
         if (!_carg_adjust_named_assign(argIndex, formatToken, flagToken, &argToFormat, argumentFlagToCompare)) continue;
@@ -739,12 +739,12 @@ inline void _carg_set_env_defaults_internal(char **stringToTokenize, char **toke
     va_copy(argsCopy, args);
     ArgContainer *currentArg = NULL;
     while (1) {
-        char *envVarToken = strtok_r(*stringToTokenize, ": ", tokenSavePointer);
-        char *formatToken = strtok_r(NULL, ": ", tokenSavePointer);
+        char *envVarToken = strtok_r(*stringToTokenize, ":", tokenSavePointer);
+        char *formatToken = strtok_r(NULL, " ", tokenSavePointer);
         *stringToTokenize = *tokenSavePointer;
-        _validateFlag(envVarToken);
-        _carg_validate_formatter(formatToken);
         if (!envVarToken || !formatToken) break;
+        _carg_validate_flag(envVarToken);
+        _carg_validate_formatter(formatToken);
         const char *envVarValue = getenv(envVarToken);
         currentArg = va_arg(argsCopy, ArgContainer *);
         if (!envVarValue) continue;

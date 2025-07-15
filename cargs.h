@@ -22,8 +22,10 @@ extern "C" {
     #pragma warning(disable:4003) // Some variadic macros in this library do not use their variadic arguments.
 #endif
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #define maxFormatterSize 128
 
@@ -196,7 +198,7 @@ bool _carg_adjust_named_assign(const int argIndex, const char *formatToken, cons
 
 void _carg_validate_formatter_extended(const char *formatToken);
 void _carg_validate_formatter(const char *formatToken);
-void _validateFlag(const char *flagToken);
+void _carg_validate_flag(const char *flagToken);
 
 void _carg_reference_named_arg_formatter(const int argIndex, const char *format, va_list outerArgs);
 void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **flagCopierPointer);

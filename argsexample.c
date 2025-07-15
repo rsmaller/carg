@@ -13,11 +13,11 @@ int main(int argc, char *argv[]) { // Example code
     carg_init(argc, argv);
 
     int             positionalArgValue  = NO_DEFAULT_VALUE;
-    ArgContainer   *positionalArg       = carg_arg_create(&positionalArgValue, sizeof(int), POSITIONAL_ARG, NO_USAGE_STRING);
+    ArgContainer   *positionalArg       = carg_arg_create(&positionalArgValue, sizeof(int), POSITIONAL_ARG, "<number>");
     int             positionalArg2Value = NO_DEFAULT_VALUE;
-    ArgContainer   *positionalArg2      = carg_arg_create(&positionalArg2Value, sizeof(int), POSITIONAL_ARG, NO_USAGE_STRING);
+    ArgContainer   *positionalArg2      = carg_arg_create(&positionalArg2Value, sizeof(int), POSITIONAL_ARG, "<number>");
     char           *positionalStringArgValue = (char *)malloc(100 * sizeof(char));
-    ArgContainer   *positionalStringArg      = carg_arg_create(positionalStringArgValue, sizeof(char) * 100, POSITIONAL_ARG | HEAP_ALLOCATED, NO_USAGE_STRING);
+    ArgContainer   *positionalStringArg      = carg_arg_create(positionalStringArgValue, sizeof(char) * 100, POSITIONAL_ARG | HEAP_ALLOCATED, "<string>");
 
     int             intArgValue        = NO_DEFAULT_VALUE;
     ArgContainer   *intArg             = carg_arg_create(&intArgValue, sizeof(int), NO_FLAGS, "-n <number>");
@@ -33,7 +33,6 @@ int main(int argc, char *argv[]) { // Example code
     ArgContainer   *boolArg3           = carg_arg_create(&boolArg3Value, sizeof(bool), BOOLEAN_ARG, "--xarg");
     char           *stringArgValue     = (char *)malloc(21 * sizeof(char));
     ArgContainer   *stringArg          = carg_arg_create(stringArgValue, sizeof(char) * 21, HEAP_ALLOCATED, "-t|--term <string>");
-    carg_heap_default_value(stringArg, "default", strlen("default"));
 
     bool            nestedArg1Value = false;
     ArgContainer   *nestedArg1      = carg_arg_create(&nestedArg1Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
@@ -61,8 +60,8 @@ int main(int argc, char *argv[]) { // Example code
 
     int            *multiIntArgValue           = (int *)malloc(sizeof(int));
     ArgContainer   *multiIntArg                = carg_arg_create(multiIntArgValue, sizeof(int), HEAP_ALLOCATED | MULTI_ARG, NO_USAGE_STRING);
-    char            multiStringArg2Value[1000] = "default";
-    ArgContainer   *multiStringArg2            = carg_arg_create(multiStringArg2Value, sizeof(multiStringArg2Value), MULTI_ARG, "-ff <string>");
+    char            multiStringArgValue[1000] = "default";
+    ArgContainer   *multiStringArg            = carg_arg_create(multiStringArgValue, sizeof(multiStringArgValue), MULTI_ARG, "-ff <string>");
 
     carg_nested_boolean_container_create(nestedArg1, "nestedArg1", ENFORCE_NESTING_ORDER); {
         carg_nest_boolean_container(nestedArg1, nestedArg2, "nestedArg2");
@@ -95,10 +94,10 @@ int main(int argc, char *argv[]) { // Example code
     carg_override_callbacks("-h -h2", help, help2);
     carg_set_nested_args(3, nestedArg1, nestedArg3, nestedArg20);
     carg_set_positional_args("%d %d %20s", positionalArg, positionalArg2, positionalStringArg);
-    carg_set_named_args("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d --mynum:%d",
-        intArg, stringArg, stringArg, multiStringArg2, floatArg, boolArg3, keywordIntArg, multiIntArg);
+    carg_set_named_args("-n:%d: -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d --mynum:%d",
+        intArg, stringArg, stringArg, multiStringArg, floatArg, boolArg3, keywordIntArg, multiIntArg);
     carg_set_grouped_boolean_args("-bc", boolArg1, boolArg2);
-    carg_set_env_defaults("OS:%999[^\n] PATH:%7s", multiStringArg2, stringArg);
+    carg_set_env_defaults("OS:%999[^\n] PATH:%7s", multiStringArg, stringArg);
 
     //  Assertion, previews, and termination
     carg_validate();
@@ -111,20 +110,24 @@ int main(int argc, char *argv[]) { // Example code
     );
 
      // Testing arguments
-    printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], multiStringArg2: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], bool3: %d[%d]\n",
+    printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, \
+intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], multiStringArg: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], \
+bool3: %d[%d]\n",
         positionalArgCount, positionalArgValue, positionalArg2Value,
         positionalStringArgValue, intArgValue, intArg -> argvIndexFound,
         keywordIntArgValue, keywordIntArg -> argvIndexFound,
-        stringArgValue, stringArg -> argvIndexFound, multiStringArg2Value,
-        multiStringArg2 -> argvIndexFound, floatArgValue, floatArg -> argvIndexFound,
+        stringArgValue, stringArg -> argvIndexFound, multiStringArgValue,
+        multiStringArg -> argvIndexFound, floatArgValue, floatArg -> argvIndexFound,
         boolArg1Value, boolArg1 -> argvIndexFound, boolArg2Value, boolArg2 -> argvIndexFound,
         boolArg3Value, boolArg3 -> argvIndexFound);
-    printf("\nNested arguments - nestedArg1: %d, nestedArg2: %d, nestedArg3: %d, nestedArg4: %d, nestedArg5: %d, nestedArg6: %d, nestedArg7: %d nestedArg8: %d, nestedArg20: %s, nestedArg21: %d, nestedArg22: %d\n",
-        nestedArg1Value, nestedArg2Value, nestedArg3Value, nestedArg4Value, nestedArg5Value, nestedArg6Value, nestedArg7Value, nestedArg8Value, nestedArg20Value, nestedArg21Value, nestedArg22Value);
+    printf("\nNested arguments - nestedArg1: %d, nestedArg2: %d, nestedArg3: %d, nestedArg4: %d, nestedArg5: %d, nestedArg6: %d, \
+nestedArg7: %d nestedArg8: %d, nestedArg20: %s, nestedArg21: %d, nestedArg22: %d\n",
+        nestedArg1Value, nestedArg2Value, nestedArg3Value, nestedArg4Value, nestedArg5Value, nestedArg6Value, nestedArg7Value, 
+        nestedArg8Value, nestedArg20Value, nestedArg21Value, nestedArg22Value);
     // CARG_PRINT_NON_STRING_ARG(multiIntArg, int); // Uncomment these to see how the argument printing macros work.
     // CARG_PRINT_STRING_ARG(stringArg);
     // CARG_PRINT_NON_STRING_MULTI_ARG(multiIntArg, int);
-    // CARG_PRINT_STRING_MULTI_ARG(multiStringArg2);
+    // CARG_PRINT_STRING_MULTI_ARG(multiStringArg);
     carg_terminate();
     return 0;
 }
