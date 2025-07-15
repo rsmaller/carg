@@ -22,10 +22,10 @@ extern "C" {
     #pragma warning(disable:4003) // Some variadic macros in this library do not use their variadic arguments.
 #endif
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdarg.h>
+#include <stdlib.h>     // NOLINT
+#include <stdint.h>     // NOLINT
+#include <stdbool.h>    // NOLINT
+#include <stdarg.h>     // NOLINT
 
 #define maxFormatterSize 128
 
