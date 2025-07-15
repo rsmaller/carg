@@ -25,7 +25,7 @@ extern "C" {
 #include <stdlib.h>     // NOLINT
 #include <stdint.h>     // NOLINT
 #include <stdbool.h>    // NOLINT
-#include <stdarg.h>     // NOLINT
+#include <stdarg.h>     // NOLINT 
 
 #define maxFormatterSize 128
 
