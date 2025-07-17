@@ -143,10 +143,10 @@ void          carg_init     (int argc, char **argv);
 void          carg_validate (void);
 void          carg_terminate(void);
 
-void          carg_print_container_data (CargArgContainer *container);
-void         *carg_fetch_multi_arg_entry(CargArgContainer *container, int index);
+void          carg_print_container_data (const CargArgContainer *container);
+void         *carg_fetch_multi_arg_entry(const CargArgContainer *container, int index);
 
-char         *carg_string_contains_substr(char *container, const char *substr);
+char         *carg_string_contains_substr(char *container, const char * const substr);
 int           carg_string_contains_char  (const char * const container, char subchar);
 const char   *carg_basename              (const char * const pathStart);
     

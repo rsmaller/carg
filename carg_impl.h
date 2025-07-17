@@ -52,7 +52,7 @@ inline CargArgContainer *carg_arg_create(void *argVarPtr, size_t varSize, uint64
     return constructedArgument;
 }
 
-inline char *carg_string_contains_substr(char *container, const char *substr) {
+inline char *carg_string_contains_substr(char *container, const char * const substr) {
     while (strlen(container) >= strlen(substr)) {
         if (!strncmp(container, substr, strlen(substr))) {
             return container;
@@ -256,9 +256,7 @@ inline CargArgContainer *carg_nest_boolean_container(CargArgContainer *nestIn, C
         nestIn -> nestedArgArraySize = 4;
     }
     argToNest -> nestedArgString = nestedArgString;
-    argToNest -> flags |= nestIn -> flags;
-    SET_FLAG(argToNest -> flags, NESTED_ARG | BOOLEAN_ARG);
-    CLEAR_FLAG(argToNest -> flags, NESTED_ARG_ROOT);
+    SET_FLAG(argToNest -> flags, NESTED_ARG);
     nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
     argToNest -> parentArg = nestIn;
     return argToNest;
@@ -288,11 +286,8 @@ inline CargArgContainer *carg_nest_container(CargArgContainer *nestIn, CargArgCo
         nestIn -> nestedArgArraySize = 4;
     }
     argToNest -> nestedArgString = nestedArgString;
-    argToNest -> flags |= nestIn -> flags;
     strncpy(argToNest -> formatterUsed, format, sizeof(argToNest -> formatterUsed) - 1);
     SET_FLAG(argToNest -> flags, NESTED_ARG);
-    CLEAR_FLAG(argToNest -> flags, NESTED_ARG_ROOT);
-    CLEAR_FLAG(argToNest -> flags, BOOLEAN_ARG);
     nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
     argToNest -> parentArg = nestIn;
     return argToNest;
@@ -354,7 +349,7 @@ inline void carg_arg_assert(const int assertionCount, ...) {
     SET_FLAG(cargInternalFlags, ASSERTIONS_SET);
 }
 
-inline void carg_print_container_data(CargArgContainer *container) {
+inline void carg_print_container_data(const CargArgContainer *container) {
     printf("Argument: \n");
     printf("\tSize: %zu\n", container -> valueSize);
     printf("\tFlags: %" PRIu64 "\n", container -> flags);
@@ -365,11 +360,11 @@ inline void carg_print_container_data(CargArgContainer *container) {
     if (container -> nestedArgString[0]) printf("\tNested Argument String: %s\n", container -> nestedArgString);
 }
 
-inline void *carg_fetch_multi_arg_entry(CargArgContainer *container, int index) {
+inline void *carg_fetch_multi_arg_entry(const CargArgContainer *container, int index) {
     if (container -> multiArgIndex < index) {
         _carg_error("%d is past the bounds of the multi argument being accessed (max index is %d)\n", index, container -> multiArgIndex);
     }
-    CargMultiArgContainer *cursor = &container -> valueContainer;
+    const CargMultiArgContainer *cursor = &container -> valueContainer;
     for (int i=0; i<index; i++) {
         cursor = cursor -> next;
     }
