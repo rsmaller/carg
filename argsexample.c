@@ -1,4 +1,4 @@
-#include "cargs.h"
+#include "carg.h"
 
 void help(void) {
     printf("Help message here\n");
@@ -12,56 +12,56 @@ int main(int argc, char *argv[]) { // Example code
     //  Argument Initialization
     carg_init(argc, argv);
 
-    int             positionalArgValue  = NO_DEFAULT_VALUE;
-    ArgContainer   *positionalArg       = carg_arg_create(&positionalArgValue, sizeof(int), POSITIONAL_ARG, "<number>");
-    int             positionalArg2Value = NO_DEFAULT_VALUE;
-    ArgContainer   *positionalArg2      = carg_arg_create(&positionalArg2Value, sizeof(int), POSITIONAL_ARG, "<number>");
-    char           *positionalStringArgValue = (char *)malloc(100 * sizeof(char));
-    ArgContainer   *positionalStringArg      = carg_arg_create(positionalStringArgValue, sizeof(char) * 100, POSITIONAL_ARG | HEAP_ALLOCATED, "<string>");
+    int                 positionalArgValue  = NO_DEFAULT_VALUE;
+    CargArgContainer   *positionalArg       = carg_arg_create(&positionalArgValue, sizeof(int), POSITIONAL_ARG, "<number>");
+    int                 positionalArg2Value = NO_DEFAULT_VALUE;
+    CargArgContainer   *positionalArg2      = carg_arg_create(&positionalArg2Value, sizeof(int), POSITIONAL_ARG, "<number>");
+    char               *positionalStringArgValue = (char *)malloc(100 * sizeof(char));
+    CargArgContainer   *positionalStringArg      = carg_arg_create(positionalStringArgValue, sizeof(char) * 100, POSITIONAL_ARG | HEAP_ALLOCATED, "<string>");
 
-    int             intArgValue        = NO_DEFAULT_VALUE;
-    ArgContainer   *intArg             = carg_arg_create(&intArgValue, sizeof(int), NO_FLAGS, "-n <number>");
-    int             keywordIntArgValue = 0;
-    ArgContainer   *keywordIntArg      = carg_arg_create(&keywordIntArgValue, sizeof(int), NO_FLAGS, "-k <number>");
-    float           floatArgValue      = 0.5f;
-    ArgContainer   *floatArg           = carg_arg_create(&floatArgValue, sizeof(float), NO_FLAGS, "-z <float>");
-    bool            boolArg1Value      = false;
-    ArgContainer   *boolArg1           = carg_arg_create(&boolArg1Value, sizeof(bool), BOOLEAN_ARG, "-b");
-    bool            boolArg2Value      = true;
-    ArgContainer   *boolArg2           = carg_arg_create(&boolArg2Value, sizeof(bool), BOOLEAN_ARG, "-c");
-    bool            boolArg3Value      = false;
-    ArgContainer   *boolArg3           = carg_arg_create(&boolArg3Value, sizeof(bool), BOOLEAN_ARG, "--xarg");
-    char           *stringArgValue     = (char *)malloc(21 * sizeof(char));
-    ArgContainer   *stringArg          = carg_arg_create(stringArgValue, sizeof(char) * 21, HEAP_ALLOCATED, "-t|--term <string>");
+    int                 intArgValue        = NO_DEFAULT_VALUE;
+    CargArgContainer   *intArg             = carg_arg_create(&intArgValue, sizeof(int), NO_FLAGS, "-n <number>");
+    int                 keywordIntArgValue = 0;
+    CargArgContainer   *keywordIntArg      = carg_arg_create(&keywordIntArgValue, sizeof(int), NO_FLAGS, "-k <number>");
+    float               floatArgValue      = 0.5f;
+    CargArgContainer   *floatArg           = carg_arg_create(&floatArgValue, sizeof(float), NO_FLAGS, "-z <float>");
+    bool                boolArg1Value      = false;
+    CargArgContainer   *boolArg1           = carg_arg_create(&boolArg1Value, sizeof(bool), BOOLEAN_ARG, "-b");
+    bool                boolArg2Value      = true;
+    CargArgContainer   *boolArg2           = carg_arg_create(&boolArg2Value, sizeof(bool), BOOLEAN_ARG, "-c");
+    bool                boolArg3Value      = false;
+    CargArgContainer   *boolArg3           = carg_arg_create(&boolArg3Value, sizeof(bool), BOOLEAN_ARG, "--xarg");
+    char               *stringArgValue     = (char *)malloc(21 * sizeof(char));
+    CargArgContainer   *stringArg          = carg_arg_create(stringArgValue, sizeof(char) * 21, HEAP_ALLOCATED, "-t|--term <string>");
 
-    bool            nestedArg1Value = false;
-    ArgContainer   *nestedArg1      = carg_arg_create(&nestedArg1Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
-    bool            nestedArg2Value = false;
-    ArgContainer   *nestedArg2      = carg_arg_create(&nestedArg2Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
-    bool            nestedArg3Value = false;
-    ArgContainer   *nestedArg3      = carg_arg_create(&nestedArg3Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
-    bool            nestedArg4Value = false;
-    ArgContainer   *nestedArg4      = carg_arg_create(&nestedArg4Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
-    bool            nestedArg5Value = false;
-    ArgContainer   *nestedArg5      = carg_arg_create(&nestedArg5Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
-    bool            nestedArg6Value = false;
-    ArgContainer   *nestedArg6      = carg_arg_create(&nestedArg6Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
-    bool            nestedArg7Value = false;
-    ArgContainer   *nestedArg7      = carg_arg_create(&nestedArg7Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
-    bool            nestedArg8Value = false;
-    ArgContainer   *nestedArg8      = carg_arg_create(&nestedArg8Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool                nestedArg1Value = false;
+    CargArgContainer   *nestedArg1      = carg_arg_create(&nestedArg1Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool                nestedArg2Value = false;
+    CargArgContainer   *nestedArg2      = carg_arg_create(&nestedArg2Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool                nestedArg3Value = false;
+    CargArgContainer   *nestedArg3      = carg_arg_create(&nestedArg3Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool                nestedArg4Value = false;
+    CargArgContainer   *nestedArg4      = carg_arg_create(&nestedArg4Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool                nestedArg5Value = false;
+    CargArgContainer   *nestedArg5      = carg_arg_create(&nestedArg5Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool                nestedArg6Value = false;
+    CargArgContainer   *nestedArg6      = carg_arg_create(&nestedArg6Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool                nestedArg7Value = false;
+    CargArgContainer   *nestedArg7      = carg_arg_create(&nestedArg7Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    bool                nestedArg8Value = false;
+    CargArgContainer   *nestedArg8      = carg_arg_create(&nestedArg8Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
 
-    char            nestedArg20Value[100] = "nestedArg20_default";
-    ArgContainer   *nestedArg20           = carg_arg_create(nestedArg20Value, sizeof(nestedArg20Value), NO_FLAGS, NO_USAGE_STRING);
-    int             nestedArg21Value      = 0;
-    ArgContainer   *nestedArg21           = carg_arg_create(&nestedArg21Value, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
-    int             nestedArg22Value      = 0;
-    ArgContainer   *nestedArg22           = carg_arg_create(&nestedArg22Value, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
+    char                nestedArg20Value[100] = "nestedArg20_default";
+    CargArgContainer   *nestedArg20           = carg_arg_create(nestedArg20Value, sizeof(nestedArg20Value), NO_FLAGS, NO_USAGE_STRING);
+    int                 nestedArg21Value      = 0;
+    CargArgContainer   *nestedArg21           = carg_arg_create(&nestedArg21Value, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
+    int                 nestedArg22Value      = 0;
+    CargArgContainer   *nestedArg22           = carg_arg_create(&nestedArg22Value, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
 
-    int            *multiIntArgValue           = (int *)malloc(sizeof(int));
-    ArgContainer   *multiIntArg                = carg_arg_create(multiIntArgValue, sizeof(int), HEAP_ALLOCATED | MULTI_ARG, NO_USAGE_STRING);
-    char            multiStringArgValue[1000] = "default";
-    ArgContainer   *multiStringArg            = carg_arg_create(multiStringArgValue, sizeof(multiStringArgValue), MULTI_ARG, "-ff <string>");
+    int                *multiIntArgValue           = (int *)malloc(sizeof(int));
+    CargArgContainer   *multiIntArg                = carg_arg_create(multiIntArgValue, sizeof(int), HEAP_ALLOCATED | MULTI_ARG, NO_USAGE_STRING);
+    char                multiStringArgValue[1000] = "default";
+    CargArgContainer   *multiStringArg            = carg_arg_create(multiStringArgValue, sizeof(multiStringArgValue), MULTI_ARG, "-ff <string>");
 
     carg_nested_boolean_container_create(nestedArg1, "nestedArg1", ENFORCE_NESTING_ORDER); {
         carg_nest_boolean_container(nestedArg1, nestedArg2, "nestedArg2");

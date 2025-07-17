@@ -2,8 +2,8 @@
 //  SECTION: Includes and Type Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #pragma once
-#ifndef CARGS_H
-    #define CARGS_H
+#ifndef CARG_H
+    #define CARG_H
 #endif
 
 #ifdef __cplusplus
@@ -18,8 +18,10 @@ extern "C" {
 
 #ifdef _MSC_VER
     #define strtok_r strtok_s
-    #define _CRT_SECURE_NO_WARNINGS // sscanf() is required for this project.
-    #pragma warning(disable:4003) // Some variadic macros in this library do not use their variadic arguments.
+    // sscanf() is required for this project.
+    #define _CRT_SECURE_NO_WARNINGS
+    // Some variadic macros in this library do not use their variadic arguments.
+    #pragma warning(disable:4003)
 #endif
 
 #include <stdlib.h>     // NOLINT
@@ -29,31 +31,31 @@ extern "C" {
 
 #define maxFormatterSize 128
 
-typedef struct MultiArgContainer {
-        struct MultiArgContainer *next;
-        void                       *value;
-} MultiArgContainer;
+typedef struct CargMultiArgContainer {
+        struct CargMultiArgContainer *next;
+        void                         *value;
+} CargMultiArgContainer;
 
-typedef struct ArgContainer {
-    MultiArgContainer     valueContainer;
-    int                   multiArgIndex;
-    size_t                valueSize;
-    bool                  hasValue;
-    int                   argvIndexFound;
-    uint64_t              flags;
-    const char * const    usageString;
-    char                  formatterUsed[maxFormatterSize];
-    const char           *nestedArgString;
-    int                   nestedArgFillIndex;
-    size_t                nestedArgArraySize;
-    struct ArgContainer  *parentArg;
-    struct ArgContainer **nestedArgs;
-} ArgContainer;
+typedef struct CargArgContainer {
+    CargMultiArgContainer     valueContainer;
+    int                       multiArgIndex;
+    size_t                    valueSize;
+    bool                      hasValue;
+    int                       argvIndexFound;
+    uint64_t                  flags;
+    const char * const        usageString;
+    char                      formatterUsed[maxFormatterSize];
+    const char               *nestedArgString;
+    int                       nestedArgFillIndex;
+    size_t                    nestedArgArraySize;
+    struct CargArgContainer  *parentArg;
+    struct CargArgContainer **nestedArgs;
+} CargArgContainer;
 
 typedef struct argArray {
     size_t          size;
     int             fillIndex;
-    ArgContainer    **array;
+    CargArgContainer    **array;
 } argArray;
 
 typedef void (*CargCallbackFunc)(void);
@@ -137,75 +139,76 @@ uint64_t cargInternalFlags = 0;
 //  SECTION: User-Facing Function Prototypes
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     
-void          carg_init(int argc, char **argv);
-void          carg_validate(void);
+void          carg_init     (int argc, char **argv);
+void          carg_validate (void);
 void          carg_terminate(void);
 
-void          carg_print_container_data(ArgContainer *container);
-void         *carg_fetch_multi_arg_entry(ArgContainer *container, int index);
+void          carg_print_container_data (CargArgContainer *container);
+void         *carg_fetch_multi_arg_entry(CargArgContainer *container, int index);
 
 char         *carg_string_contains_substr(char *container, const char *substr);
-int           carg_string_contains_char(const char *testString, char subchar);
-const char   *carg_basename(const char * pathStart);
+int           carg_string_contains_char  (const char * const container, char subchar);
+const char   *carg_basename              (const char * const pathStart);
     
-void          carg_set_usage_message(const char *formatter, ...);
+void          carg_set_usage_message    (const char * const format, ...);
+
+void          carg_set_usage_function   (CargCallbackFunc usageFunc);
+void          carg_override_callbacks   (const char * const format, ...);
+void          carg_arg_assert           (const int assertionCount, ...);
+void          usage                     (void);
 void          carg_usage_message_autogen(void);
-void          carg_set_usage_function(CargCallbackFunc usageFunc);
-void          usage(void);
-void          carg_override_callbacks(const char *format, ...);
-void          carg_arg_assert(const int assertionCount, ...);
 
-ArgContainer *carg_arg_create(void *argVarPtr, size_t varSize, uint64_t flagsArg, const char usageStringArg[]);
-ArgContainer *carg_nested_boolean_container_create(ArgContainer *arg, const char *nestedArgString, const uint64_t flagsArg);
-ArgContainer *carg_nest_boolean_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString);
-ArgContainer *carg_nested_container_create(ArgContainer *arg, const char *nestedArgString, const uint64_t flagsArg, const char * const formatt);
-ArgContainer *carg_nest_container(ArgContainer *nestIn, ArgContainer *argToNest, const char *nestedArgString, const char * const format);
-void          carg_heap_default_value(const ArgContainer *heapArg, const void *val, size_t bytes);
+CargArgContainer *carg_arg_create                     (void *argVarPtr, size_t varSize, uint64_t flagsArg, const char usageStringArg[]);
+CargArgContainer *carg_nested_container_create        (CargArgContainer *arg, const char nestedArgString[], const uint64_t flagsArg, const char * const format);
+CargArgContainer *carg_nested_boolean_container_create(CargArgContainer *arg, const char nestedArgString[], const uint64_t flagsArg);
+CargArgContainer *carg_nest_container                 (CargArgContainer *nestIn, CargArgContainer *argToNest, const char nestedArgString[], const char * const format);
+CargArgContainer *carg_nest_boolean_container         (CargArgContainer *nestIn, CargArgContainer *argToNest, const char nestedArgString[]);
+void              carg_heap_default_value             (const CargArgContainer *heapArg, const void *val, size_t bytes);
 
-void          carg_set_named_args(const char * const format, ...);
-void          carg_set_positional_args(const char *format, ...);
-void          carg_set_grouped_boolean_args(const char *format, ...);
-void          carg_set_env_defaults(const char * const format, ...);
-void          carg_set_nested_args(const int nestedArgumentCount, ...);
+void          carg_set_named_args          (const char * const format, ...);
+void          carg_set_positional_args     (const char * const format, ...);
+void          carg_set_grouped_boolean_args(const char * const format, ...);
+void          carg_set_env_defaults        (const char * const format, ...);
+void          carg_set_nested_args         (const int nestedArgumentCount, ...);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Function Prototypes
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     
-int   test_printf(char *formatter, ...);
-int   test_vsnprintf(const char *formatter, va_list args);
-int   secure_sprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, ...);
-int   secure_vsprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, va_list argsToCopy);
-char *carg_strdup(const char *str);
+int   test_printf           (char *formatter, ...);
+int   test_vsnprintf        (const char *formatter, va_list args);
+int   secure_sprintf_concat (char * const startPointer, char * const endPointer, const char **cursor, const char *formatter, ...);
+int   secure_vsprintf_concat(char * const startPointer, char * const endPointer, const char **cursor, const char *formatter, va_list argsToCopy);
+char *carg_strdup           (const char *str);
 
 void  _carg_flag_conditional(uint64_t flag, bool truthiness, const char * const errorMessage);
-void  _carg_error(const char * formatter, ...);
-void  _carg_heap_check(void *ptr);
-void  _carg_free_nullify(void *ptr);
+void  _carg_error           (const char * const formatter, ...);
+void  _carg_heap_check      (void *ptr);
+void  _carg_free_nullify    (void *ptr);
 
-char *_carg_strtok_string_init(const char *str);
+char *_carg_strtok_string_init    (const char * const str);
 void  _carg_strtok_register_string(char *str);
-int   _carg_cmp_flag(const char *argument, const char *parameter);
-int   _carg_is_flag(const char *formatter, const char *toCheck);
+int   _carg_cmp_flag              (const char * const argument, const char * const parameter);
+int   _carg_is_flag               (const char * const formatter, const char * const toCheck);
 
 void             _carg_usage_default(void);
 CargCallbackFunc _carg_usage_ptr = _carg_usage_default;
 void             _carg_print_positional_usage_buffer(void);
 void             _carg_print_non_positional_usage_buffer(void);
 
-bool _carg_adjust_multi_arg_setter(ArgContainer *currentArg, void **varDataPtr);
-bool _carg_adjust_named_assign(const int argIndex, const char *formatToken, const char *flagToken, const char **argToFormat, char *argumentFlagToCompare);
+bool _carg_adjust_multi_arg_setter(CargArgContainer *currentArg, void **varDataPtr);
+bool _carg_adjust_named_assign    (const int argIndex, const char * const formatToken, const char * const flagToken, const char **argToFormat, char *argumentFlagToCompare);
 
-void _carg_validate_formatter_extended(const char *formatToken);
-void _carg_validate_formatter(const char *formatToken);
-void _carg_validate_flag(const char *flagToken);
+void _carg_validate_formatter_extended(const char * const formatToken);
+void _carg_validate_formatter         (const char * const formatToken);
+void _carg_validate_flag              (const char * const flagToken);
 
-void _carg_reference_named_arg_formatter(const int argIndex, const char *format, va_list outerArgs);
-void _carg_reference_positional_arg_formatter(ArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr);
+void _carg_reference_named_arg_formatter          (const int argIndex, const char *format, va_list args);
+void _carg_reference_positional_arg_formatter     (CargArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr);
 void _carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixFormat, bool **varDataPtr, va_list args);
 
-void _carg_set_named_arg_internal(ArgContainer *currentArg, void **varDataPtr, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare);
-int  _carg_set_nested_arg_internal(ArgContainer *arg);
+void _carg_set_named_arg_internal   (CargArgContainer *currentArg, void **varDataPtr, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare);
+int  _carg_set_nested_arg_internal  (CargArgContainer *currentArg);
 void _carg_set_env_defaults_internal(char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -219,7 +222,7 @@ void _carg_set_env_defaults_internal(char **stringToTokenize, char **tokenSavePo
 #else
 
 #ifndef CARGS_CUSTOM_IMPL
-    #include "cargs_impl.h" // NOLINT
+    #include "carg_impl.h" // NOLINT
 #endif
 
 // Reset macro definitions to not interfere with other included libraries.

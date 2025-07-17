@@ -1,4 +1,4 @@
-# cargs - C Argument Parsing Library
+# carg - C Argument Parsing Library
 
 ## How to Use This Library
 Before using this library, ensure your `main()` function accepts an `argc` and `argv` as parameters.
@@ -8,17 +8,17 @@ Because this library uses string formatters, you should only use types that supp
 For example, there is no formatter for an array of 100 pointers to functions that accept integers and return a character.
 Nor should you expect data remotely resembling that from a user.
 
-This library is a header-only library. Everything is in the `cargs.h` header, so to add this library into your project,
+This library is a header-only library. Everything is in the `carg.h` header, so to add this library into your project,
 put it in your environment's include path and include the header accordingly:
 
 ```
-#include "cargs.h"
+#include "carg.h"
 ```
 
-Make sure to put the `cargs_impl.h` implementation header in your project directory as well.
+Make sure to put the `carg_impl.h` implementation header in your project directory as well.
 
 If for any reason you would like to create your own implementation for this library, define `CARGS_CUSTOM_IMPL`
-before including the `cargs.h` header.
+before including the `carg.h` header.
 
 To set up the library to use your argument vector, call `carg_init()` with the argument count and vector.
 
@@ -50,7 +50,7 @@ Then, an argument can be initialized from this variable. Use the `carg_arg_creat
 the address of the variable created above:
 
 ```
-ArgContainer *myArg1Container = carg_arg_create(&intArgValue, sizeof(int), NO_FLAGS, "-n <number>");
+CargArgContainer *myArg1Container = carg_arg_create(&intArgValue, sizeof(int), NO_FLAGS, "-n <number>");
 ```
 
 Note that the `carg_arg_create()` function returns a pointer to an argument container, which is initialized using the 
@@ -73,14 +73,14 @@ Keeping everything in mind, the char variable would need to be initialized first
 
 ```
 char myChar = 'c';
-ArgContainer *myCharContainer = carg_arg_create(&myChar, sizeof(char), NO_FLAGS, NO_USAGE_STRING)
+CargArgContainer *myCharContainer = carg_arg_create(&myChar, sizeof(char), NO_FLAGS, NO_USAGE_STRING)
 ```
 
 All arguments should be initialized before setting them, so let's add an int argument also:
 
 ```
 int myInt = 0;
-ArgContainer *myIntContainer = carg_arg_create(&myInt, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
+CargArgContainer *myIntContainer = carg_arg_create(&myInt, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
 ```
 
 Then, these argument containers can be set using the `carg_set_named_args()` function:
@@ -155,8 +155,8 @@ To use positional arguments alongside named arguments, initialize both first:
 ```
 int positionalArg = 0;
 char namedArg = 'a';
-ArgContainer *positionalArgContainer = carg_arg_create(&positionalArg, sizeof(int), POSITIONAL_ARG, NO_USAGE_STRING);
-ArgContainer *namedArgContainer = carg_arg_create(&namedArg, sizeof(char), NO_FLAGS, NO_USAGE_STRING);
+CargArgContainer *positionalCargArgContainer = carg_arg_create(&positionalArg, sizeof(int), POSITIONAL_ARG, NO_USAGE_STRING);
+CargArgContainer *namedCargArgContainer = carg_arg_create(&namedArg, sizeof(char), NO_FLAGS, NO_USAGE_STRING);
 ```
 
 Then, set the values for positional arguments first:
@@ -222,7 +222,7 @@ For example:
 
 ```
 int arg1 = 0;
-ArgContainer *arg1Container = carg_arg_create(&arg1, sizeof(int), NO_FLAGS, "-n <number>");
+CargArgContainer *arg1Container = carg_arg_create(&arg1, sizeof(int), NO_FLAGS, "-n <number>");
 ```
 
 Will add `-n <number>` to the usage string.
@@ -432,7 +432,7 @@ program.exe flag2
 #### carg_override_callbacks()
 This function accepts the argument count and vector, plus a series of variadic arguments, mainly a formatter and 
 function pointers which accept no arguments and return nothing. This function type is referred to as `CargCallbackFunc` in
-the `cargs.h` header. It will set flags where, when passed by the user, will run a specific function and terminate the 
+the `carg.h` header. It will set flags where, when passed by the user, will run a specific function and terminate the 
 program, essentially overriding the control flow of the program. This function should be called before any setter 
 functions.
 

@@ -4,7 +4,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ./bin)
 project(cargs VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 23)
 add_executable(cargs argsexample.c
-        cargs_impl.h)
+        carg_impl.h)
 include_directories(${CMAKE_SOURCE_DIR})
 
 IF (MSVC)
