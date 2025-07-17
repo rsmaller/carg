@@ -285,7 +285,7 @@ flag plus a colon plus the corresponding string formatter. Each argument should 
 example:
 
 ```
-carg_set_named_args("-n:%d -t:%10s -b:bool", &intArg, &stringArg, &boolArg)
+carg_set_named_args("-n:%d -t:%10s -b:bool", intArg, stringArg, boolArg)
 ```
 
 - Will use the `-n` flag plus a digit value to set the `intArg` argument and subsequently the `intArgValue` variable.
@@ -303,7 +303,7 @@ This function works similarly to `carg_set_named_args()`, but it has a few key d
 For example:
 
 ```
-carg_set_positional_args("%d %d %20s", &positionalArg, &positionalArg2, &positionalStringArg);
+carg_set_positional_args("%d %d %20s", positionalArg, positionalArg2, positionalStringArg);
 ```
 
  - Will use a digit formatter to set `positionalArg` to the value passed in as the very first command line argument.
@@ -329,7 +329,7 @@ argument is not set; if setting an argument value to an environment variable unc
 to call this function after any other setter functions.
 
 ```
-carg_set_env_defaults("PATH:%s", &string1);
+carg_set_env_defaults("PATH:%s", string1);
 ```
 -   This will copy the value contained in the `$PATH` variable into the string `string1`.
 
