@@ -12,7 +12,7 @@
 
 inline CargArgContainer *carg_arg_create(void *argVarPtr, size_t varSize, uint64_t flagsArg, const char usageStringArg[]) {
     _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Attempt to initialize argument before library initialization. Please fix this!\n");
-    CargArgContainer *constructedArgument = (CargArgContainer *)malloc(sizeof(CargArgContainer));
+    CargArgContainer *constructedArgument = (CargArgContainer *)malloc(sizeof(*constructedArgument));
     const CargArgContainer constructedArgumentInternal = {
         .valueContainer = {
             .next = NULL,
@@ -37,13 +37,13 @@ inline CargArgContainer *carg_arg_create(void *argVarPtr, size_t varSize, uint64
         allArgs.fillIndex++;
         if (allArgs.fillIndex >= (int)(allArgs.size / 2)){
             allArgs.size *= 2;
-            void *argArrayReallocation = realloc(allArgs.array, allArgs.size * sizeof(CargArgContainer *));
+            CargArgContainer **argArrayReallocation = realloc(allArgs.array, allArgs.size * sizeof(*argArrayReallocation));
             _carg_heap_check(argArrayReallocation);
-            allArgs.array = (CargArgContainer **)argArrayReallocation;
+            allArgs.array = argArrayReallocation;
         }
         allArgs.array[allArgs.fillIndex] = constructedArgument;
     } else {
-        allArgs.array = (CargArgContainer **)malloc(sizeof(CargArgContainer *) * 4);
+        allArgs.array = (CargArgContainer **)malloc(sizeof(*allArgs.array) * 4);
         _carg_heap_check(allArgs.array);
         allArgs.array[0] = constructedArgument;
         allArgs.fillIndex++;
@@ -116,14 +116,14 @@ inline void usage(void) {
 
 inline void carg_init(int argc, char **argv) {
     argCount = argc;
-    argVector = (char **)calloc(argCount, sizeof(char *));
+    argVector = (char **)calloc(argCount, sizeof(*argVector));
     _carg_heap_check(argVector);
     for (int i=0; i<argCount; i++) {
         char *allocation = carg_strdup(argv[i]);
         _carg_heap_check(allocation);
         argVector[i] = allocation;
     }
-    setArgs = (int *)calloc(argCount, sizeof(int));
+    setArgs = (int *)calloc(argCount, sizeof(*setArgs));
     _carg_heap_check(setArgs);
     SET_FLAG(cargInternalFlags, LIBCARGS_INITIALIZED);
 }
@@ -248,10 +248,10 @@ inline CargArgContainer *carg_nest_boolean_container(CargArgContainer *nestIn, C
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
-        nestIn -> nestedArgs = (CargArgContainer **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(CargArgContainer *));
+        nestIn -> nestedArgs = (CargArgContainer **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
         _carg_heap_check(nestIn -> nestedArgs);
     } else if (!nestIn -> nestedArgs) {
-        nestIn -> nestedArgs = (CargArgContainer **)calloc(4, sizeof(CargArgContainer *));
+        nestIn -> nestedArgs = (CargArgContainer **)calloc(4, sizeof(*nestIn -> nestedArgs));
         _carg_heap_check(nestIn -> nestedArgs);
         nestIn -> nestedArgArraySize = 4;
     }
@@ -278,10 +278,10 @@ inline CargArgContainer *carg_nest_container(CargArgContainer *nestIn, CargArgCo
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
-        nestIn -> nestedArgs = (CargArgContainer **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(CargArgContainer *));
+        nestIn -> nestedArgs = (CargArgContainer **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
         _carg_heap_check(nestIn -> nestedArgs);
     } else if (!nestIn -> nestedArgs) {
-        nestIn -> nestedArgs = (CargArgContainer **)calloc(4, sizeof(CargArgContainer *));
+        nestIn -> nestedArgs = (CargArgContainer **)calloc(4, sizeof(*nestIn -> nestedArgs));
         _carg_heap_check(nestIn -> nestedArgs);
         nestIn -> nestedArgArraySize = 4;
     }
@@ -481,7 +481,7 @@ inline int secure_vsprintf_concat(char * const startPointer, char * const endPoi
 
 inline char *carg_strdup(const char *str) {
     const size_t size = strlen(str);
-    char *returnVal = (char *)malloc(sizeof(char) * (size + 1));
+    char *returnVal = (char *)malloc(sizeof(*returnVal) * (size + 1));
     strncpy(returnVal, str, size);
     returnVal[size] = '\0';
     return returnVal;
@@ -519,7 +519,7 @@ inline void _carg_free_nullify(void *ptr) {
 }
 
 inline char *_carg_strtok_string_init(const char * const str) {
-    char *returnVal = (char *)calloc(strlen(str) + 4, sizeof(char));
+    char *returnVal = (char *)calloc(strlen(str) + 4, sizeof(*returnVal));
     strcpy(returnVal, str);
     memmove(returnVal + 3, returnVal, strlen(returnVal));
     memcpy(returnVal, "\x03\x01\x03", 3);
@@ -563,7 +563,7 @@ inline bool _carg_adjust_multi_arg_setter(CargArgContainer *currentArg, void **v
         while (multiArgCursor -> next) {
             multiArgCursor = multiArgCursor -> next;
         }
-        multiArgCursor -> next = (CargMultiArgContainer *)malloc(sizeof(CargMultiArgContainer));
+        multiArgCursor -> next = (CargMultiArgContainer *)malloc(sizeof(*multiArgCursor -> next));
         _carg_heap_check(multiArgCursor -> next);
         multiArgCursor -> next -> next = NULL;
         multiArgCursor -> next -> value = malloc(currentArg -> valueSize);
