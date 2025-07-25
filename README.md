@@ -34,7 +34,7 @@ It accepts a string with formatters in it. This might look something like:
 carg_set_usage_message("USAGE: %s -n Arg1 -t Arg2", carg_basename(argv[0]));
 ```
 
-The `usage()` function will print out this message and terminate the program.
+The `carg_usage()` function will print out this message and terminate the program.
 
 ### Initializing Arguments
 As for arguments, they are stored in structs and variables of their respective type.
@@ -73,14 +73,14 @@ Keeping everything in mind, the char variable would need to be initialized first
 
 ```
 char myChar = 'c';
-CargArgContainer *myCharContainer = carg_arg_create(&myChar, sizeof(char), NO_FLAGS, NO_USAGE_STRING)
+CargArgContainer *myCharContainer = carg_arg_create(&myChar, sizeof(char), NO_FLAGS, "")
 ```
 
 All arguments should be initialized before setting them, so let's add an int argument also:
 
 ```
 int myInt = 0;
-CargArgContainer *myIntContainer = carg_arg_create(&myInt, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
+CargArgContainer *myIntContainer = carg_arg_create(&myInt, sizeof(int), NO_FLAGS, "");
 ```
 
 Then, these argument containers can be set using the `carg_set_named_args()` function:
@@ -116,19 +116,19 @@ You may want to make an argument required or limit which values the user can set
 `carg_arg_assert()` is designed for this; it accepts the number of argument assertions as an argument. All assertions after that are two arguments each.
 
 The first argument should be the condition that must be met. This can be any expression which can be evaluated as a zero versus nonzero value.
-If this condition is that the argument is required, use `REQUIRED_ARGUMENT()` with the corresponding argument struct.
-If two arguments should not be set at the same time, use `MUTUALLY_EXCLUSIVE()` with the corresponding structs.
-Lastly, `MUTUALLY_REQUIRED()` should be used to assert that two arguments must be set simultaneously when used.
+If this condition is that the argument is required, use `carg_required()` with the corresponding argument struct.
+If two arguments should not be set at the same time, use `carg_mutually_exclusive()` with the corresponding structs.
+Lastly, `carg_mutually_required()` should be used to assert that two arguments must be set simultaneously when used.
 
-The second argument should be the message to display if the condition is not met. Set this to `USAGE_MESSAGE` to use the usage message instead.
+The second argument should be the message to display if the condition is not met. Set this to `NULL` to use the usage message instead.
 
 For example:
 
 ```
 carg_arg_assert(3, 
         myInt > -1, "Int 1 must not be negative",
-        REQUIRED_ARGUMENT(myInt), USAGE_MESSAGE,
-        REQUIRED_ARGUMENT(myString), USAGE_MESSAGE
+        carg_required(myInt), NULL,
+        carg_required(myString), NULL
 );
 ```
 
@@ -155,8 +155,8 @@ To use positional arguments alongside named arguments, initialize both first:
 ```
 int positionalArg = 0;
 char namedArg = 'a';
-CargArgContainer *positionalCargArgContainer = carg_arg_create(&positionalArg, sizeof(int), POSITIONAL_ARG, NO_USAGE_STRING);
-CargArgContainer *namedCargArgContainer = carg_arg_create(&namedArg, sizeof(char), NO_FLAGS, NO_USAGE_STRING);
+CargArgContainer *positionalCargArgContainer = carg_arg_create(&positionalArg, sizeof(int), POSITIONAL_ARG, "");
+CargArgContainer *namedCargArgContainer = carg_arg_create(&namedArg, sizeof(char), NO_FLAGS, "");
 ```
 
 Then, set the values for positional arguments first:
@@ -198,7 +198,7 @@ A basename function takes a full file path string and returns the very last item
 the substring following all forward or backward slashes. For example, `carg_basename("C:\Users\User1\test.exe")` will return 
 `test.exe`. This is useful for truncating the name of your program as it appears in the argument vector.
 
-#### usage()
+#### carg_usage()
 This simply prints out the usage message and terminates the program.
 
 #### carg_set_usage_message()
@@ -456,8 +456,7 @@ An assertion might look like:
 carg_arg_assert(1, intArgValue > 0, "Int argument must be positive");
 ```
 
-You can otherwise specify `NULL` to print out the usage message instead. The `USAGE_MESSAGE` macro expands to NULL and 
-can also be used; it exists for readability purposes.
+You can otherwise specify `NULL` to print out the usage message instead.
 
 #### carg_validate()
 This function will do a final pass to ensure every argument in the argument vector has been used for something. If it
@@ -465,22 +464,22 @@ encounters a redundant or unused argument, it will show the argument in an error
 course, this function should be called after any argument setters. Furthermore, if `ENFORCE_NESTING_ORDER` is passed as
 a flag to any nested argument, calling this function is necessary for enforcing the nesting order.
 
-## Assertion Macros
+## Assertion Functions
 
-### REQUIRED_ARGUMENT()
-This is a function-style macro which accepts an argument struct as an argument. This is an assertion which will fail if 
+### carg_required()
+This is a function which accepts an argument struct as an argument. This is an assertion which will fail if 
 an argument is not given a value by the user. This should be used in `carg_arg_assert()`:
 
 ```
-carg_arg_assert(1, REQUIRED_ARGUMENT(charArg), "Char argument is required");
+carg_arg_assert(1, carg_required(charArg), "Char argument is required");
 ```
 
-### MUTUALLY_EXCLUSIVE()
-This is another assertion macro. This one accepts two argument structs, and the assertion will fail if both arguments 
+### carg_mutually_exclusive()
+This is another assertion function. This one accepts two argument structs, and the assertion will fail if both arguments 
 have been provided a value by the user. In other words, this assertion forces the user to pick at most one of two 
 arguments.
 
-### MUTUALLY_REQUIRED()
+### carg_mutually_required()
 Lastly, this assertion requires that two argument structs passed into it both have values set by the user. The assertion will fail otherwise.
 
 ## Initializer Flags
@@ -518,7 +517,7 @@ This flag should be used to declare that an argument should be a linked list of 
 an argument is found. When an argument is toggled with this flag, it is allowed to be repeated in the argument vector.
 
 To utilize the data stored in multi-argument vectors, the function `carg_fetch_multi_arg_entry()` exists. This function 
-is a linked list iterator which returns a void pointer, meaning the pointer should be casted and dereferenced accordingly
+is a linked list iterator which returns a void pointer, meaning the pointer should be cast and dereferenced accordingly
 when accessed. For example, 
 
 ```
@@ -527,21 +526,3 @@ int multi = *(int *)carg_fetch_multi_arg_entry(multiIntArg, 1);
 
 Will set `multi` to the second integer passed as an argument to `multiIntArg`. If no second integer exists, this function
 will throw an error.
-
-### NO_DEFAULT_VALUE
-This macro expands to `{0}` and should be used for argument variables which are not intended to have a default value. 
-For example:
-
-```
-int noDefault = NO_DEFAULT_VALUE;
-```
-
-This macro is entirely semantic because it only zero-initializes whatever it is passed into. Please assert the respective argument as a required argument if it should not have a default value.
-
-### NO_USAGE_STRING
-This macro expands to `""`, or the empty string. Its purpose is in `carg_arg_create()` to declare that an argument has no 
-usage string associated with it.
-
-### NONE
-This macro expands to nothing, and it exists to prevent macros from misbehaving.
-

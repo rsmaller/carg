@@ -13,14 +13,14 @@ int main(int argc, char *argv[]) { // Example code
     //  Argument Initialization
     carg_init(argc, argv);
 
-    int                 positionalArgValue  = NO_DEFAULT_VALUE;
+    int                 positionalArgValue  = 0;
     CargArgContainer   *positionalArg       = carg_arg_create(&positionalArgValue, sizeof(int), POSITIONAL_ARG, "<number>");
-    int                 positionalArg2Value = NO_DEFAULT_VALUE;
+    int                 positionalArg2Value = 0;
     CargArgContainer   *positionalArg2      = carg_arg_create(&positionalArg2Value, sizeof(int), POSITIONAL_ARG, "<number>");
     char               *positionalStringArgValue = (char *)_malloc(100 * sizeof(char));
     CargArgContainer   *positionalStringArg      = carg_arg_create(positionalStringArgValue, sizeof(char) * 100, POSITIONAL_ARG | HEAP_ALLOCATED, "<string>");
 
-    int                 intArgValue        = NO_DEFAULT_VALUE;
+    int                 intArgValue        = 0;
     CargArgContainer   *intArg             = carg_arg_create(&intArgValue, sizeof(int), NO_FLAGS, "-n <number>");
     int                 keywordIntArgValue = 0;
     CargArgContainer   *keywordIntArg      = carg_arg_create(&keywordIntArgValue, sizeof(int), NO_FLAGS, "-k <number>");
@@ -36,31 +36,31 @@ int main(int argc, char *argv[]) { // Example code
     CargArgContainer   *stringArg          = carg_arg_create(stringArgValue, sizeof(char) * 21, HEAP_ALLOCATED, "-t|--term <string>");
 
     bool                nestedArg1Value = false;
-    CargArgContainer   *nestedArg1      = carg_arg_create(&nestedArg1Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg1      = carg_arg_create(&nestedArg1Value, sizeof(bool), BOOLEAN_ARG, "");
     bool                nestedArg2Value = false;
-    CargArgContainer   *nestedArg2      = carg_arg_create(&nestedArg2Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg2      = carg_arg_create(&nestedArg2Value, sizeof(bool), BOOLEAN_ARG, "");
     bool                nestedArg3Value = false;
-    CargArgContainer   *nestedArg3      = carg_arg_create(&nestedArg3Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg3      = carg_arg_create(&nestedArg3Value, sizeof(bool), BOOLEAN_ARG, "");
     bool                nestedArg4Value = false;
-    CargArgContainer   *nestedArg4      = carg_arg_create(&nestedArg4Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg4      = carg_arg_create(&nestedArg4Value, sizeof(bool), BOOLEAN_ARG, "");
     bool                nestedArg5Value = false;
-    CargArgContainer   *nestedArg5      = carg_arg_create(&nestedArg5Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg5      = carg_arg_create(&nestedArg5Value, sizeof(bool), BOOLEAN_ARG, "");
     bool                nestedArg6Value = false;
-    CargArgContainer   *nestedArg6      = carg_arg_create(&nestedArg6Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg6      = carg_arg_create(&nestedArg6Value, sizeof(bool), BOOLEAN_ARG, "");
     bool                nestedArg7Value = false;
-    CargArgContainer   *nestedArg7      = carg_arg_create(&nestedArg7Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg7      = carg_arg_create(&nestedArg7Value, sizeof(bool), BOOLEAN_ARG, "");
     bool                nestedArg8Value = false;
-    CargArgContainer   *nestedArg8      = carg_arg_create(&nestedArg8Value, sizeof(bool), BOOLEAN_ARG, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg8      = carg_arg_create(&nestedArg8Value, sizeof(bool), BOOLEAN_ARG, "");
 
     char                nestedArg20Value[100] = "nestedArg20_default";
-    CargArgContainer   *nestedArg20           = carg_arg_create(nestedArg20Value, sizeof(nestedArg20Value), NO_FLAGS, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg20           = carg_arg_create(nestedArg20Value, sizeof(nestedArg20Value), NO_FLAGS, "");
     int                 nestedArg21Value      = 0;
-    CargArgContainer   *nestedArg21           = carg_arg_create(&nestedArg21Value, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg21           = carg_arg_create(&nestedArg21Value, sizeof(int), NO_FLAGS, "");
     int                 nestedArg22Value      = 0;
-    CargArgContainer   *nestedArg22           = carg_arg_create(&nestedArg22Value, sizeof(int), NO_FLAGS, NO_USAGE_STRING);
+    CargArgContainer   *nestedArg22           = carg_arg_create(&nestedArg22Value, sizeof(int), NO_FLAGS, "");
 
     int                *multiIntArgValue           = (int *)_malloc(sizeof(int));
-    CargArgContainer   *multiIntArg                = carg_arg_create(multiIntArgValue, sizeof(int), HEAP_ALLOCATED | MULTI_ARG, NO_USAGE_STRING);
+    CargArgContainer   *multiIntArg                = carg_arg_create(multiIntArgValue, sizeof(int), HEAP_ALLOCATED | MULTI_ARG, "");
     char                multiStringArgValue[1000] = "default";
     CargArgContainer   *multiStringArg            = carg_arg_create(multiStringArgValue, sizeof(multiStringArgValue), MULTI_ARG, "-ff <string>");
 
@@ -104,9 +104,9 @@ int main(int argc, char *argv[]) { // Example code
     carg_validate();
     carg_arg_assert(5,
         intArgValue > -1, "-n arg must be greater than or equal to 0",
-        REQUIRED_ARGUMENT(intArg), USAGE_MESSAGE,
-        MUTUALLY_EXCLUSIVE(boolArg1, boolArg3), "-b and --xarg cannot be toggled at the same time",
-        MUTUALLY_REQUIRED(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
+        carg_required(intArg), NULL,
+        carg_mutually_exclusive(boolArg1, boolArg3), "-b and --xarg cannot be toggled at the same time",
+        carg_mutually_required(boolArg1, boolArg2), "Boolean 1 requires boolean 2 to be toggled",
         positionalArgValue > 0, "First argument must be positive"
     );
 
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) { // Example code
     printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, \
 intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], multiStringArg: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], \
 bool3: %d[%d]\n",
-        positionalArgCount, positionalArgValue, positionalArg2Value,
+        _cargPositionalArgCount, positionalArgValue, positionalArg2Value,
         positionalStringArgValue, intArgValue, intArg -> argvIndexFound,
         keywordIntArgValue, keywordIntArg -> argvIndexFound,
         stringArgValue, stringArg -> argvIndexFound, multiStringArgValue,
