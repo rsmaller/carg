@@ -1,5 +1,7 @@
 #pragma once
+
 #define MEM_DEBUG_H
+
 #ifdef MEM_DEBUG_DISABLE
     #define _malloc malloc
     #define _calloc calloc
