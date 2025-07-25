@@ -9,10 +9,12 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <inttypes.h>
+#define MEM_DEBUG_DISABLE
+#include "memdebug.h"
 
 inline CargArgContainer *carg_arg_create(void *argVarPtr, size_t varSize, uint64_t flagsArg, const char usageStringArg[]) {
-    _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Attempt to initialize argument before library initialization. Please fix this!\n");
-    CargArgContainer *constructedArgument = (CargArgContainer *)malloc(sizeof(*constructedArgument));
+    _carg_flag_conditional(LIBCARG_INITIALIZED, true, "Attempt to initialize argument before library initialization. Please fix this!\n");
+    CargArgContainer *constructedArgument = (CargArgContainer *)_malloc(sizeof(*constructedArgument));
     const CargArgContainer constructedArgumentInternal = {
         .valueContainer = {
             .next = NULL,
@@ -37,13 +39,13 @@ inline CargArgContainer *carg_arg_create(void *argVarPtr, size_t varSize, uint64
         allArgs.fillIndex++;
         if (allArgs.fillIndex >= (int)(allArgs.size / 2)){
             allArgs.size *= 2;
-            CargArgContainer **argArrayReallocation = realloc(allArgs.array, allArgs.size * sizeof(*argArrayReallocation));
+            CargArgContainer **argArrayReallocation = _realloc(allArgs.array, allArgs.size * sizeof(*argArrayReallocation));
             _carg_heap_check(argArrayReallocation);
             allArgs.array = argArrayReallocation;
         }
         allArgs.array[allArgs.fillIndex] = constructedArgument;
     } else {
-        allArgs.array = (CargArgContainer **)malloc(sizeof(*allArgs.array) * 4);
+        allArgs.array = (CargArgContainer **)_malloc(sizeof(*allArgs.array) * 4);
         _carg_heap_check(allArgs.array);
         allArgs.array[0] = constructedArgument;
         allArgs.fillIndex++;
@@ -94,7 +96,7 @@ inline void carg_set_usage_message(const char * const format, ...) {
 }
 
 inline void carg_usage_message_autogen(void) {
-    _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Usage message auto-generated before library initialization. Please fix this!\n");
+    _carg_flag_conditional(LIBCARG_INITIALIZED, true, "Usage message auto-generated before library initialization. Please fix this!\n");
     _carg_flag_conditional(USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
     secure_sprintf_concat(usageStringCursor, usageStringEnd, &usageStringCursor, "%s%s ", "Usage: ", carg_basename(argVector[0]));
     _carg_print_positional_usage_buffer();
@@ -116,16 +118,16 @@ inline void usage(void) {
 
 inline void carg_init(int argc, char **argv) {
     argCount = argc;
-    argVector = (char **)calloc(argCount, sizeof(*argVector));
+    argVector = (char **)_calloc(argCount, sizeof(*argVector));
     _carg_heap_check(argVector);
     for (int i=0; i<argCount; i++) {
         char *allocation = carg_strdup(argv[i]);
         _carg_heap_check(allocation);
         argVector[i] = allocation;
     }
-    setArgs = (int *)calloc(argCount, sizeof(*setArgs));
+    setArgs = (int *)_calloc(argCount, sizeof(*setArgs));
     _carg_heap_check(setArgs);
-    SET_FLAG(cargInternalFlags, LIBCARGS_INITIALIZED);
+    SET_FLAG(cargInternalFlags, LIBCARG_INITIALIZED);
 }
 
 inline void carg_heap_default_value(const CargArgContainer *heapArg, const void *val, size_t bytes) {
@@ -136,7 +138,7 @@ inline void carg_heap_default_value(const CargArgContainer *heapArg, const void 
 }
 
 inline void carg_set_named_args(const char * const format, ...) {
-    _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    _carg_flag_conditional(LIBCARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(NAMED_ARGS_SET, false, "Named args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called before named args initializer. Please fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
@@ -150,7 +152,7 @@ inline void carg_set_named_args(const char * const format, ...) {
 }
 
 inline void carg_set_positional_args(const char * const format, ...) {
-    _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    _carg_flag_conditional(LIBCARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(POSITIONAL_ARGS_SET, false, "Positional args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called before positional args initializer. Please fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
@@ -172,7 +174,7 @@ inline void carg_set_positional_args(const char * const format, ...) {
 }
 
 inline void carg_set_grouped_boolean_args(const char * const format, ...) {
-    _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    _carg_flag_conditional(LIBCARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
     const char prefixChar = format[0];
@@ -192,7 +194,7 @@ inline void carg_set_grouped_boolean_args(const char * const format, ...) {
 }
 
 inline void carg_set_env_defaults(const char * const format, ...) {
-    _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    _carg_flag_conditional(LIBCARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     va_list args;
     va_start(args, format);
     void *formatTokenAllocation = carg_strdup(format);
@@ -205,7 +207,7 @@ inline void carg_set_env_defaults(const char * const format, ...) {
 }
 
 inline void carg_set_nested_args(const int nestedArgumentCount, ...) {
-    _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    _carg_flag_conditional(LIBCARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     _carg_flag_conditional(NESTED_ARGS_SET, false, "Nested args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(GROUPED_ARGS_SET, false, "Grouped args initializer called before nested args initializer. Please fix this!\n");
     va_list args;
@@ -248,13 +250,12 @@ inline CargArgContainer *carg_nest_boolean_container(CargArgContainer *nestIn, C
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
-        nestIn -> nestedArgs = (CargArgContainer **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
-        _carg_heap_check(nestIn -> nestedArgs);
+        nestIn -> nestedArgs = (CargArgContainer **)_realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
     } else if (!nestIn -> nestedArgs) {
-        nestIn -> nestedArgs = (CargArgContainer **)calloc(4, sizeof(*nestIn -> nestedArgs));
-        _carg_heap_check(nestIn -> nestedArgs);
+        nestIn -> nestedArgs = (CargArgContainer **)_calloc(4, sizeof(*nestIn -> nestedArgs));
         nestIn -> nestedArgArraySize = 4;
     }
+    _carg_heap_check(nestIn -> nestedArgs);
     argToNest -> nestedArgString = nestedArgString;
     SET_FLAG(argToNest -> flags, NESTED_ARG);
     nestIn -> nestedArgs[++nestIn -> nestedArgFillIndex] = argToNest;
@@ -278,13 +279,12 @@ inline CargArgContainer *carg_nest_container(CargArgContainer *nestIn, CargArgCo
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
-        nestIn -> nestedArgs = (CargArgContainer **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
-        _carg_heap_check(nestIn -> nestedArgs);
+        nestIn -> nestedArgs = (CargArgContainer **)_realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
     } else if (!nestIn -> nestedArgs) {
-        nestIn -> nestedArgs = (CargArgContainer **)calloc(4, sizeof(*nestIn -> nestedArgs));
-        _carg_heap_check(nestIn -> nestedArgs);
+        nestIn -> nestedArgs = (CargArgContainer **)_calloc(4, sizeof(*nestIn -> nestedArgs));
         nestIn -> nestedArgArraySize = 4;
     }
+    _carg_heap_check(nestIn -> nestedArgs);
     argToNest -> nestedArgString = nestedArgString;
     strncpy(argToNest -> formatterUsed, format, sizeof(argToNest -> formatterUsed) - 1);
     SET_FLAG(argToNest -> flags, NESTED_ARG);
@@ -294,7 +294,7 @@ inline CargArgContainer *carg_nest_container(CargArgContainer *nestIn, CargArgCo
 }
 
 inline void carg_override_callbacks(const char * const format, ...) {
-    _carg_flag_conditional(LIBCARGS_INITIALIZED, true, "Argument override called before library initialization. Please fix this!\n");
+    _carg_flag_conditional(LIBCARG_INITIALIZED, true, "Argument override called before library initialization. Please fix this!\n");
     _carg_flag_conditional(OVERRIDE_CALLBACKS_SET, false, "Override callback args initializer called multiple times. Please fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET | NAMED_ARGS_SET | POSITIONAL_ARGS_SET | GROUPED_ARGS_SET | NESTED_ARGS_SET, false, "Callback override initialized after arguments were set. Fix this!\n");
     _carg_flag_conditional(ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
@@ -397,7 +397,7 @@ inline void carg_validate(void) {
 }
 
 inline void carg_terminate(void) {
-    if (HAS_FLAG(cargInternalFlags, LIBCARGS_INITIALIZED)) {
+    if (HAS_FLAG(cargInternalFlags, LIBCARG_INITIALIZED)) {
         if (allArgs.array) {
             for (int i=0; i<=allArgs.fillIndex; i++) {
                 if (allArgs.array[i] -> valueContainer.value && HAS_FLAG(allArgs.array[i] -> flags, HEAP_ALLOCATED)) {
@@ -430,7 +430,7 @@ inline void carg_terminate(void) {
             _carg_free_nullify(&argVector);
         }
     }
-    CLEAR_FLAG(cargInternalFlags, LIBCARGS_INITIALIZED);
+    CLEAR_FLAG(cargInternalFlags, LIBCARG_INITIALIZED);
 }
 
 inline int test_printf(char *formatter, ...) {
@@ -481,7 +481,7 @@ inline int secure_vsprintf_concat(char * const startPointer, char * const endPoi
 
 inline char *carg_strdup(const char *str) {
     const size_t size = strlen(str);
-    char *returnVal = (char *)malloc(sizeof(*returnVal) * (size + 1));
+    char *returnVal = (char *)_malloc(sizeof(*returnVal) * (size + 1));
     strncpy(returnVal, str, size);
     returnVal[size] = '\0';
     return returnVal;
@@ -519,7 +519,7 @@ inline void _carg_free_nullify(void *ptr) {
 }
 
 inline char *_carg_strtok_string_init(const char * const str) {
-    char *returnVal = (char *)calloc(strlen(str) + 4, sizeof(*returnVal));
+    char *returnVal = (char *)_calloc(strlen(str) + 4, sizeof(*returnVal));
     strcpy(returnVal, str);
     memmove(returnVal + 3, returnVal, strlen(returnVal));
     memcpy(returnVal, "\x03\x01\x03", 3);
@@ -563,10 +563,10 @@ inline bool _carg_adjust_multi_arg_setter(CargArgContainer *currentArg, void **v
         while (multiArgCursor -> next) {
             multiArgCursor = multiArgCursor -> next;
         }
-        multiArgCursor -> next = (CargMultiArgContainer *)malloc(sizeof(*multiArgCursor -> next));
+        multiArgCursor -> next = (CargMultiArgContainer *)_malloc(sizeof(*multiArgCursor -> next));
         _carg_heap_check(multiArgCursor -> next);
         multiArgCursor -> next -> next = NULL;
-        multiArgCursor -> next -> value = malloc(currentArg -> valueSize);
+        multiArgCursor -> next -> value = _malloc(currentArg -> valueSize);
         _carg_heap_check(multiArgCursor -> next -> value);
         *varDataPtr = multiArgCursor -> next -> value;
         currentArg -> multiArgIndex++;

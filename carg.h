@@ -108,14 +108,14 @@ uint64_t cargInternalFlags = 0;
 #define REQUIRED_ARGUMENT(varName)              (varName -> hasValue)
 #define MUTUALLY_EXCLUSIVE(varName1, varName2)  (!(varName1 -> hasValue && varName2 -> hasValue))
 #define MUTUALLY_REQUIRED(varName1, varName2)   (varName1 -> hasValue ? varName2 -> hasValue : 1)
-#define USAGE_MESSAGE                           NULL
+#define USAGE_MESSAGE                           ((void *)0)
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Macros
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //  Function Initializer Flags for cargInternalFlags.
-#define LIBCARGS_INITIALIZED      (1ULL<<0ULL)
+#define LIBCARG_INITIALIZED       (1ULL<<0ULL)
 #define NAMED_ARGS_SET            (1ULL<<1ULL)
 #define POSITIONAL_ARGS_SET       (1ULL<<2ULL)
 #define GROUPED_ARGS_SET          (1ULL<<3ULL)
@@ -221,7 +221,7 @@ void _carg_set_env_defaults_internal(char **stringToTokenize, char **tokenSavePo
     #error args.h is only supported on the C99 standard and above.
 #else
 
-#ifndef CARGS_CUSTOM_IMPL
+#ifndef CARG_CUSTOM_IMPL
     #include "carg_impl.h" // NOLINT
 #endif
 
