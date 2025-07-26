@@ -17,7 +17,7 @@ put it in your environment's include path and include the header accordingly:
 
 Make sure to put the `carg_impl.h` implementation header in your project directory as well.
 
-If for any reason you would like to create your own implementation for this library, define `CARGS_CUSTOM_IMPL`
+If for any reason you would like to create your own implementation for this library, define `CARG_CUSTOM_IMPL`
 before including the `carg.h` header.
 
 To set up the library to use your argument vector, call `carg_init()` with the argument count and vector.
@@ -50,7 +50,7 @@ Then, an argument can be initialized from this variable. Use the `carg_arg_creat
 the address of the variable created above:
 
 ```
-CargArgContainer *myArg1Container = carg_arg_create(&intArgValue, sizeof(int), NO_FLAGS, "-n <number>");
+CargArgContainer *myArg1Container = carg_arg_create(&intArgValue, sizeof(int), CARG_ITEM_NO_FLAGS, "-n <number>");
 ```
 
 Note that the `carg_arg_create()` function returns a pointer to an argument container, which is initialized using the 
@@ -73,14 +73,14 @@ Keeping everything in mind, the char variable would need to be initialized first
 
 ```
 char myChar = 'c';
-CargArgContainer *myCharContainer = carg_arg_create(&myChar, sizeof(char), NO_FLAGS, "")
+CargArgContainer *myCharContainer = carg_arg_create(&myChar, sizeof(char), CARG_ITEM_NO_FLAGS, "")
 ```
 
 All arguments should be initialized before setting them, so let's add an int argument also:
 
 ```
 int myInt = 0;
-CargArgContainer *myIntContainer = carg_arg_create(&myInt, sizeof(int), NO_FLAGS, "");
+CargArgContainer *myIntContainer = carg_arg_create(&myInt, sizeof(int), CARG_ITEM_NO_FLAGS, "");
 ```
 
 Then, these argument containers can be set using the `carg_set_named_args()` function:
@@ -155,8 +155,8 @@ To use positional arguments alongside named arguments, initialize both first:
 ```
 int positionalArg = 0;
 char namedArg = 'a';
-CargArgContainer *positionalCargArgContainer = carg_arg_create(&positionalArg, sizeof(int), POSITIONAL_ARG, "");
-CargArgContainer *namedCargArgContainer = carg_arg_create(&namedArg, sizeof(char), NO_FLAGS, "");
+CargArgContainer *positionalCargArgContainer = carg_arg_create(&positionalArg, sizeof(int), CARG_ITEM_POSITIONAL_ARG, "");
+CargArgContainer *namedCargArgContainer = carg_arg_create(&namedArg, sizeof(char), CARG_ITEM_NO_FLAGS, "");
 ```
 
 Then, set the values for positional arguments first:
@@ -222,40 +222,40 @@ For example:
 
 ```
 int arg1 = 0;
-CargArgContainer *arg1Container = carg_arg_create(&arg1, sizeof(int), NO_FLAGS, "-n <number>");
+CargArgContainer *arg1Container = carg_arg_create(&arg1, sizeof(int), CARG_ITEM_NO_FLAGS, "-n <number>");
 ```
 
 Will add `-n <number>` to the usage string.
 
-#### CARG_PRINT_STRING_ARG() and CARG_PRINT_NON_STRING_ARG()
+#### CARG_ITEM_CARG_PRINT_STRING_ARG() and CARG_ITEM_CARG_PRINT_NON_STRING_ARG()
 These macros both print out an individual argument, though the handling of the values in each argument is different
 for string versus non-string printed types. Use the respective macro to fetch data about an argument of any type.
 Both macros accept an argument struct pointer to print from.
 Note that printing functions are type-agnostic when printing pointer values because the pointer type is grabbed from the 
-formatter; therefore, `CARG_PRINT_STRING_ARG()` requires no type to be passed in.
-However, `CARG_PRINT_NON_STRING_ARG()` does require a provided type.
+formatter; therefore, `CARG_ITEM_CARG_PRINT_STRING_ARG()` requires no type to be passed in.
+However, `CARG_ITEM_CARG_PRINT_NON_STRING_ARG()` does require a provided type.
 For arguments which are stored as pointers, the indirection is handled internally; only the type which will be printed 
 out should be passed in to these macros (i.e. `int *` arguments should be passed to the macros as `int` types).
 
 For example:
 
 ```
-CARG_PRINT_NON_STRING_ARG(intArg, int);
-CARG_PRINT_STRING_ARG(stringArg);
+CARG_ITEM_CARG_PRINT_NON_STRING_ARG(intArg, int);
+CARG_ITEM_CARG_PRINT_STRING_ARG(stringArg);
 ```
 
 would be the conventional way to call these macros.
 
-#### CARG_PRINT_STRING_MULTI_ARG() and CARG_PRINT_NON_STRING_MULTI_ARG()
+#### CARG_ITEM_CARG_PRINT_STRING_MULTI_ARG() and CARG_ITEM_CARG_PRINT_NON_STRING_MULTI_ARG()
 These are the respective macro variants for printing out multi-argument versions of the above macros.
-Similar to above, `CARG_PRINT_STRING_MULTI_ARG()` does not accept a type as a parameter. Furthermore, pointer indirection
+Similar to above, `CARG_ITEM_CARG_PRINT_STRING_MULTI_ARG()` does not accept a type as a parameter. Furthermore, pointer indirection
 likewise applies here.
 
 These macros may be used as shown below:
 
 ```
-CARG_PRINT_NON_STRING_MULTI_ARG(multiIntArg, int);
-CARG_PRINT_STRING_MULTI_ARG(multiStringArg);
+CARG_ITEM_CARG_PRINT_NON_STRING_MULTI_ARG(multiIntArg, int);
+CARG_ITEM_CARG_PRINT_STRING_MULTI_ARG(multiStringArg);
 ```
 
 #### carg_terminate()
@@ -359,7 +359,7 @@ inside a root node, you can use curly braces to make the nesting a little easier
 like:
 
 ```
-carg_nested_boolean_container_create(nestedArg3, "nestedArg3", ENFORCE_STRICT_NESTING_ORDER); {
+carg_nested_boolean_container_create(nestedArg3, "nestedArg3", CARG_ITEM_ENFORCE_STRICT_NESTING_ORDER); {
         carg_nest_boolean_container(nestedArg3, nestedArg4, "nestedArg4");
         carg_nest_boolean_container(nestedArg3, nestedArg5, "nestedArg5"); {
             carg_nest_boolean_container(nestedArg5, nestedArg6, "nestedArg6"); {
@@ -381,7 +381,7 @@ These are the non-boolean versions of the nested argument functions. They accept
 counterparts, and they also require a `scanf()` formatter after their nested name, as such:
 
 ```
-carg_nested_boolean_container_create(nestedArg1, "nestedArg1", ENFORCE_NESTING_ORDER); {
+carg_nested_boolean_container_create(nestedArg1, "nestedArg1", CARG_ITEM_ENFORCE_NESTING_ORDER); {
         carg_nest_boolean_container(nestedArg1, nestedArg2, "nestedArg2");
         carg_nest_boolean_container(nestedArg1, nestedArg4, "nestedArg4");
         carg_nest_container(nestedArg1, nestedArg21, "nestedArg21", "%d"); {
@@ -461,7 +461,7 @@ You can otherwise specify `NULL` to print out the usage message instead.
 #### carg_validate()
 This function will do a final pass to ensure every argument in the argument vector has been used for something. If it
 encounters a redundant or unused argument, it will show the argument in an error message and terminate the program. Of 
-course, this function should be called after any argument setters. Furthermore, if `ENFORCE_NESTING_ORDER` is passed as
+course, this function should be called after any argument setters. Furthermore, if `CARG_ITEM_ENFORCE_NESTING_ORDER` is passed as
 a flag to any nested argument, calling this function is necessary for enforcing the nesting order.
 
 ## Assertion Functions
@@ -484,35 +484,35 @@ Lastly, this assertion requires that two argument structs passed into it both ha
 
 ## Initializer Flags
 
-### NO_FLAGS
+### CARG_ITEM_NO_FLAGS
 This is a macro which expands to `0`. This is a semantic choice to show in `carg_arg_create()` that an argument has no custom 
 flags.
 
-### POSITIONAL_ARG
+### CARG_ITEM_POSITIONAL_ARG
 This macro should be passed in to the flags section of `carg_arg_create()` to specify an argument should be 
 given a value without any sort of flag preceding it.
 
-### BOOLEAN_ARG
+### CARG_ITEM_BOOLEAN_ARG
 When specifying an argument should simply be a flag which toggles some variable on or off, two things must be done. The 
 argument must be initialized as a boolean, which is what this flag is for. Pass this flag into `carg_arg_create()` and later 
 reference the generated argument in `carg_set_named_args()` with `bool` to create a boolean argument. Boolean arguments
 are always flags, and they can therefore never appear as a positional argument.
 
-### HEAP_ALLOCATED
+### CARG_ITEM_HEAP_ALLOCATED
 This is a flag for declaring an argument as heap-allocated. Doing so will cause this library to automatically free the
 allocation when it terminates.
 
-### ENFORCE_NESTING_ORDER
+### CARG_ITEM_ENFORCE_NESTING_ORDER
 This is a flag for declaring the root of a nested argument as not order-agnostic; this flag should be set in
 `carg_nested_container_create()`. The library will do runtime checks in `carg_validate()` to ensure arguments nested
 within other arguments come after their parent arguments in the argument vector, so make sure to call this function to 
 enable nesting order enforcement.
 
-### ENFORCE_STRICT_NESTING_ORDER
+### CARG_ITEM_ENFORCE_STRICT_NESTING_ORDER
 This flag declares that nested arguments should be passed all in sequence, without any arguments in-between. Like
-`ENFORCE_NESTING_ORDER`, this property is enforced in `carg_validate()`.
+`CARG_ITEM_ENFORCE_NESTING_ORDER`, this property is enforced in `carg_validate()`.
 
-### MULTI_ARG
+### CARG_ITEM_MULTI_ARG
 This flag should be used to declare that an argument should be a linked list of values from which to add on to each time
 an argument is found. When an argument is toggled with this flag, it is allowed to be repeated in the argument vector.
 
