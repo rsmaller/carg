@@ -3,6 +3,9 @@
 ## How to Use This Library
 Before using this library, ensure your `main()` function accepts an `argc` and `argv` as parameters.
 This library parses those parameters using string formatters and sets variables to their values accordingly.
+It is designed to have a simple interface without complex context management to make the development of interactive and
+user-facing CLI applications easier. The library's context information is stored globally, meaning the code in it is
+*not* thread safe and should only be used where CLI parsing happens on one thread.
 
 Because this library uses string formatters, you should only use types that support `scanf()` formatting.
 For example, there is no formatter for an array of 100 pointers to functions that accept integers and return a character.

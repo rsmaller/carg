@@ -6,8 +6,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define _CRT_SECURE_NO_WARNINGS
+#ifdef __MSC_VER
+    #define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #include <stdlib.h>     // NOLINT
 #include <stdint.h>     // NOLINT
