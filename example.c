@@ -114,7 +114,7 @@ int main(const int argc, char *argv[]) { // Example code
     printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, \
 intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], multiStringArg: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], \
 bool3: %d[%d]\n",
-        cargPositionalArgCount, positionalArgValue, positionalArg2Value,
+        cargDefaultContext -> cargPositionalArgCount, positionalArgValue, positionalArg2Value,
         positionalStringArgValue, intArgValue, intArg -> argvIndexFound,
         keywordIntArgValue, keywordIntArg -> argvIndexFound,
         stringArgValue, stringArg -> argvIndexFound, multiStringArgValue,

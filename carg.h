@@ -16,6 +16,7 @@ extern "C" {
 #include <stdarg.h>     // NOLINT
 
 #define CARG_MAX_FORMATTER_SIZE 128
+#define CARG_USAGE_STRING_SIZE ((size_t)2048U)
 
 typedef struct CargMultiArgContainer {
         struct CargMultiArgContainer *next;
@@ -46,21 +47,24 @@ typedef struct CargArgArray {
 
 typedef void (*CargCallbackFunc)(void);
 
+typedef struct CargContext {
+    int              cargArgCount;
+    int              cargPositionalArgCount;
+    int *            internal_cargSetArgs;
+    char **          internal_cargArgVector;
+    CargArgArray     internal_cargAllArgs;
+    char *           internal_cargUsageString;
+    char *           internal_cargUsageStringCursor;
+    char *           internal_cargUsageStringEnd;
+    uint64_t         internal_cargInternalFlags;
+    CargCallbackFunc internal_carg_usage_ptr;
+} CargContext;
+
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Global Variables and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-extern int              cargArgCount;
-extern int              cargPositionalArgCount;
-
-extern int *            internal_cargSetArgs;
-extern char **          internal_cargArgVector;
-extern CargArgArray     internal_cargAllArgs;
-extern char             internal_cargUsageString[];
-extern char *           internal_cargUsageStringCursor; // Pointer to the byte after the farthest one written to.
-extern char * const     internal_cargUsageStringEnd;    // Pointer to the final byte of the usage string buffer.
-extern uint64_t         internal_cargInternalFlags;
-extern CargCallbackFunc internal_carg_usage_ptr;
+extern CargContext *cargDefaultContext;
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Flags, Flag Checkers, and Initializer Macros
