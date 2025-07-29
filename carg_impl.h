@@ -177,13 +177,13 @@ inline void carg_usage_message_autogen(void) {
     carg_usage_message_autogen_ts(cargDefaultContext);
 }
 
-inline void carg_set_usage_function_ts(CargContext *cargLocalContext, void (*usageFunc)(CargContext *)) {
+inline void carg_set_usage_function_ts(CargContext *cargLocalContext, void (*usageFunc)(const CargContext *)) {
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
     cargLocalContext -> internal_carg_usage_ptr = usageFunc;
     SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_USAGE_MESSAGE_SET);
 }
 
-inline void carg_set_usage_function(const void (*usageFunc)(CargContext *)) {
+inline void carg_set_usage_function(void (*usageFunc)(const CargContext *)) {
     carg_set_usage_function_ts(cargDefaultContext, usageFunc);
 }
 
@@ -673,7 +673,7 @@ inline int internal_carg_is_flag(const char * const formatter, const char * cons
     return 0;
 }
 
-inline void internal_carg_usage_default_ts(CargContext *cargLocalContext) {
+inline void internal_carg_usage_default_ts(const CargContext *cargLocalContext) {
     printf("%s\n", cargLocalContext -> internal_cargUsageString);
 }
 

@@ -57,7 +57,7 @@ typedef struct CargContext {
     char *           internal_cargUsageStringCursor;
     char *           internal_cargUsageStringEnd;
     uint64_t         internal_cargInternalFlags;
-    void (*internal_carg_usage_ptr)(struct CargContext *);
+    void (*internal_carg_usage_ptr)(const struct CargContext *);
 } CargContext;
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -125,14 +125,14 @@ int         carg_string_contains_char  (const char * container, char subchar);
 const char *carg_basename              (const char * pathStart);
 
 void carg_set_usage_message    (const char * format, ...);
-void carg_set_usage_function   (const void (*usageFunc)(CargContext *));
+void carg_set_usage_function   (void (*usageFunc)(const CargContext *));
 void carg_override_callbacks   (const char * format, ...);
 void carg_arg_assert           (int assertionCount, ...);
 void carg_usage                (void);
 void carg_usage_message_autogen(void);
 
 void carg_set_usage_message_ts    (CargContext *cargLocalContext, const char * format, va_list args);
-void carg_set_usage_function_ts   (CargContext *cargLocalContext, const void (*usageFunc)(CargContext *));
+void carg_set_usage_function_ts   (CargContext *cargLocalContext, const void (*usageFunc)(const CargContext *));
 void carg_override_callbacks_ts   (CargContext *cargLocalContext, const char * format, va_list args);
 void carg_arg_assert_ts           (CargContext *cargLocalContext, int assertionCount, va_list args);
 void carg_usage_ts                (CargContext *cargLocalContext);
@@ -182,7 +182,7 @@ void  internal_carg_strtok_register_string(char *str);
 int   internal_carg_cmp_flag              (const char *argument, const char *parameter);
 int   internal_carg_is_flag               (const char *formatter, const char *toCheck);
 
-void internal_carg_usage_default_ts(CargContext *cargLocalContext);
+void internal_carg_usage_default_ts(const CargContext *cargLocalContext);
 
 void internal_carg_print_positional_usage_buffer_ts    (CargContext *cargLocalContext);
 void internal_carg_print_non_positional_usage_buffer_ts(CargContext *cargLocalContext);
