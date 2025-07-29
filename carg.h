@@ -120,6 +120,8 @@ void carg_init_ts     (CargContext **cargLocalContext, int argc, char **argv);
 void carg_validate_ts (const CargContext *cargLocalContext);
 void carg_terminate_ts(const CargContext *cargLocalContext);
 
+void carg_validate_context(const CargContext *cargLocalContext);
+
 void  carg_print_container_data (const CargArgContainer *container);
 void *carg_fetch_multi_arg_entry(const CargArgContainer *container, int index);
 

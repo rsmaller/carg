@@ -17,7 +17,14 @@
 
 CargContext *cargDefaultContext;
 
+inline void carg_validate_context(const CargContext *cargLocalContext) {
+    if (!cargLocalContext) {
+        internal_carg_error("carg context not initialized!");
+    }
+}
+
 inline CargArgContainer *carg_arg_create_ts(CargContext *cargLocalContext, void *argVarPtr, const size_t varSize, const uint64_t flagsArg, const char usageStringArg[]) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Attempt to initialize argument before library initialization. Please fix this!\n");
     CargArgContainer *constructedArgument = (CargArgContainer *)_malloc(sizeof(*constructedArgument));
     const CargArgContainer constructedArgumentInternal = {
@@ -150,6 +157,7 @@ inline char *internal_carg_strdup(const char *str) {
 }
 
 inline void carg_set_usage_message_tsv(CargContext *cargLocalContext, const char * const format, va_list args) {
+    carg_validate_context(cargLocalContext);
     va_list argsCopy;
     va_copy(argsCopy, args);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
@@ -173,6 +181,7 @@ inline void carg_set_usage_message(const char * const format, ...) {
 }
 
 inline void carg_usage_message_autogen_ts(CargContext *cargLocalContext) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Usage message auto-generated before library initialization. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
     internal_carg_secure_sprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, "%s%s ", "Usage: ", carg_basename(cargLocalContext -> internal_cargArgVector[0]));
@@ -186,6 +195,7 @@ inline void carg_usage_message_autogen(void) {
 }
 
 inline void carg_set_usage_function_ts(CargContext *cargLocalContext, CargUsageFunc usageFunc) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
     cargLocalContext -> internal_carg_usage_ptr = usageFunc;
     SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_USAGE_MESSAGE_SET);
@@ -196,6 +206,7 @@ inline void carg_set_usage_function(CargUsageFunc usageFunc) {
 }
 
 inline void carg_usage_ts(CargContext *cargLocalContext) {
+    carg_validate_context(cargLocalContext);
     cargLocalContext -> internal_carg_usage_ptr(cargLocalContext);
     carg_terminate();
     exit(EXIT_SUCCESS);
@@ -222,6 +233,7 @@ inline void carg_init_ts(CargContext **cargLocalContext, const int argc, char **
         internal_carg_error("carg initialized multiple times consecutively without termination.");
     }
     *cargLocalContext = (CargContext*)_malloc(sizeof(CargContext));
+    carg_validate_context(*cargLocalContext);
     CargContext cargContextConstructor = {
         .cargArgCount                   = argc,
         .cargPositionalArgCount         = 0,
@@ -263,6 +275,7 @@ inline void carg_heap_default_value(CargArgContainer *heapArg, const void *val, 
 }
 
 inline void carg_set_named_args_tsv(CargContext *cargLocalContext, const char * const format, va_list args) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_NAMED_ARGS_SET, false, "Named args initializer called multiple times. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called before named args initializer. Please fix this!\n");
@@ -291,6 +304,7 @@ inline void carg_set_named_args(const char * const format, ...) {
 }
 
 inline void carg_set_positional_args_tsv(CargContext *cargLocalContext, const char * const format, va_list args) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_POSITIONAL_ARGS_SET, false, "Positional args initializer called multiple times. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called before positional args initializer. Please fix this!\n");
@@ -327,6 +341,7 @@ inline void carg_set_positional_args(const char * const format, ...) {
 }
 
 inline void carg_set_grouped_boolean_args_tsv(CargContext *cargLocalContext, const char * const format, va_list args) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called multiple times. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
@@ -361,6 +376,7 @@ inline void carg_set_grouped_boolean_args(const char * const format, ...) {
 }
 
 inline void carg_set_env_defaults_tsv(CargContext *cargLocalContext, const char * const format, va_list args) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     va_list argsCopy;
     va_copy(argsCopy, args);
@@ -388,6 +404,7 @@ inline void carg_set_env_defaults(const char * const format, ...) {
 }
 
 inline void carg_set_nested_args_tsv(CargContext *cargLocalContext, const int nestedArgumentCount, va_list args) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_NESTED_ARGS_SET, false, "Nested args initializer called multiple times. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called before nested args initializer. Please fix this!\n");
@@ -490,6 +507,7 @@ inline CargArgContainer *carg_nest_container(CargArgContainer *nestIn, CargArgCo
 }
 
 inline void carg_override_callbacks_tsv(CargContext *cargLocalContext, const char * const format, va_list args) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Argument override called before library initialization. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_OVERRIDE_CALLBACKS_SET, false, "Override callback args initializer called multiple times. Please fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET | CARG_NAMED_ARGS_SET | CARG_POSITIONAL_ARGS_SET | CARG_GROUPED_ARGS_SET | CARG_NESTED_ARGS_SET, false, "Callback override initialized after arguments were set. Fix this!\n");
@@ -538,6 +556,7 @@ inline void carg_override_callbacks(const char * const format, ...) {
 }
 
 inline void carg_arg_assert_tsv(CargContext *cargLocalContext, const int assertionCount, va_list args) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET, false, "Assertion args initializer called multiple times. Please fix this!\n");
     va_list argsCopy;
     va_copy(argsCopy, args);
@@ -595,6 +614,7 @@ inline void *carg_fetch_multi_arg_entry(const CargArgContainer *container, const
 }
 
 inline void carg_validate_ts(const CargContext *cargLocalContext) {
+    carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET | CARG_NAMED_ARGS_SET | CARG_POSITIONAL_ARGS_SET | CARG_GROUPED_ARGS_SET | CARG_NESTED_ARGS_SET, true, "Argument validator called before arguments were set. Fix this!\n");
     bool errorFound = false;
     for (int i=1; i<cargLocalContext -> cargArgCount; i++) {
@@ -624,6 +644,7 @@ inline void carg_validate(void) {
 }
 
 inline void carg_terminate_ts(const CargContext *cargLocalContext) {
+    carg_validate_context(cargLocalContext);
     if (HAS_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_INITIALIZED)) {
         if (cargLocalContext -> internal_cargAllArgs.array) {
             for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
@@ -665,6 +686,7 @@ inline void carg_terminate(void) {
 }
 
 inline void internal_carg_flag_conditional_ts(const CargContext *cargLocalContext, const uint64_t flag, const bool truthiness, const char * const errorMessage) {
+    carg_validate_context(cargLocalContext);
     if ((bool)HAS_FLAG(cargLocalContext -> internal_cargInternalFlags, flag) != truthiness) {
         internal_carg_error(errorMessage);
     }
@@ -731,10 +753,12 @@ inline int internal_carg_is_flag(const char * const formatter, const char * cons
 }
 
 inline void internal_carg_usage_default_ts(const CargContext *cargLocalContext) {
+    carg_validate_context(cargLocalContext);
     printf("%s\n", cargLocalContext -> internal_cargUsageString);
 }
 
 inline bool internal_carg_adjust_multi_arg_setter_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr) {
+    carg_validate_context(cargLocalContext);
     if (HAS_FLAG(currentArg -> flags, CARG_ITEM_MULTI) && currentArg -> hasValue) {
         CargMultiArgContainer *multiArgCursor = &currentArg->valueContainer;
         while (multiArgCursor -> next) {
@@ -753,6 +777,7 @@ inline bool internal_carg_adjust_multi_arg_setter_ts(const CargContext *cargLoca
 }
 
 inline void internal_carg_set_named_arg_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare) {
+    carg_validate_context(cargLocalContext);
     if (!currentArg) return;
     if (currentArg -> hasValue && !HAS_FLAG(currentArg -> flags, CARG_ITEM_MULTI)) {
         carg_usage();
@@ -802,6 +827,7 @@ inline void internal_carg_validate_flag(const char * const flagToken) {
 }
 
 inline bool internal_carg_adjust_named_assign_ts(const CargContext *cargLocalContext, const int argIndex, const char * const formatToken, const char * const flagToken, const char **argToFormat, char *argumentFlagToCompare) {
+    carg_validate_context(cargLocalContext);
     if (argumentFlagToCompare && carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool")) {
         int ncompare = 0;
         while (cargLocalContext -> internal_cargArgVector[argIndex][ncompare] != '=') ncompare++;
@@ -813,6 +839,7 @@ inline bool internal_carg_adjust_named_assign_ts(const CargContext *cargLocalCon
 }
 
 inline void internal_carg_reference_named_arg_formatter_ts(const CargContext *cargLocalContext, const int argIndex, const char *format, va_list args) {
+    carg_validate_context(cargLocalContext);
     if (cargLocalContext -> internal_cargSetArgs[argIndex]) return;
     char *formatToTokenize = internal_carg_strtok_string_init(format);
     internal_carg_heap_check(formatToTokenize);
@@ -841,6 +868,7 @@ inline void internal_carg_reference_named_arg_formatter_ts(const CargContext *ca
 }
 
 inline void internal_carg_reference_positional_arg_formatter_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr) {
+    carg_validate_context(cargLocalContext);
     *formatToTokenize = strtok_r(*formatToTokenize, " ", tokenSavePointer);
     if (!HAS_FLAG(currentArg -> flags, CARG_ITEM_POSITIONAL)) {
         internal_carg_error("Positional arg setter called on named argument. Please fix this!\n");
@@ -860,6 +888,7 @@ inline void internal_carg_reference_positional_arg_formatter_ts(const CargContex
 }
 
 inline void internal_carg_reference_grouped_boolean_arg_formatter_ts(const CargContext *cargLocalContext, const int i, const size_t j, const char *noPrefixFormat, bool **varDataPtr, va_list args) {
+    carg_validate_context(cargLocalContext);
     va_list argsCopy;
     va_copy(argsCopy, args);
     if (carg_string_contains_char(cargLocalContext -> internal_cargArgVector[i], noPrefixFormat[j]) >= 0) {
@@ -881,6 +910,7 @@ inline void internal_carg_reference_grouped_boolean_arg_formatter_ts(const CargC
 }
 
 inline int internal_carg_set_nested_arg_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg) {
+    carg_validate_context(cargLocalContext);
     if (!currentArg) return 0;
     if (!HAS_FLAG(currentArg -> flags, CARG_ITEM_NESTED)) {
         internal_carg_error("Nested flag setter called on non-nested argument. Fix this!\n");
@@ -905,6 +935,7 @@ inline int internal_carg_set_nested_arg_ts(const CargContext *cargLocalContext, 
 }
 
 inline void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContext, char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args) { // NOLINT
+    carg_validate_context(cargLocalContext);
     va_list argsCopy;
     va_copy(argsCopy, args);
     CargArgContainer *currentArg = NULL;
@@ -931,6 +962,7 @@ inline void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContex
 }
 
 inline void internal_carg_print_positional_usage_buffer_ts(CargContext *cargLocalContext) {
+    carg_validate_context(cargLocalContext);
     for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
         if (!cargLocalContext -> internal_cargAllArgs.array[i]) break;
         if (!HAS_FLAG(cargLocalContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_POSITIONAL)) continue;
