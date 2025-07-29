@@ -71,10 +71,10 @@ extern CargContext *cargDefaultContext;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //  Getters and Setters.
-#define HAS_FLAG(item, flag)    ((item) & (flag))
-#define SET_FLAG(item, flag)    ((item) |= (flag))
+#define HAS_FLAG(item, flag)    ((item) &   (flag))
+#define SET_FLAG(item, flag)    ((item) |=  (flag))
 #define CLEAR_FLAG(item, flag)  ((item) &= ~(flag))
-#define TOGGLE_FLAG(item, flag) ((item) ^= (flag))
+#define TOGGLE_FLAG(item, flag) ((item) ^=  (flag))
 
 //  Generic Flags.
 #define CARG_ITEM_NO_FLAGS                     (0ULL)
