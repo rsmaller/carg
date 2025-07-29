@@ -17,7 +17,7 @@ int main(const int argc, char *argv[]) { // Example code
     CargArgContainer   *positionalArg       = carg_arg_create(&positionalArgValue, sizeof(int), CARG_ITEM_POSITIONAL, "<number>");
     int                 positionalArg2Value = 0;
     CargArgContainer   *positionalArg2      = carg_arg_create(&positionalArg2Value, sizeof(int), CARG_ITEM_POSITIONAL, "<number>");
-    char               *positionalStringArgValue = (char *)_malloc(100 * sizeof(char));
+    char               *positionalStringArgValue = (char *)_calloc(sizeof(char), 100);
     CargArgContainer   *positionalStringArg      = carg_arg_create(positionalStringArgValue, sizeof(char) * 100, CARG_ITEM_POSITIONAL | CARG_ITEM_HEAP_ALLOCATED, "<string>");
 
     int                 intArgValue        = 0;
@@ -95,7 +95,7 @@ int main(const int argc, char *argv[]) { // Example code
     carg_override_callbacks("-h -h2", help, help2);
     carg_set_nested_args(3, nestedArg1, nestedArg3, nestedArg20);
     carg_set_positional_args("%d %d %20s", positionalArg, positionalArg2, positionalStringArg);
-    carg_set_named_args("-n:%d: -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d --mynum:%d",
+    carg_set_named_args("-n:%d -t:%10s --term:%20s -ff:%999[^\n] -z:%f --xarg:bool -k:%d --mynum:%d",
         intArg, stringArg, stringArg, multiStringArg, floatArg, boolArg3, keywordIntArg, multiIntArg);
     carg_set_grouped_boolean_args("-bc", boolArg1, boolArg2);
     carg_set_env_defaults("OS:%999[^\n] PATH:%7s", multiStringArg, stringArg);

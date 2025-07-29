@@ -16,8 +16,8 @@
 
 CargContext *cargDefaultContext;
 
-inline CargArgContainer *carg_arg_create(void *argVarPtr, const size_t varSize, const uint64_t flagsArg, const char usageStringArg[]) {
-    internal_carg_flag_conditional(CARG_INITIALIZED, true, "Attempt to initialize argument before library initialization. Please fix this!\n");
+inline CargArgContainer *carg_arg_create_ts(CargContext *cargLocalContext, void *argVarPtr, const size_t varSize, const uint64_t flagsArg, const char usageStringArg[]) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Attempt to initialize argument before library initialization. Please fix this!\n");
     CargArgContainer *constructedArgument = (CargArgContainer *)_malloc(sizeof(*constructedArgument));
     const CargArgContainer constructedArgumentInternal = {
         .valueContainer = {
@@ -38,24 +38,28 @@ inline CargArgContainer *carg_arg_create(void *argVarPtr, const size_t varSize, 
         .nestedArgs = NULL
     };
     memcpy(constructedArgument, &constructedArgumentInternal, sizeof(CargArgContainer));
-    if (HAS_FLAG(flagsArg, CARG_ITEM_POSITIONAL)) cargDefaultContext -> cargPositionalArgCount++;
-    if (cargDefaultContext -> internal_cargAllArgs.array) {
-        cargDefaultContext -> internal_cargAllArgs.fillIndex++;
-        if (cargDefaultContext -> internal_cargAllArgs.fillIndex >= (int)(cargDefaultContext -> internal_cargAllArgs.size / 2)){
-            cargDefaultContext -> internal_cargAllArgs.size *= 2;
-            CargArgContainer **CargArgArrayReallocation = (CargArgContainer **)_realloc(cargDefaultContext -> internal_cargAllArgs.array, cargDefaultContext -> internal_cargAllArgs.size * sizeof(*CargArgArrayReallocation));
+    if (HAS_FLAG(flagsArg, CARG_ITEM_POSITIONAL)) cargLocalContext -> cargPositionalArgCount++;
+    if (cargLocalContext -> internal_cargAllArgs.array) {
+        cargLocalContext -> internal_cargAllArgs.fillIndex++;
+        if (cargLocalContext -> internal_cargAllArgs.fillIndex >= (int)(cargLocalContext -> internal_cargAllArgs.size / 2)){
+            cargLocalContext -> internal_cargAllArgs.size *= 2;
+            CargArgContainer **CargArgArrayReallocation = (CargArgContainer **)_realloc(cargLocalContext -> internal_cargAllArgs.array, cargLocalContext -> internal_cargAllArgs.size * sizeof(*CargArgArrayReallocation));
             internal_carg_heap_check(CargArgArrayReallocation);
-            cargDefaultContext -> internal_cargAllArgs.array = CargArgArrayReallocation;
+            cargLocalContext -> internal_cargAllArgs.array = CargArgArrayReallocation;
         }
-        cargDefaultContext -> internal_cargAllArgs.array[cargDefaultContext -> internal_cargAllArgs.fillIndex] = constructedArgument;
+        cargLocalContext -> internal_cargAllArgs.array[cargLocalContext -> internal_cargAllArgs.fillIndex] = constructedArgument;
     } else {
-        cargDefaultContext -> internal_cargAllArgs.array = (CargArgContainer **)_malloc(sizeof(*cargDefaultContext -> internal_cargAllArgs.array) * 4);
-        internal_carg_heap_check(cargDefaultContext -> internal_cargAllArgs.array);
-        cargDefaultContext -> internal_cargAllArgs.array[0] = constructedArgument;
-        cargDefaultContext -> internal_cargAllArgs.fillIndex++;
-        cargDefaultContext -> internal_cargAllArgs.size = 4;
+        cargLocalContext -> internal_cargAllArgs.array = (CargArgContainer **)_malloc(sizeof(*cargLocalContext -> internal_cargAllArgs.array) * 4);
+        internal_carg_heap_check(cargLocalContext -> internal_cargAllArgs.array);
+        cargLocalContext -> internal_cargAllArgs.array[0] = constructedArgument;
+        cargLocalContext -> internal_cargAllArgs.fillIndex++;
+        cargLocalContext -> internal_cargAllArgs.size = 4;
     }
     return constructedArgument;
+}
+
+inline CargArgContainer *carg_arg_create(void *argVarPtr, const size_t varSize, const uint64_t flagsArg, const char usageStringArg[]) {
+    return carg_arg_create_ts(cargDefaultContext, argVarPtr, varSize, flagsArg, usageStringArg);
 }
 
 inline char *carg_string_contains_substr(char *container, const char * const substr) {
@@ -144,34 +148,53 @@ inline char *internal_carg_strdup(const char *str) {
     return returnVal;
 }
 
+inline void carg_set_usage_message_ts(CargContext *cargLocalContext, const char * const format, va_list args) {
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
+    internal_carg_secure_vsprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, format, args);
+    SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_USAGE_MESSAGE_SET);
+    va_end(argsCopy);
+}
+
 inline void carg_set_usage_message(const char * const format, ...) {
     va_list args;
     va_start(args, format);
-    internal_carg_flag_conditional(CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
-    internal_carg_secure_vsprintf_concat(cargDefaultContext -> internal_cargUsageStringCursor, cargDefaultContext -> internal_cargUsageStringEnd, &cargDefaultContext -> internal_cargUsageStringCursor, format, args);
-    SET_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_USAGE_MESSAGE_SET);
+    carg_set_usage_message_ts(cargDefaultContext, format, args);
     va_end(args);
 }
 
-inline void carg_usage_message_autogen(void) {
-    internal_carg_flag_conditional(CARG_INITIALIZED, true, "Usage message auto-generated before library initialization. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
-    internal_carg_secure_sprintf_concat(cargDefaultContext -> internal_cargUsageStringCursor, cargDefaultContext -> internal_cargUsageStringEnd, &cargDefaultContext -> internal_cargUsageStringCursor, "%s%s ", "Usage: ", carg_basename(cargDefaultContext -> internal_cargArgVector[0]));
-    internal_carg_print_positional_usage_buffer();
-    internal_carg_print_non_positional_usage_buffer();
-    SET_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_USAGE_MESSAGE_SET);
+inline void carg_usage_message_autogen_ts(CargContext *cargLocalContext) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Usage message auto-generated before library initialization. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
+    internal_carg_secure_sprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, "%s%s ", "Usage: ", carg_basename(cargLocalContext -> internal_cargArgVector[0]));
+    internal_carg_print_positional_usage_buffer_ts(cargLocalContext);
+    internal_carg_print_non_positional_usage_buffer_ts(cargLocalContext);
+    SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_USAGE_MESSAGE_SET);
 }
 
-inline void carg_set_usage_function(const CargCallbackFunc usageFunc) {
-    internal_carg_flag_conditional(CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
-    cargDefaultContext -> internal_carg_usage_ptr = usageFunc;
-    SET_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_USAGE_MESSAGE_SET);
+inline void carg_usage_message_autogen(void) {
+    carg_usage_message_autogen_ts(cargDefaultContext);
+}
+
+inline void carg_set_usage_function_ts(CargContext *cargLocalContext, void (*usageFunc)(CargContext *)) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
+    cargLocalContext -> internal_carg_usage_ptr = usageFunc;
+    SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_USAGE_MESSAGE_SET);
+}
+
+inline void carg_set_usage_function(const void (*usageFunc)(CargContext *)) {
+    carg_set_usage_function_ts(cargDefaultContext, usageFunc);
+}
+
+inline void carg_usage_ts(CargContext *cargLocalContext) {
+    cargLocalContext -> internal_carg_usage_ptr(cargLocalContext);
+    carg_terminate();
+    exit(EXIT_SUCCESS);
 }
 
 inline void carg_usage(void) {
-    cargDefaultContext -> internal_carg_usage_ptr();
-    carg_terminate();
-    exit(EXIT_SUCCESS);
+    carg_usage_ts(cargDefaultContext);
 }
 
 inline bool carg_required(const CargArgContainer *arg) {
@@ -186,11 +209,11 @@ inline bool carg_mutually_required(const CargArgContainer *arg1, const CargArgCo
     return arg1 -> hasValue ? arg2 -> hasValue : 1;
 }
 
-inline void carg_init(const int argc, char **argv) {
-    if (cargDefaultContext) {
+inline void carg_init_ts(CargContext **cargLocalContext, const int argc, char **argv) {
+    if (*cargLocalContext) {
         internal_carg_error("carg initialized multiple times consecutively without termination.");
     }
-    cargDefaultContext = (CargContext*)_malloc(sizeof(CargContext));
+    *cargLocalContext = (CargContext*)_malloc(sizeof(CargContext));
     CargContext cargContextConstructor = {
         .cargArgCount                   = argc,
         .cargPositionalArgCount         = 0,
@@ -201,24 +224,27 @@ inline void carg_init(const int argc, char **argv) {
         .internal_cargUsageStringCursor = NULL,
         .internal_cargUsageStringEnd    = NULL,
         .internal_cargInternalFlags     = 0,
-        .internal_carg_usage_ptr        = internal_carg_usage_default
+        .internal_carg_usage_ptr        = internal_carg_usage_default_ts
     };
     cargContextConstructor.internal_cargUsageStringCursor = cargContextConstructor.internal_cargUsageString;
     cargContextConstructor.internal_cargUsageStringEnd = cargContextConstructor.internal_cargUsageString + CARG_USAGE_STRING_SIZE - 1;
-    internal_carg_heap_check(cargDefaultContext);
+    internal_carg_heap_check(*cargLocalContext);
     internal_carg_heap_check(cargContextConstructor.internal_cargArgVector);
     internal_carg_heap_check(cargContextConstructor.internal_cargSetArgs);
     internal_carg_heap_check(cargContextConstructor.internal_cargUsageString);
     strncpy(cargContextConstructor.internal_cargUsageString, "Please specify a usage message in your client code. You can do this via carg_set_usage_message() or carg_usage_message_autogen().", CARG_USAGE_STRING_SIZE);
-    memcpy(cargDefaultContext, &cargContextConstructor, sizeof(CargContext));
-    for (int i=0; i<cargDefaultContext -> cargArgCount; i++) {
+    memcpy(*cargLocalContext, &cargContextConstructor, sizeof(CargContext));
+    for (int i=0; i<(*cargLocalContext) -> cargArgCount; i++) {
         char *allocation = internal_carg_strdup(argv[i]);
         internal_carg_heap_check(allocation);
-        cargDefaultContext -> internal_cargArgVector[i] = allocation;
+        (*cargLocalContext) -> internal_cargArgVector[i] = allocation;
     }
+    internal_carg_heap_check((*cargLocalContext) -> internal_cargSetArgs);
+    SET_FLAG((*cargLocalContext) -> internal_cargInternalFlags, CARG_INITIALIZED);
+}
 
-    internal_carg_heap_check(cargDefaultContext -> internal_cargSetArgs);
-    SET_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_INITIALIZED);
+inline void carg_init(const int argc, char **argv) {
+    carg_init_ts(&cargDefaultContext, argc, argv);
 }
 
 inline void carg_heap_default_value(const CargArgContainer *heapArg, const void *val, const size_t bytes) {
@@ -228,83 +254,111 @@ inline void carg_heap_default_value(const CargArgContainer *heapArg, const void 
     memcpy(heapArg -> valueContainer.value, val, bytes);
 }
 
-inline void carg_set_named_args(const char * const format, ...) {
-    internal_carg_flag_conditional(CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_NAMED_ARGS_SET, false, "Named args initializer called multiple times. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called before named args initializer. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
-    va_list args;
-    va_start(args, format);
-    for (int i=cargDefaultContext -> cargPositionalArgCount + 1; i<cargDefaultContext -> cargArgCount; i++) {
-        internal_carg_reference_named_arg_formatter(i, format, args);
+inline void carg_set_named_args_ts(CargContext *cargLocalContext, const char * const format, va_list args) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_NAMED_ARGS_SET, false, "Named args initializer called multiple times. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called before named args initializer. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
+    for (int i=cargLocalContext -> cargPositionalArgCount + 1; i<cargLocalContext -> cargArgCount; i++) {
+        va_list argsCopy;
+        va_copy(argsCopy, args);
+        internal_carg_reference_named_arg_formatter_ts(cargLocalContext, i, format, argsCopy);
+        va_end(argsCopy);
     }
-    va_end(args);
-    SET_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_NAMED_ARGS_SET);
+    SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_NAMED_ARGS_SET);
 }
 
-inline void carg_set_positional_args(const char * const format, ...) {
-    internal_carg_flag_conditional(CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_POSITIONAL_ARGS_SET, false, "Positional args initializer called multiple times. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called before positional args initializer. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
-    if (cargDefaultContext -> cargArgCount <= cargDefaultContext -> cargPositionalArgCount) carg_usage();
+inline void carg_set_named_args(const char * const format, ...) {
+    va_list args;
+    va_start(args, format);
+    carg_set_named_args_ts(cargDefaultContext, format, args);
+    va_end(args);
+}
+
+inline void carg_set_positional_args_ts(CargContext *cargLocalContext, const char * const format, va_list args) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_POSITIONAL_ARGS_SET, false, "Positional args initializer called multiple times. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called before positional args initializer. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
+    if (cargLocalContext -> cargArgCount <= cargLocalContext -> cargPositionalArgCount) carg_usage();
     void *formatToTokenizeAllocation = internal_carg_strdup(format);
     internal_carg_heap_check(formatToTokenizeAllocation);
     char *tokenSavePointer = NULL;
     char *formatToTokenize = (char *)formatToTokenizeAllocation;
     void *varDataPtr = NULL;
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    for (int i=1; i<cargLocalContext -> cargPositionalArgCount+1; i++) {
+        CargArgContainer *currentArg = va_arg(argsCopy, CargArgContainer *);
+        internal_carg_reference_positional_arg_formatter_ts(cargLocalContext, currentArg, i, &formatToTokenizeAllocation, &formatToTokenize, &tokenSavePointer, &varDataPtr);
+    }
+    va_end(argsCopy);
+    internal_carg_free_nullify(&formatToTokenizeAllocation);
+    SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_POSITIONAL_ARGS_SET);
+}
+
+inline void carg_set_positional_args(const char * const format, ...) {
     va_list args;
     va_start(args, format);
-    for (int i=1; i<cargDefaultContext -> cargPositionalArgCount+1; i++) {
-        CargArgContainer *currentArg = va_arg(args, CargArgContainer *);
-        internal_carg_reference_positional_arg_formatter(currentArg, i, &formatToTokenizeAllocation, &formatToTokenize, &tokenSavePointer, &varDataPtr);
-    }
-    internal_carg_free_nullify(&formatToTokenizeAllocation);
+    carg_set_positional_args_ts(cargDefaultContext, format, args);
     va_end(args);
-    SET_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_POSITIONAL_ARGS_SET);
+}
+
+inline void carg_set_grouped_boolean_args_ts(CargContext *cargLocalContext, const char * const format, va_list args) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called multiple times. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
+    const char prefixChar = format[0];
+    const char *noPrefixFormat = format + 1;
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    bool *varDataPtr = NULL;
+    for (int i=1; i<cargLocalContext -> cargArgCount; i++) {
+        if (cargLocalContext -> internal_cargArgVector[i][0] != prefixChar || cargLocalContext -> internal_cargSetArgs[i]) continue;
+        if (strlen(cargLocalContext -> internal_cargArgVector[i]) > 1 && cargLocalContext -> internal_cargArgVector[i][1] == prefixChar) continue;
+        for (size_t j=0; j<strlen(noPrefixFormat); j++) {
+            internal_carg_reference_grouped_boolean_arg_formatter_ts(cargLocalContext, i, j, noPrefixFormat, &varDataPtr, args);
+        }
+    }
+    SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_GROUPED_ARGS_SET);
+    va_end(argsCopy);
 }
 
 inline void carg_set_grouped_boolean_args(const char * const format, ...) {
-    internal_carg_flag_conditional(CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called multiple times. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
-    const char prefixChar = format[0];
-    const char *noPrefixFormat = format + 1;
     va_list args;
     va_start(args, format);
-    bool *varDataPtr = NULL;
-    for (int i=1; i<cargDefaultContext -> cargArgCount; i++) {
-        if (cargDefaultContext -> internal_cargArgVector[i][0] != prefixChar || cargDefaultContext -> internal_cargSetArgs[i]) continue;
-        if (strlen(cargDefaultContext -> internal_cargArgVector[i]) > 1 && cargDefaultContext -> internal_cargArgVector[i][1] == prefixChar) continue;
-        for (size_t j=0; j<strlen(noPrefixFormat); j++) {
-            internal_carg_reference_grouped_boolean_arg_formatter(i, j, noPrefixFormat, &varDataPtr, args);
-        }
-    }
-    SET_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_GROUPED_ARGS_SET);
+    carg_set_grouped_boolean_args_ts(cargDefaultContext, format, args);
     va_end(args);
 }
 
-inline void carg_set_env_defaults(const char * const format, ...) {
-    internal_carg_flag_conditional(CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
-    va_list args;
-    va_start(args, format);
+inline void carg_set_env_defaults_ts(CargContext *cargLocalContext, const char * const format, va_list args) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    va_list argsCopy;
+    va_copy(argsCopy, args);
     void *formatTokenAllocation = internal_carg_strdup(format);
     internal_carg_heap_check(formatTokenAllocation);
     char *formatCopy = (char *)formatTokenAllocation;
     char *tokenSavePointer = NULL;
-    internal_carg_set_env_defaults(&formatCopy, &tokenSavePointer, &formatTokenAllocation, args);
-    va_end(args);
+    internal_carg_set_env_defaults_ts(cargLocalContext, &formatCopy, &tokenSavePointer, &formatTokenAllocation, argsCopy);
+    va_end(argsCopy);
     internal_carg_free_nullify(&formatTokenAllocation);
 }
 
-inline void carg_set_nested_args(const int nestedArgumentCount, ...) {
-    internal_carg_flag_conditional(CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_NESTED_ARGS_SET, false, "Nested args initializer called multiple times. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called before nested args initializer. Please fix this!\n");
+inline void carg_set_env_defaults(const char * const format, ...) {
     va_list args;
-    va_start(args, nestedArgumentCount);
+    va_start(args, format);
+    carg_set_env_defaults_ts(cargDefaultContext, format, args);
+    va_end(args);
+}
+
+inline void carg_set_nested_args_ts(CargContext *cargLocalContext, const int nestedArgumentCount, va_list args) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_NESTED_ARGS_SET, false, "Nested args initializer called multiple times. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_GROUPED_ARGS_SET, false, "Grouped args initializer called before nested args initializer. Please fix this!\n");
+    va_list argsCopy;
+    va_copy(argsCopy, args);
     for (int x=0; x<nestedArgumentCount; x++) {
-        CargArgContainer *argRoot = va_arg(args, CargArgContainer *);
+        CargArgContainer *argRoot = va_arg(argsCopy, CargArgContainer *);
         if (!HAS_FLAG(argRoot -> flags, CARG_ITEM_NESTED)) {
             internal_carg_error("Nested flag setter called on non-nested argument. Fix this!\n");
         }
@@ -315,15 +369,23 @@ inline void carg_set_nested_args(const int nestedArgumentCount, ...) {
             internal_carg_error("Root nested element was set multiple times. Fix this!\n");
         }
         const CargArgContainer *argCursor = argRoot;
-        if (!internal_carg_set_nested_arg(argRoot)) continue;
+        if (!internal_carg_set_nested_arg_ts(cargLocalContext, argRoot)) continue;
         for (int i=0; i <= argCursor -> nestedArgFillIndex; i++) {
-            if (internal_carg_set_nested_arg(argCursor -> nestedArgs[i])) {
+            if (internal_carg_set_nested_arg_ts(cargLocalContext, argCursor -> nestedArgs[i])) {
                 argCursor = argCursor -> nestedArgs[i];
                 i = -1;
             }
         }
     }
-    SET_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_NESTED_ARGS_SET);
+    SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_NESTED_ARGS_SET);
+    va_end(argsCopy);
+}
+
+inline void carg_set_nested_args(const int nestedArgumentCount, ...) {
+    va_list args;
+    va_start(args, nestedArgumentCount);
+    carg_set_nested_args_ts(cargDefaultContext, nestedArgumentCount, args);
+    va_end(args);
 }
 
 inline CargArgContainer *carg_nested_boolean_container_create(CargArgContainer *arg, const char *nestedArgString, const uint64_t flagsArg) {
@@ -384,25 +446,23 @@ inline CargArgContainer *carg_nest_container(CargArgContainer *nestIn, CargArgCo
     return argToNest;
 }
 
-inline void carg_override_callbacks(const char * const format, ...) {
-    internal_carg_flag_conditional(CARG_INITIALIZED, true, "Argument override called before library initialization. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_OVERRIDE_CALLBACKS_SET, false, "Override callback args initializer called multiple times. Please fix this!\n");
-    internal_carg_flag_conditional(CARG_ASSERTIONS_SET | CARG_NAMED_ARGS_SET | CARG_POSITIONAL_ARGS_SET | CARG_GROUPED_ARGS_SET | CARG_NESTED_ARGS_SET, false, "Callback override initialized after arguments were set. Fix this!\n");
-    internal_carg_flag_conditional(CARG_ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
-    if (cargDefaultContext -> cargArgCount < 2) return;
+inline void carg_override_callbacks_ts(CargContext *cargLocalContext, const char * const format, va_list args) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Argument override called before library initialization. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_OVERRIDE_CALLBACKS_SET, false, "Override callback args initializer called multiple times. Please fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET | CARG_NAMED_ARGS_SET | CARG_POSITIONAL_ARGS_SET | CARG_GROUPED_ARGS_SET | CARG_NESTED_ARGS_SET, false, "Callback override initialized after arguments were set. Fix this!\n");
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
+    if (cargLocalContext -> cargArgCount < 2) return;
     char *formatToTokenize = internal_carg_strtok_string_init(format);
     internal_carg_heap_check(formatToTokenize);
     const char *currentFlag = NULL;
     CargCallbackFunc functionCursor = NULL;
-    va_list args;
     va_list argsCopy;
-    va_start(args, format);
     va_copy(argsCopy, args);
-    for (int i=1; i<cargDefaultContext -> cargArgCount; i++) {
+    for (int i=1; i<cargLocalContext -> cargArgCount; i++) {
         internal_carg_strtok_register_string(formatToTokenize);
         while ((currentFlag = strtok(NULL, " "))) {
             functionCursor = va_arg(argsCopy, CargCallbackFunc);
-            if (internal_carg_cmp_flag(currentFlag, cargDefaultContext -> internal_cargArgVector[i])) {
+            if (internal_carg_cmp_flag(currentFlag, cargLocalContext -> internal_cargArgVector[i])) {
                 functionCursor();
                 internal_carg_free_nullify(&formatToTokenize);
                 carg_terminate();
@@ -410,19 +470,27 @@ inline void carg_override_callbacks(const char * const format, ...) {
             }
         }
         internal_carg_free_nullify(&formatToTokenize);
+        va_end(argsCopy);
         va_copy(argsCopy, args);
         formatToTokenize = internal_carg_strtok_string_init(format);
         internal_carg_heap_check(formatToTokenize);
     }
     internal_carg_free_nullify(&formatToTokenize);
-    va_end(args);
-    SET_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_OVERRIDE_CALLBACKS_SET);
+    va_end(argsCopy);
+    SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_OVERRIDE_CALLBACKS_SET);
 }
 
-inline void carg_arg_assert(const int assertionCount, ...) {
-    internal_carg_flag_conditional(CARG_ASSERTIONS_SET, false, "Assertion args initializer called multiple times. Please fix this!\n");
+inline void carg_override_callbacks(const char * const format, ...) {
     va_list args;
-    va_start(args, assertionCount);
+    va_start(args, format);
+    carg_override_callbacks_ts(cargDefaultContext, format, args);
+    va_end(args);
+}
+
+inline void carg_arg_assert_ts(CargContext *cargLocalContext, const int assertionCount, va_list args) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET, false, "Assertion args initializer called multiple times. Please fix this!\n");
+    va_list argsCopy;
+    va_copy(argsCopy, args);
     for (int i=0; i<assertionCount; i++) {
         const int expression = va_arg(args, int);
         char *message = va_arg(args, char *);
@@ -436,8 +504,15 @@ inline void carg_arg_assert(const int assertionCount, ...) {
             carg_usage();
         }
     }
+    va_end(argsCopy);
+    SET_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_ASSERTIONS_SET);
+}
+
+inline void carg_arg_assert(const int assertionCount, ...) {
+    va_list args;
+    va_start(args, assertionCount);
+    carg_arg_assert_ts(cargDefaultContext, assertionCount, args);
     va_end(args);
-    SET_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_ASSERTIONS_SET);
 }
 
 inline void carg_print_container_data(const CargArgContainer *container) {
@@ -462,17 +537,17 @@ inline void *carg_fetch_multi_arg_entry(const CargArgContainer *container, const
     return cursor -> value;
 }
 
-inline void carg_validate(void) {
-    internal_carg_flag_conditional(CARG_ASSERTIONS_SET | CARG_NAMED_ARGS_SET | CARG_POSITIONAL_ARGS_SET | CARG_GROUPED_ARGS_SET | CARG_NESTED_ARGS_SET, true, "Argument validator called before arguments were set. Fix this!\n");
+inline void carg_validate_ts(const CargContext *cargLocalContext) {
+    internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET | CARG_NAMED_ARGS_SET | CARG_POSITIONAL_ARGS_SET | CARG_GROUPED_ARGS_SET | CARG_NESTED_ARGS_SET, true, "Argument validator called before arguments were set. Fix this!\n");
     bool errorFound = false;
-    for (int i=1; i<cargDefaultContext -> cargArgCount; i++) {
-        if (!cargDefaultContext -> internal_cargSetArgs[i]) {
-            fprintf(stderr, "Error: Unknown option \"%s\"\n", cargDefaultContext -> internal_cargArgVector[i]);
+    for (int i=1; i<cargLocalContext -> cargArgCount; i++) {
+        if (!cargLocalContext -> internal_cargSetArgs[i]) {
+            fprintf(stderr, "Error: Unknown option \"%s\"\n", cargLocalContext -> internal_cargArgVector[i]);
             errorFound = true;
         }
     }
-    for (int i=0; i<=cargDefaultContext -> internal_cargAllArgs.fillIndex; i++) {
-        const CargArgContainer *arg = cargDefaultContext -> internal_cargAllArgs.array[i];
+    for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
+        const CargArgContainer *arg = cargLocalContext -> internal_cargAllArgs.array[i];
         if (!arg -> parentArg || !arg -> hasValue) continue;
         if (!HAS_FLAG(arg -> parentArg -> flags, CARG_ITEM_BOOLEAN) && arg -> parentArg -> argvIndexFound == arg -> argvIndexFound - 1)
             carg_usage();
@@ -487,20 +562,24 @@ inline void carg_validate(void) {
     }
 }
 
-inline void carg_terminate(void) {
-    if (HAS_FLAG(cargDefaultContext -> internal_cargInternalFlags, CARG_INITIALIZED)) {
-        if (cargDefaultContext -> internal_cargAllArgs.array) {
-            for (int i=0; i<=cargDefaultContext -> internal_cargAllArgs.fillIndex; i++) {
-                if (cargDefaultContext -> internal_cargAllArgs.array[i] -> valueContainer.value && HAS_FLAG(cargDefaultContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_HEAP_ALLOCATED)) {
-                    internal_carg_free_nullify(&cargDefaultContext -> internal_cargAllArgs.array[i] -> valueContainer.value);
+inline void carg_validate(void) {
+    carg_validate_ts(cargDefaultContext);
+}
+
+inline void carg_terminate_ts(CargContext *cargLocalContext) {
+    if (HAS_FLAG(cargLocalContext -> internal_cargInternalFlags, CARG_INITIALIZED)) {
+        if (cargLocalContext -> internal_cargAllArgs.array) {
+            for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
+                if (cargLocalContext -> internal_cargAllArgs.array[i] -> valueContainer.value && HAS_FLAG(cargLocalContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_HEAP_ALLOCATED)) {
+                    internal_carg_free_nullify(&cargLocalContext -> internal_cargAllArgs.array[i] -> valueContainer.value);
                 }
-                if (cargDefaultContext -> internal_cargAllArgs.array[i] -> nestedArgs) {
-                    internal_carg_free_nullify(&cargDefaultContext -> internal_cargAllArgs.array[i] -> nestedArgs);
+                if (cargLocalContext -> internal_cargAllArgs.array[i] -> nestedArgs) {
+                    internal_carg_free_nullify(&cargLocalContext -> internal_cargAllArgs.array[i] -> nestedArgs);
                 }
-                if (cargDefaultContext -> internal_cargAllArgs.array[i] -> valueContainer.next) {
-                    internal_carg_free_nullify(&cargDefaultContext -> internal_cargAllArgs.array[i] -> valueContainer.next -> value);
-                    CargMultiArgContainer *cursor = cargDefaultContext -> internal_cargAllArgs.array[i] -> valueContainer.next -> next;
-                    CargMultiArgContainer *cursorToFree = cargDefaultContext -> internal_cargAllArgs.array[i] -> valueContainer.next;
+                if (cargLocalContext -> internal_cargAllArgs.array[i] -> valueContainer.next) {
+                    internal_carg_free_nullify(&cargLocalContext -> internal_cargAllArgs.array[i] -> valueContainer.next -> value);
+                    CargMultiArgContainer *cursor = cargLocalContext -> internal_cargAllArgs.array[i] -> valueContainer.next -> next;
+                    CargMultiArgContainer *cursorToFree = cargLocalContext -> internal_cargAllArgs.array[i] -> valueContainer.next;
                     internal_carg_free_nullify(&cursorToFree);
                     while (cursor) {
                         internal_carg_free_nullify(&cursor -> value);
@@ -509,24 +588,27 @@ inline void carg_terminate(void) {
                         internal_carg_free_nullify(&cursorToFree);
                     }
                 }
-                free(cargDefaultContext -> internal_cargAllArgs.array[i]);
+                free(cargLocalContext -> internal_cargAllArgs.array[i]);
             }
-            internal_carg_free_nullify(&cargDefaultContext -> internal_cargAllArgs.array);
+            internal_carg_free_nullify(&cargLocalContext -> internal_cargAllArgs.array);
         }
-        internal_carg_free_nullify(&cargDefaultContext -> internal_cargSetArgs);
-        if (cargDefaultContext -> internal_cargArgVector) {
-            for (int i=0; i<cargDefaultContext -> cargArgCount; i++) {
-                internal_carg_free_nullify(&cargDefaultContext -> internal_cargArgVector[i]);
+        internal_carg_free_nullify(&cargLocalContext -> internal_cargSetArgs);
+        if (cargLocalContext -> internal_cargArgVector) {
+            for (int i=0; i<cargLocalContext -> cargArgCount; i++) {
+                internal_carg_free_nullify(&cargLocalContext -> internal_cargArgVector[i]);
             }
-            internal_carg_free_nullify(&cargDefaultContext -> internal_cargArgVector);
+            internal_carg_free_nullify(&cargLocalContext -> internal_cargArgVector);
         }
     }
-    internal_carg_free_nullify(&cargDefaultContext -> internal_cargUsageString);
-    internal_carg_free_nullify(&cargDefaultContext);
+    internal_carg_free_nullify(&cargLocalContext -> internal_cargUsageString);
+    internal_carg_free_nullify(&cargLocalContext);
+}
+inline void carg_terminate(void) {
+    carg_terminate_ts(cargDefaultContext);
 }
 
-inline void internal_carg_flag_conditional(const uint64_t flag, const bool truthiness, const char * const errorMessage) {
-    if ((bool)HAS_FLAG(cargDefaultContext -> internal_cargInternalFlags, flag) != truthiness) {
+inline void internal_carg_flag_conditional_ts(const CargContext *cargLocalContext, const uint64_t flag, const bool truthiness, const char * const errorMessage) {
+    if ((bool)HAS_FLAG(cargLocalContext -> internal_cargInternalFlags, flag) != truthiness) {
         internal_carg_error(errorMessage);
     }
 }
@@ -591,8 +673,8 @@ inline int internal_carg_is_flag(const char * const formatter, const char * cons
     return 0;
 }
 
-inline void internal_carg_usage_default(void) {
-    printf("%s\n", cargDefaultContext -> internal_cargUsageString);
+inline void internal_carg_usage_default_ts(CargContext *cargLocalContext) {
+    printf("%s\n", cargLocalContext -> internal_cargUsageString);
 }
 
 inline bool internal_carg_adjust_multi_arg_setter(CargArgContainer *currentArg, void **varDataPtr) {
@@ -613,7 +695,7 @@ inline bool internal_carg_adjust_multi_arg_setter(CargArgContainer *currentArg, 
     return false;
 }
 
-inline void internal_carg_set_named_arg(CargArgContainer *currentArg, void **varDataPtr, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare) {
+inline void internal_carg_set_named_arg_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare) {
     if (!currentArg) return;
     if (currentArg -> hasValue && !HAS_FLAG(currentArg -> flags, CARG_ITEM_MULTI)) {
         carg_usage();
@@ -628,12 +710,12 @@ inline void internal_carg_set_named_arg(CargArgContainer *currentArg, void **var
         }
         *(bool *)*varDataPtr = !*(bool *)*varDataPtr; // Flip flag from its default value. Boolean flags are expected to be chars with a default value.
         currentArg -> hasValue = 1;
-        cargDefaultContext -> internal_cargSetArgs[argIndex] = currentArg -> hasValue;
+        cargLocalContext -> internal_cargSetArgs[argIndex] = currentArg -> hasValue;
     } else {
-        if (argIndex >= cargDefaultContext -> cargArgCount - 1 && !(carg_string_contains_char(cargDefaultContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool"))) carg_usage();
+        if (argIndex >= cargLocalContext -> cargArgCount - 1 && !(carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool"))) carg_usage();
         currentArg -> hasValue = sscanf(argToFormat, formatToken, *varDataPtr); // If an argument is passed in that does not match its formatter, the value remains default.
-        cargDefaultContext -> internal_cargSetArgs[argIndex] = currentArg -> hasValue;
-        if (!(carg_string_contains_char(cargDefaultContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool"))) cargDefaultContext -> internal_cargSetArgs[argIndex + 1] = currentArg -> hasValue;
+        cargLocalContext -> internal_cargSetArgs[argIndex] = currentArg -> hasValue;
+        if (!(carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool"))) cargLocalContext -> internal_cargSetArgs[argIndex + 1] = currentArg -> hasValue;
         if (!currentArg -> hasValue) {
             internal_carg_free_nullify(formatToTokenize);
             internal_carg_free_nullify(argumentFlagToCompare);
@@ -662,28 +744,26 @@ inline void internal_carg_validate_flag(const char * const flagToken) {
     }
 }
 
-inline bool internal_carg_adjust_named_assign(const int argIndex, const char * const formatToken, const char * const flagToken, const char **argToFormat, char *argumentFlagToCompare) {
-    if (argumentFlagToCompare && carg_string_contains_char(cargDefaultContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool")) {
+inline bool internal_carg_adjust_named_assign_ts(const CargContext *cargLocalContext, const int argIndex, const char * const formatToken, const char * const flagToken, const char **argToFormat, char *argumentFlagToCompare) {
+    if (argumentFlagToCompare && carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool")) {
         int ncompare = 0;
-        while (cargDefaultContext -> internal_cargArgVector[argIndex][ncompare] != '=') ncompare++;
-        if (strncmp(flagToken, cargDefaultContext -> internal_cargArgVector[argIndex], ncompare)) return false;
+        while (cargLocalContext -> internal_cargArgVector[argIndex][ncompare] != '=') ncompare++;
+        if (strncmp(flagToken, cargLocalContext -> internal_cargArgVector[argIndex], ncompare)) return false;
         argumentFlagToCompare[ncompare] = '\0';
-        *argToFormat = cargDefaultContext -> internal_cargArgVector[argIndex]+ncompare+1;
+        *argToFormat = cargLocalContext -> internal_cargArgVector[argIndex]+ncompare+1;
     }
     return true;
 }
 
-inline void internal_carg_reference_named_arg_formatter(const int argIndex, const char *format, va_list args) { // NOLINT
-    if (cargDefaultContext -> internal_cargSetArgs[argIndex]) return;
-    va_list argsCopy;
-    va_copy(argsCopy, args);
+inline void internal_carg_reference_named_arg_formatter_ts(const CargContext *cargLocalContext, const int argIndex, const char *format, va_list args) {
+    if (cargLocalContext -> internal_cargSetArgs[argIndex]) return;
     char *formatToTokenize = internal_carg_strtok_string_init(format);
     internal_carg_heap_check(formatToTokenize);
     void *varDataPtr = NULL;
-    char *argumentFlagToCompare = internal_carg_strdup(cargDefaultContext -> internal_cargArgVector[argIndex]);
+    char *argumentFlagToCompare = internal_carg_strdup(cargLocalContext -> internal_cargArgVector[argIndex]);
     internal_carg_heap_check(argumentFlagToCompare);
     const char *argToFormat;
-    if (argIndex < cargDefaultContext -> cargArgCount - 1) argToFormat = cargDefaultContext -> internal_cargArgVector[argIndex + 1];
+    if (argIndex < cargLocalContext -> cargArgCount - 1) argToFormat = cargLocalContext -> internal_cargArgVector[argIndex + 1];
     else argToFormat = NULL;
     internal_carg_strtok_register_string(formatToTokenize);
     while (1) {
@@ -692,10 +772,10 @@ inline void internal_carg_reference_named_arg_formatter(const int argIndex, cons
         if (!flagToken) break;
         internal_carg_validate_flag(flagToken);
         internal_carg_validate_formatter_extended(formatToken);
-        CargArgContainer *currentArg = va_arg(argsCopy, CargArgContainer *);
-        if (!internal_carg_adjust_named_assign(argIndex, formatToken, flagToken, &argToFormat, argumentFlagToCompare)) continue;
+        CargArgContainer *currentArg = va_arg(args, CargArgContainer *);
+        if (!internal_carg_adjust_named_assign_ts(cargLocalContext, argIndex, formatToken, flagToken, &argToFormat, argumentFlagToCompare)) continue;
         if (!strcmp(flagToken, argumentFlagToCompare)) {
-            internal_carg_set_named_arg(currentArg, &varDataPtr, argIndex, formatToken, argToFormat, &formatToTokenize, &argumentFlagToCompare);
+            internal_carg_set_named_arg_ts(cargLocalContext, currentArg, &varDataPtr, argIndex, formatToken, argToFormat, &formatToTokenize, &argumentFlagToCompare);
             break;
         }
     }
@@ -703,14 +783,14 @@ inline void internal_carg_reference_named_arg_formatter(const int argIndex, cons
     internal_carg_free_nullify(&argumentFlagToCompare);
 }
 
-inline void internal_carg_reference_positional_arg_formatter(CargArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr) {
+inline void internal_carg_reference_positional_arg_formatter_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr) {
     *formatToTokenize = strtok_r(*formatToTokenize, " ", tokenSavePointer);
     if (!HAS_FLAG(currentArg -> flags, CARG_ITEM_POSITIONAL)) {
         internal_carg_error("Positional arg setter called on named argument. Please fix this!\n");
     }
     *varDataPtr = currentArg -> valueContainer.value;
-    currentArg -> hasValue = sscanf(cargDefaultContext -> internal_cargArgVector[i], *formatToTokenize, *varDataPtr);
-    cargDefaultContext -> internal_cargSetArgs[i] = currentArg -> hasValue;
+    currentArg -> hasValue = sscanf(cargLocalContext -> internal_cargArgVector[i], *formatToTokenize, *varDataPtr);
+    cargLocalContext -> internal_cargSetArgs[i] = currentArg -> hasValue;
     if (!currentArg -> hasValue) {
         internal_carg_free_nullify(formatToTokenizeAllocation);
         carg_usage();
@@ -722,10 +802,10 @@ inline void internal_carg_reference_positional_arg_formatter(CargArgContainer *c
     *formatToTokenize = *tokenSavePointer;
 }
 
-inline void internal_carg_reference_grouped_boolean_arg_formatter(const int i, const size_t j, const char *noPrefixFormat, bool **varDataPtr, va_list args) {
+inline void internal_carg_reference_grouped_boolean_arg_formatter_ts(const CargContext *cargLocalContext, const int i, const size_t j, const char *noPrefixFormat, bool **varDataPtr, va_list args) {
     va_list argsCopy;
     va_copy(argsCopy, args);
-    if (carg_string_contains_char(cargDefaultContext -> internal_cargArgVector[i], noPrefixFormat[j]) >= 0) {
+    if (carg_string_contains_char(cargLocalContext -> internal_cargArgVector[i], noPrefixFormat[j]) >= 0) {
         CargArgContainer *currentArg = NULL;
         for (size_t k=0; k<=j; k++) {
             currentArg = va_arg(argsCopy, CargArgContainer *);
@@ -735,7 +815,7 @@ inline void internal_carg_reference_grouped_boolean_arg_formatter(const int i, c
         va_copy(argsCopy, args);
         if (*varDataPtr && currentArg) {
             currentArg -> hasValue = 1;
-            cargDefaultContext -> internal_cargSetArgs[i] = currentArg -> hasValue;
+            cargLocalContext -> internal_cargSetArgs[i] = currentArg -> hasValue;
             currentArg -> argvIndexFound = i;
             **varDataPtr = !**varDataPtr;
         }
@@ -743,23 +823,23 @@ inline void internal_carg_reference_grouped_boolean_arg_formatter(const int i, c
     va_end(argsCopy);
 }
 
-inline int internal_carg_set_nested_arg(CargArgContainer *currentArg) {
+inline int internal_carg_set_nested_arg_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg) {
     if (!currentArg) return 0;
     if (!HAS_FLAG(currentArg -> flags, CARG_ITEM_NESTED)) {
         internal_carg_error("Nested flag setter called on non-nested argument. Fix this!\n");
     }
     if (currentArg -> hasValue) return 0;
-    for (int i=cargDefaultContext -> cargPositionalArgCount+1; i<cargDefaultContext -> cargArgCount; i++) {
-        if (!strcmp(currentArg -> nestedArgString, cargDefaultContext -> internal_cargArgVector[i])) {
+    for (int i=cargLocalContext -> cargPositionalArgCount+1; i<cargLocalContext -> cargArgCount; i++) {
+        if (currentArg -> nestedArgString && cargLocalContext -> internal_cargArgVector[i] && !strcmp(currentArg -> nestedArgString, cargLocalContext -> internal_cargArgVector[i])) {
             if (HAS_FLAG(currentArg -> flags, CARG_ITEM_BOOLEAN)) {
                 *(bool *)currentArg -> valueContainer.value = !*(bool *)currentArg -> valueContainer.value;
                 currentArg -> hasValue = 1;
             } else {
-                if (i >= cargDefaultContext -> cargArgCount - 1) carg_usage();
-                currentArg -> hasValue = sscanf(cargDefaultContext -> internal_cargArgVector[i+1], currentArg -> formatterUsed, currentArg -> valueContainer.value);
-                cargDefaultContext -> internal_cargSetArgs[i+1] = currentArg -> hasValue;
+                if (i >= cargLocalContext -> cargArgCount - 1) carg_usage();
+                currentArg -> hasValue = sscanf(cargLocalContext -> internal_cargArgVector[i+1], currentArg -> formatterUsed, currentArg -> valueContainer.value);
+                cargLocalContext -> internal_cargSetArgs[i+1] = currentArg -> hasValue;
             }
-            cargDefaultContext -> internal_cargSetArgs[i] = currentArg -> hasValue;
+            cargLocalContext -> internal_cargSetArgs[i] = currentArg -> hasValue;
             currentArg -> argvIndexFound = i;
             return 1;
         }
@@ -767,7 +847,7 @@ inline int internal_carg_set_nested_arg(CargArgContainer *currentArg) {
     return 0;
 }
 
-inline void internal_carg_set_env_defaults(char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args) {
+inline void internal_carg_set_env_defaults_ts(CargContext *cargLocalContext, char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args) { // NOLINT
     va_list argsCopy;
     va_copy(argsCopy, args);
     CargArgContainer *currentArg = NULL;
@@ -793,35 +873,35 @@ inline void internal_carg_set_env_defaults(char **stringToTokenize, char **token
     va_end(argsCopy);
 }
 
-inline void internal_carg_print_positional_usage_buffer(void) {
-    for (int i=0; i<=cargDefaultContext -> internal_cargAllArgs.fillIndex; i++) {
-        if (!cargDefaultContext -> internal_cargAllArgs.array[i]) break;
-        if (!HAS_FLAG(cargDefaultContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_POSITIONAL)) continue;
-        if (cargDefaultContext -> internal_cargAllArgs.array[i] -> usageString && cargDefaultContext -> internal_cargAllArgs.array[i] -> usageString[0]) internal_carg_secure_sprintf_concat(cargDefaultContext -> internal_cargUsageStringCursor, cargDefaultContext -> internal_cargUsageStringEnd, &cargDefaultContext -> internal_cargUsageStringCursor, "%s ", cargDefaultContext -> internal_cargAllArgs.array[i]->usageString);
-        else if (cargDefaultContext -> internal_cargAllArgs.array[i] -> nestedArgString && cargDefaultContext -> internal_cargAllArgs.array[i] -> nestedArgString[0]) internal_carg_secure_sprintf_concat(cargDefaultContext -> internal_cargUsageStringCursor, cargDefaultContext -> internal_cargUsageStringEnd, &cargDefaultContext -> internal_cargUsageStringCursor, "%s ", cargDefaultContext -> internal_cargAllArgs.array[i]->nestedArgString);
+inline void internal_carg_print_positional_usage_buffer_ts(CargContext *cargLocalContext) {
+    for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
+        if (!cargLocalContext -> internal_cargAllArgs.array[i]) break;
+        if (!HAS_FLAG(cargLocalContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_POSITIONAL)) continue;
+        if (cargLocalContext -> internal_cargAllArgs.array[i] -> usageString && cargLocalContext -> internal_cargAllArgs.array[i] -> usageString[0]) internal_carg_secure_sprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, "%s ", cargLocalContext -> internal_cargAllArgs.array[i]->usageString);
+        else if (cargLocalContext -> internal_cargAllArgs.array[i] -> nestedArgString && cargLocalContext -> internal_cargAllArgs.array[i] -> nestedArgString[0]) internal_carg_secure_sprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, "%s ", cargLocalContext -> internal_cargAllArgs.array[i]->nestedArgString);
     }
 }
 
-inline void internal_carg_print_non_positional_usage_buffer(void) {
-    for (int i=0; i<=cargDefaultContext -> internal_cargAllArgs.fillIndex; i++) {
-        if (HAS_FLAG(cargDefaultContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_BOOLEAN && cargDefaultContext -> internal_cargAllArgs.array[i] -> usageString[0])) {
-            internal_carg_secure_sprintf_concat(cargDefaultContext -> internal_cargUsageStringCursor, cargDefaultContext -> internal_cargUsageStringEnd, &cargDefaultContext -> internal_cargUsageStringCursor, "%s ", cargDefaultContext -> internal_cargAllArgs.array[i]->usageString);
+inline void internal_carg_print_non_positional_usage_buffer_ts(CargContext *cargLocalContext) {
+    for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
+        if (HAS_FLAG(cargLocalContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_BOOLEAN && cargLocalContext -> internal_cargAllArgs.array[i] -> usageString[0])) {
+            internal_carg_secure_sprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, "%s ", cargLocalContext -> internal_cargAllArgs.array[i]->usageString);
         }
     }
-    for (int i=0; i<=cargDefaultContext -> internal_cargAllArgs.fillIndex; i++) {
-        if (HAS_FLAG(cargDefaultContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_NESTED_ROOT)) {
-            internal_carg_secure_sprintf_concat(cargDefaultContext -> internal_cargUsageStringCursor, cargDefaultContext -> internal_cargUsageStringEnd, &cargDefaultContext -> internal_cargUsageStringCursor, "%s ", cargDefaultContext -> internal_cargAllArgs.array[i]->nestedArgString);
+    for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
+        if (HAS_FLAG(cargLocalContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_NESTED_ROOT)) {
+            internal_carg_secure_sprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, "%s ", cargLocalContext -> internal_cargAllArgs.array[i]->nestedArgString);
         }
     }
-    for (int i=0; i<=cargDefaultContext -> internal_cargAllArgs.fillIndex; i++) {
-        if (HAS_FLAG(cargDefaultContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_POSITIONAL)) continue;
-        if (HAS_FLAG(cargDefaultContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_BOOLEAN) && !cargDefaultContext -> internal_cargAllArgs.array[i] -> nestedArgString[0]) {
+    for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
+        if (HAS_FLAG(cargLocalContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_POSITIONAL)) continue;
+        if (HAS_FLAG(cargLocalContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_BOOLEAN) && !cargLocalContext -> internal_cargAllArgs.array[i] -> nestedArgString[0]) {
             continue;
         }
-        if (cargDefaultContext -> internal_cargAllArgs.array[i] -> usageString[0]) {
-            internal_carg_secure_sprintf_concat(cargDefaultContext -> internal_cargUsageStringCursor, cargDefaultContext -> internal_cargUsageStringEnd, &cargDefaultContext -> internal_cargUsageStringCursor, "%s ", cargDefaultContext -> internal_cargAllArgs.array[i] -> usageString);
+        if (cargLocalContext -> internal_cargAllArgs.array[i] -> usageString[0]) {
+            internal_carg_secure_sprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, "%s ", cargLocalContext -> internal_cargAllArgs.array[i] -> usageString);
         }
-        else if (cargDefaultContext -> internal_cargAllArgs.array[i] -> nestedArgString[0]) {}
+        else if (cargLocalContext -> internal_cargAllArgs.array[i] -> nestedArgString[0]) {}
         else {}
     }
 }
