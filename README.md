@@ -529,3 +529,14 @@ int multi = *(int *)carg_fetch_multi_arg_entry(multiIntArg, 1);
 
 Will set `multi` to the second integer passed as an argument to `multiIntArg`. If no second integer exists, this function
 will throw an error.
+
+## Notes on Thread Safety
+The default state that this library operates in is not thread-safe because it relies on a global context. The functions 
+which read or modify this context include: `carg_init()`, `carg_validate()`, `carg_terminate()`, 
+`carg_set_usage_message()`, `carg_override_callbacks()`, `carg_arg_assert()`, `carg_set_usage_function()`, 
+`carg_usage()`, `carg_usage_message_autogen()`, `carg_arg_create()`, `carg_set_named_args()`, `carg_set_positional_args()`,
+`carg_set_grouped_boolean_args()`, `carg_set_env_defaults()`, and `carg_set_nested_args()`.
+
+All the above functions have thread-safe variants, suffixed with `_ts`. These functions take a context parameter instead 
+of assuming one from the global state; context data is typically stored in a `CargContext *` container. `carg_init_ts()`
+will allocate and initialize the aforementioned context.
