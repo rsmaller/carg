@@ -70,43 +70,36 @@ typedef struct CargContext {
 extern CargContext *cargDefaultContext;
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Flags, Flag Checkers, and Initializer Macros
+//  SECTION: Flags and Initializer Macros
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-//  Getters and Setters.
-#define HAS_FLAG(item, flag)    ((item) &   (flag))
-#define SET_FLAG(item, flag)    ((item) |=  (flag))
-#define CLEAR_FLAG(item, flag)  ((item) &= ~(flag))
-#define TOGGLE_FLAG(item, flag) ((item) ^=  (flag))
+//  Flag Construction.
+#define CARG_FLAG_BIT(bit) ((uint64_t)(1ULL << bit))
 
 //  Generic Flags.
 #define CARG_ITEM_NO_FLAGS                     (0ULL)
 
-//  Internal Argument Flags.
-#define CARG_ITEM_NESTED                       (1ULL<<1ULL)
-#define CARG_ITEM_NESTED_ROOT                  (1ULL<<2ULL)
+//  Internal Argument Flags [Reserved bit indices 0 - 31].
+#define CARG_ITEM_NESTED                       CARG_FLAG_BIT(0)
+#define CARG_ITEM_NESTED_ROOT                  CARG_FLAG_BIT(1)
 
-//  User-Facing Argument Flags.
-#define CARG_ITEM_POSITIONAL                   (1ULL<<32ULL)
-#define CARG_ITEM_BOOLEAN                      (1ULL<<33ULL)
-#define CARG_ITEM_ENFORCE_NESTING_ORDER        (1ULL<<34ULL)
-#define CARG_ITEM_ENFORCE_STRICT_NESTING_ORDER (1ULL<<35ULL)
-#define CARG_ITEM_MULTI                        (1ULL<<36ULL)
-#define CARG_ITEM_HEAP_ALLOCATED               (1ULL<<37ULL)
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//  SECTION: Internal Macros
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//  User-Facing Argument Flags [Reserved bit indices 32 - 63].
+#define CARG_ITEM_POSITIONAL                   CARG_FLAG_BIT(32)
+#define CARG_ITEM_BOOLEAN                      CARG_FLAG_BIT(33)
+#define CARG_ITEM_ENFORCE_NESTING_ORDER        CARG_FLAG_BIT(34)
+#define CARG_ITEM_ENFORCE_STRICT_NESTING_ORDER CARG_FLAG_BIT(35)
+#define CARG_ITEM_MULTI                        CARG_FLAG_BIT(36)
+#define CARG_ITEM_HEAP_ALLOCATED               CARG_FLAG_BIT(37)
 
 //  Global State Flags for internal_cargInternalFlags.
-#define CARG_INITIALIZED            (1ULL<<0ULL)
-#define CARG_NAMED_ARGS_SET         (1ULL<<1ULL)
-#define CARG_POSITIONAL_ARGS_SET    (1ULL<<2ULL)
-#define CARG_GROUPED_ARGS_SET       (1ULL<<3ULL)
-#define CARG_NESTED_ARGS_SET        (1ULL<<4ULL)
-#define CARG_OVERRIDE_CALLBACKS_SET (1ULL<<5ULL)
-#define CARG_ASSERTIONS_SET         (1ULL<<6ULL)
-#define CARG_USAGE_MESSAGE_SET      (1ULL<<7ULL)
+#define CARG_INITIALIZED            CARG_FLAG_BIT(0)
+#define CARG_NAMED_ARGS_SET         CARG_FLAG_BIT(1)
+#define CARG_POSITIONAL_ARGS_SET    CARG_FLAG_BIT(2)
+#define CARG_GROUPED_ARGS_SET       CARG_FLAG_BIT(3)
+#define CARG_NESTED_ARGS_SET        CARG_FLAG_BIT(4)
+#define CARG_OVERRIDE_CALLBACKS_SET CARG_FLAG_BIT(5)
+#define CARG_ASSERTIONS_SET         CARG_FLAG_BIT(6)
+#define CARG_USAGE_MESSAGE_SET      CARG_FLAG_BIT(7)
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: User-Facing Function Prototypes
@@ -182,6 +175,11 @@ void carg_set_nested_args_tsv         (CargContext *cargLocalContext, int nested
 //  SECTION: Internal Function Prototypes
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+bool internal_carg_has_flag   (uint64_t  item, uint64_t flag);
+void internal_carg_set_flag   (uint64_t *item, uint64_t flag);
+void internal_carg_clear_flag (uint64_t *item, uint64_t flag);
+void internal_carg_toggle_flag(uint64_t *item, uint64_t flag);
+    
 int   internal_carg_test_printf           (const char *formatter, ...);
 int   internal_carg_test_vsnprintf        (const char *formatter, va_list args);
 int   internal_carg_secure_sprintf_concat (char *startPointer, char *endPointer, char **cursor, const char *formatter, ...);
@@ -195,8 +193,8 @@ void internal_carg_free_nullify       (const void *ptr);
 
 char *internal_carg_strtok_string_init    (const char * str);
 void  internal_carg_strtok_register_string(char *str);
-int   internal_carg_cmp_flag              (const char *argument, const char *parameter);
-int   internal_carg_is_flag               (const char *formatter, const char *toCheck);
+int   internal_internal_carg_cmp_flag              (const char *argument, const char *parameter);
+int   internal_internal_carg_is_flag               (const char *formatter, const char *toCheck);
 
 void internal_carg_usage_default_ts(const CargContext *cargLocalContext);
 
@@ -208,7 +206,7 @@ bool internal_carg_adjust_named_assign_ts    (const CargContext *cargLocalContex
 
 void internal_carg_validate_formatter_extended(const char *formatToken);
 void internal_carg_validate_formatter         (const char *formatToken);
-void internal_carg_validate_flag              (const char *flagToken);
+void internal_internal_carg_validate_flag              (const char *flagToken);
 
 void internal_carg_reference_named_arg_formatter_ts          (const CargContext *cargLocalContext, int argIndex, const char *format, va_list args);
 void internal_carg_reference_positional_arg_formatter_ts     (const CargContext *cargLocalContext, CargArgContainer *currentArg, int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr);
