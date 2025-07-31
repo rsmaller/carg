@@ -19,8 +19,8 @@ extern "C" {
 #define CARG_USAGE_STRING_SIZE ((size_t)2048U)
 
 typedef struct CargMultiArgContainer {
-        struct CargMultiArgContainer *next;
-        void                         *value;
+    struct CargMultiArgContainer *next;
+    void                         *value;
 } CargMultiArgContainer;
 
 typedef struct CargArgContainer {
@@ -193,8 +193,8 @@ void internal_carg_free_nullify       (const void *ptr);
 
 char *internal_carg_strtok_string_init    (const char * str);
 void  internal_carg_strtok_register_string(char *str);
-int   internal_internal_carg_cmp_flag              (const char *argument, const char *parameter);
-int   internal_internal_carg_is_flag               (const char *formatter, const char *toCheck);
+int   internal_internal_carg_cmp_flag     (const char *argument, const char *parameter);
+int   internal_internal_carg_is_flag      (const char *formatter, const char *toCheck);
 
 void internal_carg_usage_default_ts(const CargContext *cargLocalContext);
 
@@ -206,7 +206,7 @@ bool internal_carg_adjust_named_assign_ts    (const CargContext *cargLocalContex
 
 void internal_carg_validate_formatter_extended(const char *formatToken);
 void internal_carg_validate_formatter         (const char *formatToken);
-void internal_internal_carg_validate_flag              (const char *flagToken);
+void internal_internal_carg_validate_flag     (const char *flagToken);
 
 void internal_carg_reference_named_arg_formatter_ts          (const CargContext *cargLocalContext, int argIndex, const char *format, va_list args);
 void internal_carg_reference_positional_arg_formatter_ts     (const CargContext *cargLocalContext, CargArgContainer *currentArg, int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr);
