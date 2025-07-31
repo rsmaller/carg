@@ -458,7 +458,7 @@ inline CargArgContainer *carg_nested_boolean_container_create(CargArgContainer *
 }
 
 inline CargArgContainer *carg_nest_boolean_container(CargArgContainer *nestIn, CargArgContainer *argToNest, const char *nestedArgString) {
-    if (!internal_carg_has_flag(nestIn -> flags, CARG_ITEM_BOOLEAN) || !internal_carg_has_flag(argToNest -> flags, CARG_ITEM_BOOLEAN)) {
+    if (!internal_carg_has_flag(argToNest -> flags, CARG_ITEM_BOOLEAN)) {
         internal_carg_error("Only boolean arguments can be nested with this nesting function. Fix this!\n");
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {

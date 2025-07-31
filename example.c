@@ -41,8 +41,8 @@ int main(const int argc, char *argv[]) { // Example code
     CargArgContainer   *nestedArg2      = carg_arg_create(&nestedArg2Value, sizeof(bool), CARG_ITEM_BOOLEAN, "");
     bool                nestedArg3Value = false;
     CargArgContainer   *nestedArg3      = carg_arg_create(&nestedArg3Value, sizeof(bool), CARG_ITEM_BOOLEAN, "");
-    bool                nestedArg4Value = false;
-    CargArgContainer   *nestedArg4      = carg_arg_create(&nestedArg4Value, sizeof(bool), CARG_ITEM_BOOLEAN, "");
+    int                nestedArg4Value  = 27;
+    CargArgContainer   *nestedArg4      = carg_arg_create(&nestedArg4Value, sizeof(bool), CARG_ITEM_NO_FLAGS, "");
     bool                nestedArg5Value = false;
     CargArgContainer   *nestedArg5      = carg_arg_create(&nestedArg5Value, sizeof(bool), CARG_ITEM_BOOLEAN, "");
     bool                nestedArg6Value = false;
@@ -66,14 +66,13 @@ int main(const int argc, char *argv[]) { // Example code
 
     carg_nested_boolean_container_create(nestedArg1, "nestedArg1", CARG_ITEM_ENFORCE_NESTING_ORDER); {
         carg_nest_boolean_container(nestedArg1, nestedArg2, "nestedArg2");
-        carg_nest_boolean_container(nestedArg1, nestedArg4, "nestedArg4");
         carg_nest_container(nestedArg1, nestedArg21, "nestedArg21", "%d"); {
             carg_nest_container(nestedArg21, nestedArg22, "nestedArg22", "%d");
         }
     }
 
     carg_nested_boolean_container_create(nestedArg3, "nestedArg3", CARG_ITEM_ENFORCE_STRICT_NESTING_ORDER); {
-        carg_nest_boolean_container(nestedArg3, nestedArg4, "nestedArg4");
+        carg_nest_container(nestedArg3, nestedArg4, "nestedArg4", "%d");
         carg_nest_boolean_container(nestedArg3, nestedArg5, "nestedArg5"); {
             carg_nest_boolean_container(nestedArg5, nestedArg6, "nestedArg6"); {
                 carg_nest_boolean_container(nestedArg6, nestedArg7, "nestedArg7");
@@ -83,7 +82,8 @@ int main(const int argc, char *argv[]) { // Example code
     }
 
     carg_nested_container_create(nestedArg20, "nestedArg20", CARG_ITEM_NO_FLAGS, "%99s");
-     // nestedArg1 -> nestedArg2 or nestedArg4 (not both)
+     // nestedArg1 -> nestedArg2 or nestedArg21 (not both)
+     //    nestedArg21 -> nestedArg22
      // nestedArg3 -> nestedArg4 or nestedArg5 (not both)
      //    nestedArg5 -> nestedArg6
      //        nestedArg6 -> nestedArg7
@@ -111,9 +111,9 @@ int main(const int argc, char *argv[]) { // Example code
     );
 
      // Testing arguments
-    printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, \
-intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], multiStringArg: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], \
-bool3: %d[%d]\n",
+    printf("Basic arguments - positional arg count: %d, positionalArg: %d, positionalArg2: %d, positionalStringArg: %s, "
+           "intArg: %d[%d], keywordIntArg: %d[%d], stringArg: %s[%d], multiStringArg: %s[%d], float: %f[%d], bool1: %d[%d], bool2: %d[%d], "
+           "bool3: %d[%d]\n",
         cargDefaultContext -> cargPositionalArgCount, positionalArgValue, positionalArg2Value,
         positionalStringArgValue, intArgValue, intArg -> argvIndexFound,
         keywordIntArgValue, keywordIntArg -> argvIndexFound,
@@ -121,8 +121,8 @@ bool3: %d[%d]\n",
         multiStringArg -> argvIndexFound, floatArgValue, floatArg -> argvIndexFound,
         boolArg1Value, boolArg1 -> argvIndexFound, boolArg2Value, boolArg2 -> argvIndexFound,
         boolArg3Value, boolArg3 -> argvIndexFound);
-    printf("\nNested arguments - nestedArg1: %d, nestedArg2: %d, nestedArg3: %d, nestedArg4: %d, nestedArg5: %d, nestedArg6: %d, \
-nestedArg7: %d nestedArg8: %d, nestedArg20: %s, nestedArg21: %d, nestedArg22: %d\n",
+    printf("\nNested arguments - nestedArg1: %d, nestedArg2: %d, nestedArg3: %d, nestedArg4: %d, nestedArg5: %d, nestedArg6: %d, "
+           "nestedArg7: %d nestedArg8: %d, nestedArg20: %s, nestedArg21: %d, nestedArg22: %d\n",
         nestedArg1Value, nestedArg2Value, nestedArg3Value, nestedArg4Value, nestedArg5Value, nestedArg6Value, nestedArg7Value, 
         nestedArg8Value, nestedArg20Value, nestedArg21Value, nestedArg22Value);
     // CARG_PRINT_NON_STRING_ITEM(multiIntArg, int); // Uncomment these to see how the argument printing macros work.
