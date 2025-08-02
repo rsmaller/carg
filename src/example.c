@@ -1,5 +1,4 @@
 #include "carg.h"
-#include "memdebug.h"
 
 void help(void) {
     printf("Help message here\n");
@@ -17,7 +16,7 @@ int main(const int argc, char *argv[]) { // Example code
     CargArgContainer   *positionalArg       = carg_arg_create(&positionalArgValue, sizeof(int), CARG_ITEM_POSITIONAL, "<number>");
     int                 positionalArg2Value = 0;
     CargArgContainer   *positionalArg2      = carg_arg_create(&positionalArg2Value, sizeof(int), CARG_ITEM_POSITIONAL, "<number>");
-    char               *positionalStringArgValue = (char *)_calloc(sizeof(char), 100);
+    char               *positionalStringArgValue = (char *)calloc(sizeof(char), 100);
     CargArgContainer   *positionalStringArg      = carg_arg_create(positionalStringArgValue, sizeof(char) * 100, CARG_ITEM_POSITIONAL | CARG_ITEM_HEAP_ALLOCATED, "<string>");
 
     int                 intArgValue        = 0;
@@ -32,7 +31,7 @@ int main(const int argc, char *argv[]) { // Example code
     CargArgContainer   *boolArg2           = carg_arg_create(&boolArg2Value, sizeof(bool), CARG_ITEM_BOOLEAN, "-c");
     bool                boolArg3Value      = false;
     CargArgContainer   *boolArg3           = carg_arg_create(&boolArg3Value, sizeof(bool), CARG_ITEM_BOOLEAN, "--xarg");
-    char               *stringArgValue     = (char *)_malloc(21 * sizeof(char));
+    char               *stringArgValue     = (char *)malloc(21 * sizeof(char));
     CargArgContainer   *stringArg          = carg_arg_create(stringArgValue, sizeof(char) * 21, CARG_ITEM_HEAP_ALLOCATED, "-t|--term <string>");
 
     bool                nestedArg1Value = false;
@@ -59,7 +58,7 @@ int main(const int argc, char *argv[]) { // Example code
     int                 nestedArg22Value      = 0;
     CargArgContainer   *nestedArg22           = carg_arg_create(&nestedArg22Value, sizeof(int), CARG_ITEM_NO_FLAGS, "");
 
-    int                *multiIntArgValue           = (int *)_malloc(sizeof(int));
+    int                *multiIntArgValue           = (int *)malloc(sizeof(int));
     CargArgContainer   *multiIntArg                = carg_arg_create(multiIntArgValue, sizeof(int), CARG_ITEM_HEAP_ALLOCATED | CARG_ITEM_MULTI, "");
     char                multiStringArgValue[1000] = "default";
     CargArgContainer   *multiStringArg            = carg_arg_create(multiStringArgValue, sizeof(multiStringArgValue), CARG_ITEM_MULTI, "-ff <string>");

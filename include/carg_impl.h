@@ -6,10 +6,7 @@
 #include <stdbool.h> // NOLINT
 #include <stdarg.h> // NOLINT
 #include <inttypes.h>
-#define MEM_DEBUG_DISABLE
-
 #include "carg.h" // NOLINT
-#include "memdebug.h"
 
 #ifdef _MSC_VER
     #define strtok_r strtok_s
@@ -26,7 +23,7 @@ inline void carg_validate_context(const CargContext *cargLocalContext) {
 inline CargArgContainer *carg_arg_create_ts(CargContext *cargLocalContext, void *argVarPtr, const size_t varSize, const uint64_t flagsArg, const char usageStringArg[]) {
     carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Attempt to initialize argument before library initialization. Please fix this!\n");
-    CargArgContainer *constructedArgument = (CargArgContainer *)_malloc(sizeof(*constructedArgument));
+    CargArgContainer *constructedArgument = (CargArgContainer *)malloc(sizeof(*constructedArgument));
     const CargArgContainer constructedArgumentInternal = {
         .valueContainer = {
             .next = NULL,
@@ -51,13 +48,13 @@ inline CargArgContainer *carg_arg_create_ts(CargContext *cargLocalContext, void 
         cargLocalContext -> internal_cargAllArgs.fillIndex++;
         if (cargLocalContext -> internal_cargAllArgs.fillIndex >= (int)(cargLocalContext -> internal_cargAllArgs.size / 2)){
             cargLocalContext -> internal_cargAllArgs.size *= 2;
-            CargArgContainer **CargArgArrayReallocation = (CargArgContainer **)_realloc(cargLocalContext -> internal_cargAllArgs.array, cargLocalContext -> internal_cargAllArgs.size * sizeof(*CargArgArrayReallocation));
+            CargArgContainer **CargArgArrayReallocation = (CargArgContainer **)realloc(cargLocalContext -> internal_cargAllArgs.array, cargLocalContext -> internal_cargAllArgs.size * sizeof(*CargArgArrayReallocation));
             internal_carg_heap_check(CargArgArrayReallocation);
             cargLocalContext -> internal_cargAllArgs.array = CargArgArrayReallocation;
         }
         cargLocalContext -> internal_cargAllArgs.array[cargLocalContext -> internal_cargAllArgs.fillIndex] = constructedArgument;
     } else {
-        cargLocalContext -> internal_cargAllArgs.array = (CargArgContainer **)_malloc(sizeof(*cargLocalContext -> internal_cargAllArgs.array) * 4);
+        cargLocalContext -> internal_cargAllArgs.array = (CargArgContainer **)malloc(sizeof(*cargLocalContext -> internal_cargAllArgs.array) * 4);
         internal_carg_heap_check(cargLocalContext -> internal_cargAllArgs.array);
         cargLocalContext -> internal_cargAllArgs.array[0] = constructedArgument;
         cargLocalContext -> internal_cargAllArgs.fillIndex++;
@@ -150,7 +147,7 @@ inline int internal_carg_secure_vsprintf_concat(char * const startPointer, char 
 
 inline char *internal_carg_strdup(const char *str) {
     const size_t size = strlen(str);
-    char *returnVal = (char *)_malloc(sizeof(*returnVal) * (size + 1));
+    char *returnVal = (char *)malloc(sizeof(*returnVal) * (size + 1));
     strncpy(returnVal, str, size);
     returnVal[size] = '\0';
     return returnVal;
@@ -161,7 +158,7 @@ inline void carg_set_usage_message_tsv(CargContext *cargLocalContext, const char
     va_list argsCopy;
     va_copy(argsCopy, args);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_USAGE_MESSAGE_SET, false, "Usage message set by user twice. Please fix this!\n");
-    internal_carg_secure_vsprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, format, args);
+    internal_carg_secure_vsprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, format, argsCopy);
     internal_carg_set_flag(&cargLocalContext -> internal_cargInternalFlags, CARG_USAGE_MESSAGE_SET);
     va_end(argsCopy);
 }
@@ -232,15 +229,15 @@ inline void carg_init_ts(CargContext **cargLocalContext, const int argc, char **
     if (*cargLocalContext) {
         internal_carg_error("carg initialized multiple times consecutively without termination.");
     }
-    *cargLocalContext = (CargContext*)_malloc(sizeof(CargContext));
+    *cargLocalContext = (CargContext*)malloc(sizeof(CargContext));
     carg_validate_context(*cargLocalContext);
     CargContext cargContextConstructor = {
         .cargArgCount                   = argc,
         .cargPositionalArgCount         = 0,
-        .internal_cargSetArgs           = (int *)_calloc(sizeof(int), argc),
-        .internal_cargArgVector         = (char **)_calloc(sizeof(char *), argc),
+        .internal_cargSetArgs           = (int *)calloc(sizeof(int), argc),
+        .internal_cargArgVector         = (char **)calloc(sizeof(char *), argc),
         .internal_cargAllArgs           = {.size = 0, .fillIndex = -1, .array = NULL},
-        .internal_cargUsageString       = (char *)_calloc(sizeof(char), CARG_USAGE_STRING_SIZE),
+        .internal_cargUsageString       = (char *)calloc(sizeof(char), CARG_USAGE_STRING_SIZE),
         .internal_cargUsageStringCursor = NULL,
         .internal_cargUsageStringEnd    = NULL,
         .internal_cargInternalFlags     = 0,
@@ -354,7 +351,7 @@ inline void carg_set_grouped_boolean_args_tsv(CargContext *cargLocalContext, con
         if (cargLocalContext -> internal_cargArgVector[i][0] != prefixChar || cargLocalContext -> internal_cargSetArgs[i]) continue;
         if (strlen(cargLocalContext -> internal_cargArgVector[i]) > 1 && cargLocalContext -> internal_cargArgVector[i][1] == prefixChar) continue;
         for (size_t j=0; j<strlen(noPrefixFormat); j++) {
-            internal_carg_reference_grouped_boolean_arg_formatter_ts(cargLocalContext, i, j, noPrefixFormat, &varDataPtr, args);
+            internal_carg_reference_grouped_boolean_arg_formatter_ts(cargLocalContext, i, j, noPrefixFormat, &varDataPtr, argsCopy);
         }
     }
     internal_carg_set_flag(&cargLocalContext -> internal_cargInternalFlags, CARG_GROUPED_ARGS_SET);
@@ -463,9 +460,9 @@ inline CargArgContainer *carg_nest_boolean_container(CargArgContainer *nestIn, C
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
-        nestIn -> nestedArgs = (CargArgContainer **)_realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
+        nestIn -> nestedArgs = (CargArgContainer **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
     } else if (!nestIn -> nestedArgs) {
-        nestIn -> nestedArgs = (CargArgContainer **)_calloc(4, sizeof(*nestIn -> nestedArgs));
+        nestIn -> nestedArgs = (CargArgContainer **)calloc(4, sizeof(*nestIn -> nestedArgs));
         nestIn -> nestedArgArraySize = 4;
     }
     internal_carg_heap_check(nestIn -> nestedArgs);
@@ -492,9 +489,9 @@ inline CargArgContainer *carg_nest_container(CargArgContainer *nestIn, CargArgCo
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {
         nestIn -> nestedArgArraySize *= 2;
-        nestIn -> nestedArgs = (CargArgContainer **)_realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
+        nestIn -> nestedArgs = (CargArgContainer **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
     } else if (!nestIn -> nestedArgs) {
-        nestIn -> nestedArgs = (CargArgContainer **)_calloc(4, sizeof(*nestIn -> nestedArgs));
+        nestIn -> nestedArgs = (CargArgContainer **)calloc(4, sizeof(*nestIn -> nestedArgs));
         nestIn -> nestedArgArraySize = 4;
     }
     internal_carg_heap_check(nestIn -> nestedArgs);
@@ -561,15 +558,15 @@ inline void carg_arg_assert_tsv(CargContext *cargLocalContext, const int asserti
     va_list argsCopy;
     va_copy(argsCopy, args);
     for (int i=0; i<assertionCount; i++) {
-        const int expression = va_arg(args, int);
-        char *message = va_arg(args, char *);
+        const int expression = va_arg(argsCopy, int);
+        char *message = va_arg(argsCopy, char *);
         if (!expression) {
             if (message) {
                 printf("%s\n", message);
                 carg_terminate();
                 exit(EXIT_SUCCESS);
             }
-            va_end(args);
+            va_end(argsCopy);
             carg_usage();
         }
     }
@@ -718,7 +715,7 @@ inline void internal_carg_free_nullify(const void *ptr) {
 }
 
 inline char *internal_carg_strtok_string_init(const char * const str) {
-    char *returnVal = (char *)_calloc(strlen(str) + 4, sizeof(*returnVal));
+    char *returnVal = (char *)calloc(strlen(str) + 4, sizeof(*returnVal));
     strcpy(returnVal, str);
     memmove(returnVal + 3, returnVal, strlen(returnVal));
     memcpy(returnVal, "\x03\x01\x03", 3);
@@ -764,10 +761,10 @@ inline bool internal_carg_adjust_multi_arg_setter_ts(const CargContext *cargLoca
         while (multiArgCursor -> next) {
             multiArgCursor = multiArgCursor -> next;
         }
-        multiArgCursor -> next = (CargMultiArgContainer *)_malloc(sizeof(*multiArgCursor -> next));
+        multiArgCursor -> next = (CargMultiArgContainer *)malloc(sizeof(*multiArgCursor -> next));
         internal_carg_heap_check(multiArgCursor -> next);
         multiArgCursor -> next -> next = NULL;
-        multiArgCursor -> next -> value = _malloc(currentArg -> valueSize);
+        multiArgCursor -> next -> value = malloc(currentArg -> valueSize);
         internal_carg_heap_check(multiArgCursor -> next -> value);
         *varDataPtr = multiArgCursor -> next -> value;
         currentArg -> multiArgIndex++;
@@ -1054,5 +1051,4 @@ inline void internal_carg_toggle_flag(uint64_t *item, const uint64_t flag) {
 // Reset macro definitions to not interfere with other included libraries.
 #ifdef _MSC_VER
     #undef strtok_r
-    #undef _CRT_SECURE_NO_WARNINGS
 #endif

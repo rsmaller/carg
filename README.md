@@ -11,12 +11,8 @@ Because this library uses string formatters, you should only use types that supp
 For example, there is no formatter for an array of 100 pointers to functions that accept integers and return a character.
 Nor should you expect data remotely resembling that from a user.
 
-This library is a header-only library. Everything is in the `carg.h` header, so to add this library into your project,
-put it in your environment's include path and include the header accordingly:
-
-```
-#include "carg.h"
-```
+This library is a header-only library. Everything is in the `include/carg.h` header, so to add this library into your project,
+put it in your environment's include path and include the header accordingly.
 
 Make sure to put the `carg_impl.h` implementation header in your project directory as well.
 
