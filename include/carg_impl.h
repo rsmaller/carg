@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h> // NOLINT
-#include <stdarg.h> // NOLINT
+#include <stdbool.h> 
+// #include <stdarg.h>
 #include <inttypes.h>
-#include "carg.h" // NOLINT
+// #include "carg.h"
 
 #ifdef _MSC_VER
     #define strtok_r strtok_s
@@ -107,7 +107,7 @@ inline int internal_carg_test_printf(const char *formatter, ...) {
     return returnValue;
 }
 
-int internal_carg_test_vsnprintf(const char *formatter, va_list args) { // NOLINT
+inline int internal_carg_test_vsnprintf(const char *formatter, va_list args) {
     const int returnValue = vsnprintf(NULL, 0, formatter, args);
     return returnValue;
 }
@@ -202,7 +202,7 @@ inline void carg_set_usage_function(CargUsageFunc usageFunc) {
     carg_set_usage_function_ts(cargDefaultContext, usageFunc);
 }
 
-inline void carg_usage_ts(CargContext *cargLocalContext) {
+inline void carg_usage_ts(const CargContext *cargLocalContext) {
     carg_validate_context(cargLocalContext);
     cargLocalContext -> internal_carg_usage_ptr(cargLocalContext);
     carg_terminate();
@@ -264,7 +264,7 @@ inline void carg_init(const int argc, char **argv) {
     carg_init_ts(&cargDefaultContext, argc, argv);
 }
 
-inline void carg_heap_default_value(CargArgContainer *heapArg, const void *val, const size_t bytes) {
+inline void carg_heap_default_value(const CargArgContainer *heapArg, const void *val, const size_t bytes) {
     if (!internal_carg_has_flag(heapArg -> flags, CARG_ITEM_HEAP_ALLOCATED)) {
         internal_carg_error("Heap argument default value setter called on non-heap-allocated argument. Please fix this!\n");
     }
@@ -372,7 +372,7 @@ inline void carg_set_grouped_boolean_args(const char * const format, ...) {
     va_end(args);
 }
 
-inline void carg_set_env_defaults_tsv(CargContext *cargLocalContext, const char * const format, va_list args) {
+inline void carg_set_env_defaults_tsv(const CargContext *cargLocalContext, const char * const format, va_list args) {
     carg_validate_context(cargLocalContext);
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_INITIALIZED, true, "Setter called before library initialization. Please fix this!\n");
     va_list argsCopy;
@@ -386,7 +386,7 @@ inline void carg_set_env_defaults_tsv(CargContext *cargLocalContext, const char 
     internal_carg_free_nullify(&formatTokenAllocation);
 }
 
-inline void carg_set_env_defaults_ts(CargContext *cargLocalContext, const char * const format, ...) {
+inline void carg_set_env_defaults_ts(const CargContext *cargLocalContext, const char * const format, ...) {
     va_list args;
     va_start(args, format);
     carg_set_env_defaults_tsv(cargLocalContext, format, args);
@@ -931,7 +931,7 @@ inline int internal_carg_set_nested_arg_ts(const CargContext *cargLocalContext, 
     return 0;
 }
 
-inline void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContext, char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args) { // NOLINT
+inline void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContext, char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args) {
     carg_validate_context(cargLocalContext);
     va_list argsCopy;
     va_copy(argsCopy, args);

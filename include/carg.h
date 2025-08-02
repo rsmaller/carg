@@ -8,10 +8,9 @@ extern "C" {
 #endif
 
 
-#include <stdlib.h>     // NOLINT
-#include <stdint.h>     // NOLINT
-#include <stdbool.h>    // NOLINT
-#include <stdarg.h>     // NOLINT
+#include <stdint.h>     
+#include <stdbool.h>
+#include <stdarg.h>
 
 #define CARG_MAX_FORMATTER_SIZE 128
 #define CARG_USAGE_STRING_SIZE ((size_t)2048U)
@@ -124,15 +123,15 @@ void carg_set_usage_message    (const char *format, ...);
 void carg_override_callbacks   (const char *format, ...);
 void carg_arg_assert           (int assertionCount, ...);
 void carg_set_usage_function   (CargUsageFunc usageFunc);
-void carg_usage                (void);
 void carg_usage_message_autogen(void);
+void carg_usage                (void);
 
 void carg_set_usage_message_ts    (CargContext *cargLocalContext, const char *format, ...);
 void carg_override_callbacks_ts   (CargContext *cargLocalContext, const char *format, ...);
 void carg_arg_assert_ts           (CargContext *cargLocalContext, int assertionCount, ...);
 void carg_set_usage_function_ts   (CargContext *cargLocalContext, CargUsageFunc usageFunc);
-void carg_usage_ts                (CargContext *cargLocalContext);
 void carg_usage_message_autogen_ts(CargContext *cargLocalContext);
+void carg_usage_ts                (const CargContext *cargLocalContext);
 
 void carg_set_usage_message_tsv (CargContext *cargLocalContext, const char *format, va_list args);
 void carg_override_callbacks_tsv(CargContext *cargLocalContext, const char *format, va_list args);
@@ -142,12 +141,13 @@ bool carg_required          (const CargArgContainer *arg);
 bool carg_mutually_exclusive(const CargArgContainer *arg1, const CargArgContainer *arg2);
 bool carg_mutually_required (const CargArgContainer *arg1, const CargArgContainer *arg2);
 
+void carg_heap_default_value(const CargArgContainer *heapArg, const void *val, size_t bytes);
+
 CargArgContainer *carg_arg_create                     (void *argVarPtr, size_t varSize, uint64_t flagsArg, const char usageStringArg[]);
 CargArgContainer *carg_nested_container_create        (CargArgContainer *arg, const char nestedArgString[], uint64_t flagsArg, const char *format);
 CargArgContainer *carg_nested_boolean_container_create(CargArgContainer *arg, const char nestedArgString[], uint64_t flagsArg);
 CargArgContainer *carg_nest_container                 (CargArgContainer *nestIn, CargArgContainer *argToNest, const char nestedArgString[], const char *format);
 CargArgContainer *carg_nest_boolean_container         (CargArgContainer *nestIn, CargArgContainer *argToNest, const char nestedArgString[]);
-void              carg_heap_default_value             (CargArgContainer *heapArg, const void *val, size_t bytes);
 
 CargArgContainer *carg_arg_create_ts                  (CargContext *cargLocalContext, void *argVarPtr, size_t varSize, uint64_t flagsArg, const char usageStringArg[]);
 
@@ -160,14 +160,14 @@ void carg_set_nested_args         (int nestedArgumentCount, ...);
 void carg_set_named_args_ts          (CargContext *cargLocalContext, const char *format, ...);
 void carg_set_positional_args_ts     (CargContext *cargLocalContext, const char *format, ...);
 void carg_set_grouped_boolean_args_ts(CargContext *cargLocalContext, const char *format, ...);
-void carg_set_env_defaults_ts        (CargContext *cargLocalContext, const char *format, ...);
 void carg_set_nested_args_ts         (CargContext *cargLocalContext, int nestedArgumentCount, ...);
+void carg_set_env_defaults_ts        (const CargContext *cargLocalContext, const char *format, ...);
 
 void carg_set_named_args_tsv          (CargContext *cargLocalContext, const char *format, va_list args);
 void carg_set_positional_args_tsv     (CargContext *cargLocalContext, const char *format, va_list args);
 void carg_set_grouped_boolean_args_tsv(CargContext *cargLocalContext, const char *format, va_list args);
-void carg_set_env_defaults_tsv        (CargContext *cargLocalContext, const char *format, va_list args);
 void carg_set_nested_args_tsv         (CargContext *cargLocalContext, int nestedArgumentCount, va_list args);
+void carg_set_env_defaults_tsv        (const CargContext *cargLocalContext, const char *format, va_list args);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Internal Function Prototypes
@@ -225,7 +225,7 @@ void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContext, char
 #else
 
 #ifndef CARG_CUSTOM_IMPL
-    #include "carg_impl.h" // NOLINT
+    #include "carg_impl.h" 
 #endif
 
 #endif
