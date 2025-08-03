@@ -12,7 +12,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdarg.h>
 
-#define CARG_MAX_FORMATTER_SIZE 128
+#define CARG_MAX_FORMATTER_SIZE ((size_t)128U)
 #define CARG_USAGE_STRING_SIZE ((size_t)2048U)
 
 typedef struct CargMultiArgContainer {
@@ -148,7 +148,6 @@ CargArgContainer *carg_nested_container_create        (CargArgContainer *arg, co
 CargArgContainer *carg_nested_boolean_container_create(CargArgContainer *arg, const char nestedArgString[], uint64_t flagsArg);
 CargArgContainer *carg_nest_container                 (CargArgContainer *nestIn, CargArgContainer *argToNest, const char nestedArgString[], const char *format);
 CargArgContainer *carg_nest_boolean_container         (CargArgContainer *nestIn, CargArgContainer *argToNest, const char nestedArgString[]);
-
 CargArgContainer *carg_arg_create_ts                  (CargContext *cargLocalContext, void *argVarPtr, size_t varSize, uint64_t flagsArg, const char usageStringArg[]);
 
 void carg_set_named_args          (const char *format, ...);

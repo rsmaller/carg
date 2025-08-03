@@ -23,4 +23,4 @@ IF (Sanitize STREQUAL "address")
         target_compile_options(carg PRIVATE -g -fsanitize=address -fno-omit-frame-pointer -O0)
         target_link_options(carg PRIVATE -fsanitize=address)
     ENDIF()
-ENDIF()-
+ENDIF()

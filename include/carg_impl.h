@@ -14,6 +14,14 @@
 
 CargContext *cargDefaultContext;
 
+inline void internal_carg_heap_check(const void *ptr) {
+    if (!ptr) {
+        printf("Heap allocation failure. Terminating\n");
+        carg_terminate();
+        exit(EXIT_FAILURE);
+    }
+}
+
 inline void carg_validate_context(const CargContext *cargLocalContext) {
     if (!cargLocalContext) {
         internal_carg_error("carg context not initialized!");
@@ -641,7 +649,6 @@ inline void carg_validate(void) {
 }
 
 inline void carg_terminate_ts(const CargContext *cargLocalContext) {
-    carg_validate_context(cargLocalContext);
     if (internal_carg_has_flag(cargLocalContext -> internal_cargInternalFlags, CARG_INITIALIZED)) {
         if (cargLocalContext -> internal_cargAllArgs.array) {
             for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
@@ -697,14 +704,6 @@ inline void internal_carg_error(const char * const formatter, ...) {
     va_end(args);
     carg_terminate();
     exit(EXIT_FAILURE);
-}
-
-inline void internal_carg_heap_check(const void *ptr) {
-    if (!ptr) {
-        printf("Heap allocation failure. Terminating\n");
-        carg_terminate();
-        exit(EXIT_FAILURE);
-    }
 }
 
 inline void internal_carg_free_nullify(const void *ptr) {
@@ -791,10 +790,10 @@ inline void internal_carg_set_named_arg_ts(const CargContext *cargLocalContext, 
         currentArg -> hasValue = 1;
         cargLocalContext -> internal_cargSetArgs[argIndex] = currentArg -> hasValue;
     } else {
-        if (argIndex >= cargLocalContext -> cargArgCount - 1 && !(carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool"))) carg_usage();
+        if (argIndex >= cargLocalContext -> cargArgCount - 1 && !(carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool") != 0)) carg_usage();
         currentArg -> hasValue = sscanf(argToFormat, formatToken, *varDataPtr); // If an argument is passed in that does not match its formatter, the value remains default.
         cargLocalContext -> internal_cargSetArgs[argIndex] = currentArg -> hasValue;
-        if (!(carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool"))) cargLocalContext -> internal_cargSetArgs[argIndex + 1] = currentArg -> hasValue;
+        if (!(carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool") != 0)) cargLocalContext -> internal_cargSetArgs[argIndex + 1] = currentArg -> hasValue;
         if (!currentArg -> hasValue) {
             internal_carg_free_nullify(formatToTokenize);
             internal_carg_free_nullify(argumentFlagToCompare);
@@ -825,10 +824,10 @@ inline void internal_internal_carg_validate_flag(const char * const flagToken) {
 
 inline bool internal_carg_adjust_named_assign_ts(const CargContext *cargLocalContext, const int argIndex, const char * const formatToken, const char * const flagToken, const char **argToFormat, char *argumentFlagToCompare) {
     carg_validate_context(cargLocalContext);
-    if (argumentFlagToCompare && carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool")) {
+    if (argumentFlagToCompare && carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool") != 0) {
         int ncompare = 0;
         while (cargLocalContext -> internal_cargArgVector[argIndex][ncompare] != '=') ncompare++;
-        if (strncmp(flagToken, cargLocalContext -> internal_cargArgVector[argIndex], ncompare)) return false;
+        if (strncmp(flagToken, cargLocalContext -> internal_cargArgVector[argIndex], ncompare) != 0) return false;
         argumentFlagToCompare[ncompare] = '\0';
         *argToFormat = cargLocalContext -> internal_cargArgVector[argIndex]+ncompare+1;
     }
@@ -987,8 +986,6 @@ inline void internal_carg_print_non_positional_usage_buffer_ts(CargContext *carg
         if (cargLocalContext -> internal_cargAllArgs.array[i] -> usageString[0]) {
             internal_carg_secure_sprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, "%s ", cargLocalContext -> internal_cargAllArgs.array[i] -> usageString);
         }
-        else if (cargLocalContext -> internal_cargAllArgs.array[i] -> nestedArgString[0]) {}
-        else {}
     }
 }
 
