@@ -22,6 +22,10 @@ inline void internal_carg_heap_check(const void *ptr) {
     }
 }
 
+inline int internal_carg_cmp_flag(const char * const argument, const char * const parameter) {
+    return !strcmp(argument, parameter);
+}
+
 inline void carg_validate_context(const CargContext *cargLocalContext) {
     if (!cargLocalContext) {
         internal_carg_error("carg context not initialized!");
@@ -518,28 +522,22 @@ inline void carg_override_callbacks_tsv(CargContext *cargLocalContext, const cha
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET | CARG_NAMED_ARGS_SET | CARG_POSITIONAL_ARGS_SET | CARG_GROUPED_ARGS_SET | CARG_NESTED_ARGS_SET, false, "Callback override initialized after arguments were set. Fix this!\n");
     internal_carg_flag_conditional_ts(cargLocalContext, CARG_ASSERTIONS_SET, false, "Assertions set before all arguments were initialized. Please fix this!\n");
     if (cargLocalContext -> cargArgCount < 2) return;
-    char *formatToTokenize = internal_carg_strtok_string_init(format);
-    internal_carg_heap_check(formatToTokenize);
     const char *currentFlag = NULL;
     CargCallbackFunc functionCursor = NULL;
     va_list argsCopy;
     va_copy(argsCopy, args);
-    for (int i=1; i<cargLocalContext -> cargArgCount; i++) {
-        internal_carg_strtok_register_string(formatToTokenize);
-        while ((currentFlag = strtok(NULL, " "))) {
-            functionCursor = va_arg(argsCopy, CargCallbackFunc);
-            if (internal_internal_carg_cmp_flag(currentFlag, cargLocalContext -> internal_cargArgVector[i])) {
+    char *formatToTokenize = internal_carg_strdup(format);
+    char *savePtr = formatToTokenize;
+    while ((currentFlag = strtok_r(savePtr, " ", &savePtr))) {
+        functionCursor = va_arg(argsCopy, CargCallbackFunc);
+        for (int i=1; i<cargLocalContext -> cargArgCount; i++) {
+            if (internal_carg_cmp_flag(currentFlag, cargLocalContext -> internal_cargArgVector[i])) {
                 functionCursor();
                 internal_carg_free_nullify(&formatToTokenize);
                 carg_terminate();
                 exit(EXIT_SUCCESS);
             }
         }
-        internal_carg_free_nullify(&formatToTokenize);
-        va_end(argsCopy);
-        va_copy(argsCopy, args);
-        formatToTokenize = internal_carg_strtok_string_init(format);
-        internal_carg_heap_check(formatToTokenize);
     }
     internal_carg_free_nullify(&formatToTokenize);
     va_end(argsCopy);
@@ -713,33 +711,17 @@ inline void internal_carg_free_nullify(const void *ptr) {
     }
 }
 
-inline char *internal_carg_strtok_string_init(const char * const str) {
-    char *returnVal = (char *)calloc(strlen(str) + 4, sizeof(*returnVal));
-    strcpy(returnVal, str);
-    memmove(returnVal + 3, returnVal, strlen(returnVal));
-    memcpy(returnVal, "\x03\x01\x03", 3);
-    return returnVal;
-}
-
-inline void internal_carg_strtok_register_string(char *str) {
-    strtok(str, "\x03");
-}
-
-inline int internal_internal_carg_cmp_flag(const char * const argument, const char * const parameter) {
-    return !strcmp(argument, parameter);
-}
-
-inline int internal_internal_carg_is_flag(const char * const formatter, const char * const toCheck) {
-    char *formatToTokenize = internal_carg_strtok_string_init(formatter);
+inline int internal_carg_is_flag(const char * const formatter, const char * const toCheck) {
+    char *formatToTokenize = internal_carg_strdup(formatter);
     internal_carg_heap_check(formatToTokenize);
-    internal_carg_strtok_register_string(formatToTokenize);
+    char *savePtr = formatToTokenize;
     while (1) {
-        char *flagToken = strtok(NULL, ": ");
-        strtok(NULL, ": "); // Discard formatter item
+        char *flagToken = strtok_r(savePtr, ": ", &savePtr);
+        strtok_r(savePtr, " ", &savePtr); // Discard formatter item
         if (!flagToken) {
             break;
         }
-        if (internal_internal_carg_cmp_flag(toCheck, flagToken)) {
+        if (internal_carg_cmp_flag(toCheck, flagToken)) {
             internal_carg_free_nullify(&formatToTokenize);
             return 1;
         }
@@ -782,7 +764,7 @@ inline void internal_carg_set_named_arg_ts(const CargContext *cargLocalContext, 
         *varDataPtr = currentArg -> valueContainer.value;
     }
     if (!*varDataPtr) return;
-    if (internal_internal_carg_cmp_flag(formatToken, "bool")) {
+    if (internal_carg_cmp_flag(formatToken, "bool")) {
         if (!internal_carg_has_flag(currentArg -> flags, CARG_ITEM_BOOLEAN)) {
             internal_carg_error("Argument struct does not contain the CARG_ITEM_BOOLEAN flag; argument items should be initialized with this flag for readability.\n");
         }
@@ -805,7 +787,7 @@ inline void internal_carg_set_named_arg_ts(const CargContext *cargLocalContext, 
 }
 
 inline void internal_carg_validate_formatter_extended(const char * const formatToken) {
-    if (formatToken && (!internal_internal_carg_cmp_flag(formatToken, "bool") && formatToken[0] != '%' || carg_string_contains_char(formatToken + 1, '%') >= 0)) {
+    if (formatToken && (!internal_carg_cmp_flag(formatToken, "bool") && formatToken[0] != '%' || carg_string_contains_char(formatToken + 1, '%') >= 0)) {
         internal_carg_error("Cannot parse format token %s\n", formatToken);
     }
 }
@@ -816,7 +798,7 @@ inline void internal_carg_validate_formatter(const char * const formatToken) {
     }
 }
 
-inline void internal_internal_carg_validate_flag(const char * const flagToken) {
+inline void internal_carg_validate_flag(const char * const flagToken) {
     if (flagToken && carg_string_contains_char(flagToken, '%') > -1) {
         internal_carg_error("Cannot parse flag token %s\n", flagToken);
     }
@@ -837,7 +819,7 @@ inline bool internal_carg_adjust_named_assign_ts(const CargContext *cargLocalCon
 inline void internal_carg_reference_named_arg_formatter_ts(const CargContext *cargLocalContext, const int argIndex, const char *format, va_list args) {
     carg_validate_context(cargLocalContext);
     if (cargLocalContext -> internal_cargSetArgs[argIndex]) return;
-    char *formatToTokenize = internal_carg_strtok_string_init(format);
+    char *formatToTokenize = internal_carg_strdup(format);
     internal_carg_heap_check(formatToTokenize);
     void *varDataPtr = NULL;
     char *argumentFlagToCompare = internal_carg_strdup(cargLocalContext -> internal_cargArgVector[argIndex]);
@@ -845,12 +827,12 @@ inline void internal_carg_reference_named_arg_formatter_ts(const CargContext *ca
     const char *argToFormat;
     if (argIndex < cargLocalContext -> cargArgCount - 1) argToFormat = cargLocalContext -> internal_cargArgVector[argIndex + 1];
     else argToFormat = NULL;
-    internal_carg_strtok_register_string(formatToTokenize);
+    char *savePtr = formatToTokenize;
     while (1) {
-        const char *flagToken = strtok(NULL, ":");
-        const char *formatToken = strtok(NULL, " ");
+        const char *flagToken = strtok_r(savePtr, ":", &savePtr);
+        const char *formatToken = strtok_r(savePtr, " ", &savePtr);
         if (!flagToken) break;
-        internal_internal_carg_validate_flag(flagToken);
+        internal_carg_validate_flag(flagToken);
         internal_carg_validate_formatter_extended(formatToken);
         CargArgContainer *currentArg = va_arg(args, CargArgContainer *);
         if (!internal_carg_adjust_named_assign_ts(cargLocalContext, argIndex, formatToken, flagToken, &argToFormat, argumentFlagToCompare)) continue;
@@ -940,7 +922,7 @@ inline void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContex
         char *formatToken = strtok_r(NULL, " ", tokenSavePointer);
         *stringToTokenize = *tokenSavePointer;
         if (!envVarToken || !formatToken) break;
-        internal_internal_carg_validate_flag(envVarToken);
+        internal_carg_validate_flag(envVarToken);
         internal_carg_validate_formatter(formatToken);
         const char *envVarValue = getenv(envVarToken);
         currentArg = va_arg(argsCopy, CargArgContainer *);
