@@ -188,8 +188,8 @@ void internal_carg_error              (const char *formatter, ...);
 void internal_carg_heap_check         (const void *ptr);
 void internal_carg_free_nullify       (const void *ptr);
 
-int   internal_carg_cmp_flag     (const char *argument, const char *parameter);
-int   internal_carg_is_flag      (const char *formatter, const char *toCheck);
+int internal_carg_cmp_flag     (const char *argument, const char *parameter);
+int internal_carg_is_flag      (const char *formatter, const char *toCheck);
 
 void internal_carg_usage_default_ts(const CargContext *cargLocalContext);
 
