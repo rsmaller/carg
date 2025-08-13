@@ -7,8 +7,8 @@
 extern "C" {
 #endif
 
-
-#include <stdint.h>     
+#include <stddef.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <stdarg.h>
 
