@@ -182,6 +182,8 @@ int   internal_carg_test_vsnprintf        (const char *formatter, va_list args);
 int   internal_carg_secure_sprintf_concat (char *startPointer, char *endPointer, char **cursor, const char *formatter, ...);
 int   internal_carg_secure_vsprintf_concat(char *startPointer, char *endPointer, char **cursor, const char *formatter, va_list argsToCopy);
 char *internal_carg_strdup                (const char *str);
+char *internal_carg_strtok_reentrant      (char *str, const char *delim, char **savePtr);
+
 
 void internal_carg_flag_conditional_ts(const CargContext *cargLocalContext, uint64_t flag, bool truthiness, const char *errorMessage);
 void internal_carg_error              (const char *formatter, ...);

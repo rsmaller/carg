@@ -4,15 +4,41 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h> 
-// #include <stdarg.h>
+#include <stdarg.h>
 #include <inttypes.h>
-// #include "carg.h"
-
-#ifdef _MSC_VER
-    #define strtok_r strtok_s
-#endif
 
 CargContext *cargDefaultContext;
+
+inline int carg_string_contains_char(const char * const container, const char subchar) {
+    if (!container) return -1;
+    const size_t len = strlen(container);
+    for (int i=0; i<len; i++) {
+        if (container[i] == subchar) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+inline char *internal_carg_strtok_reentrant(char *str, const char *delim, char **savePtr) {
+    if (!str) str = *savePtr;
+    if (!str || !*str) return NULL;
+    while (*str && carg_string_contains_char(delim, *str) != -1) {
+        str++;
+    }
+    char *ret = str;
+    while (*str && carg_string_contains_char(delim, *str) == -1) {
+        str++;
+    }
+    if (*str) {
+        *str = '\0';
+        *savePtr = ++str;
+    } else {
+        *savePtr = NULL;
+    }
+    if (!*ret) return NULL;
+    return ret;
+}
 
 inline void internal_carg_heap_check(const void *ptr) {
     if (!ptr) {
@@ -80,24 +106,19 @@ inline CargArgContainer *carg_arg_create(void *argVarPtr, const size_t varSize, 
 }
 
 inline const char *carg_string_contains_substr(const char *container, const char * const substr) {
-    while (strlen(container) >= strlen(substr)) {
-        if (!strncmp(container, substr, strlen(substr))) {
+    if (!container || !substr) return NULL;
+    const size_t substrlen = strlen(substr);
+    size_t containerlen = strlen(container);
+    while (containerlen >= substrlen) {
+        if (!strncmp(container, substr, substrlen)) {
             return container;
         }
         container++;
+        containerlen--;
     }
     return NULL;
 }
 
-inline int carg_string_contains_char(const char * const container, const char subchar) {
-    if (!container) return -1;
-    for (int i=0; i<strlen(container); i++) {
-        if (container[i] == subchar) {
-            return i;
-        }
-    }
-    return -1;
-}
 
 inline const char *carg_basename(const char * const container) {
     const char * const pathEnd = container + strlen(container);
@@ -528,7 +549,7 @@ inline void carg_override_callbacks_tsv(CargContext *cargLocalContext, const cha
     va_copy(argsCopy, args);
     char *formatToTokenize = internal_carg_strdup(format);
     char *savePtr = formatToTokenize;
-    while ((currentFlag = strtok_r(savePtr, " ", &savePtr))) {
+    while ((currentFlag = internal_carg_strtok_reentrant(savePtr, " ", &savePtr))) {
         functionCursor = va_arg(argsCopy, CargCallbackFunc);
         for (int i=1; i<cargLocalContext -> cargArgCount; i++) {
             if (internal_carg_cmp_flag(currentFlag, cargLocalContext -> internal_cargArgVector[i])) {
@@ -716,8 +737,8 @@ inline int internal_carg_is_flag(const char * const formatter, const char * cons
     internal_carg_heap_check(formatToTokenize);
     char *savePtr = formatToTokenize;
     while (1) {
-        char *flagToken = strtok_r(savePtr, ": ", &savePtr);
-        strtok_r(savePtr, " ", &savePtr); // Discard formatter item
+        char *flagToken = internal_carg_strtok_reentrant(savePtr, ": ", &savePtr);
+        internal_carg_strtok_reentrant(savePtr, " ", &savePtr); // Discard formatter item
         if (!flagToken) {
             break;
         }
@@ -829,8 +850,8 @@ inline void internal_carg_reference_named_arg_formatter_ts(const CargContext *ca
     else argToFormat = NULL;
     char *savePtr = formatToTokenize;
     while (1) {
-        const char *flagToken = strtok_r(savePtr, ":", &savePtr);
-        const char *formatToken = strtok_r(savePtr, " ", &savePtr);
+        const char *flagToken = internal_carg_strtok_reentrant(savePtr, ":", &savePtr);
+        const char *formatToken = internal_carg_strtok_reentrant(savePtr, " ", &savePtr);
         if (!flagToken) break;
         internal_carg_validate_flag(flagToken);
         internal_carg_validate_formatter_extended(formatToken);
@@ -847,7 +868,7 @@ inline void internal_carg_reference_named_arg_formatter_ts(const CargContext *ca
 
 inline void internal_carg_reference_positional_arg_formatter_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr) {
     carg_validate_context(cargLocalContext);
-    *formatToTokenize = strtok_r(*formatToTokenize, " ", tokenSavePointer);
+    *formatToTokenize = internal_carg_strtok_reentrant(*formatToTokenize, " ", tokenSavePointer);
     if (!internal_carg_has_flag(currentArg -> flags, CARG_ITEM_POSITIONAL)) {
         internal_carg_error("Positional arg setter called on named argument. Please fix this!\n");
     }
@@ -918,8 +939,8 @@ inline void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContex
     va_copy(argsCopy, args);
     CargArgContainer *currentArg = NULL;
     while (1) {
-        char *envVarToken = strtok_r(*stringToTokenize, ":", tokenSavePointer);
-        char *formatToken = strtok_r(NULL, " ", tokenSavePointer);
+        char *envVarToken = internal_carg_strtok_reentrant(*stringToTokenize, ":", tokenSavePointer);
+        char *formatToken = internal_carg_strtok_reentrant(NULL, " ", tokenSavePointer);
         *stringToTokenize = *tokenSavePointer;
         if (!envVarToken || !formatToken) break;
         internal_carg_validate_flag(envVarToken);
@@ -1026,8 +1047,3 @@ inline void internal_carg_toggle_flag(uint64_t *item, const uint64_t flag) {
         cursor = cursor -> next;\
     }\
 } while (0)
-
-// Reset macro definitions to not interfere with other included libraries.
-#ifdef _MSC_VER
-    #undef strtok_r
-#endif
