@@ -119,7 +119,6 @@ inline const char *carg_string_contains_substr(const char *container, const char
     return NULL;
 }
 
-
 inline const char *carg_basename(const char * const container) {
     const char * const pathEnd = container + strlen(container);
     const char *result = pathEnd;
