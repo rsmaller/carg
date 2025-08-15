@@ -20,9 +20,10 @@ inline int carg_string_contains_char(const char * const container, const char su
     return -1;
 }
 
-inline char *internal_carg_strtok_reentrant(char *str, const char *delim, char **savePtr) {
-    if (!str) str = *savePtr;
-    if (!str || !*str) return NULL;
+inline char *internal_carg_strtok_reentrant(char *str, char *delim, char **saveptr) {
+    if (!saveptr) return NULL;
+    if (!str) str = *saveptr;
+    if (!str || !*str || !delim) return NULL;
     while (*str && carg_string_contains_char(delim, *str) != -1) {
         str++;
     }
@@ -32,12 +33,14 @@ inline char *internal_carg_strtok_reentrant(char *str, const char *delim, char *
     }
     if (*str) {
         *str = '\0';
-        *savePtr = ++str;
+        *saveptr = ++str;
     } else {
-        *savePtr = NULL;
+        *saveptr = NULL;
     }
-    if (!*ret) return NULL;
-    return ret;
+    if (*ret) {
+        return ret;
+    }
+    return NULL;
 }
 
 inline void internal_carg_heap_check(const void *ptr) {
