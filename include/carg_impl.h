@@ -20,9 +20,9 @@ inline int carg_string_contains_char(const char * const container, const char su
     return -1;
 }
 
-inline char *internal_carg_strtok_reentrant(char *str, char *delim, char **saveptr) {
-    if (!saveptr) return NULL;
-    if (!str) str = *saveptr;
+inline char *internal_carg_strtok_reentrant(char *str, const char *delim, char **savePtr) {
+    if (!savePtr) return NULL;
+    if (!str) str = *savePtr;
     if (!str || !*str || !delim) return NULL;
     while (*str && carg_string_contains_char(delim, *str) != -1) {
         str++;
@@ -33,9 +33,9 @@ inline char *internal_carg_strtok_reentrant(char *str, char *delim, char **savep
     }
     if (*str) {
         *str = '\0';
-        *saveptr = ++str;
+        *savePtr = ++str;
     } else {
-        *saveptr = NULL;
+        *savePtr = NULL;
     }
     if (*ret) {
         return ret;
