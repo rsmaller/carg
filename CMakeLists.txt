@@ -3,6 +3,7 @@ set(CMAKE_CXX_STANDARD 23)
 project(carg-example VERSION 0.0.1)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ./build)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ./bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ./bin)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 IF(Example STREQUAL "threadsafe")
@@ -11,7 +12,12 @@ ELSE()
     add_executable(carg-example example/example.c)
 ENDIF()
 
-add_library(carg SHARED src/carg_impl.c)
+IF (Link STREQUAL "static")
+    add_library(carg STATIC src/carg_impl.c)
+ELSE()
+    add_library(carg SHARED src/carg_impl.c)
+ENDIF()
+
 target_link_libraries(carg-example PRIVATE carg)
 
 IF (MSVC)

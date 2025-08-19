@@ -4,11 +4,14 @@
 Everything is in the `include/carg.h` header, so to add this library into your project,
 put it in your environment's include path and include the header accordingly.
 
-Similarly, link against the `libcarg` implementation. This library builds as a shared object library. The object file 
-will be stored in the `bin` directory of the CMake project.
+Similarly, link against the `libcarg` implementation. This library can be built statically or dynamically, but the
+build process defaults to dynamic linking. To link statically, provide the flag `-DLink=static` as an argument to CMake.
 
-If you would like to install this library on your system, there is a UNIX install script for this called
-`generic-build-install-unix.sh` in the `/install` directory.
+The object file will be stored in the `bin` directory of the CMake project.
+
+If you would like to install the dynamically linked library on your system, there is a UNIX install script for this called
+`generic-build-install-unix.sh` in the `/install` directory. It will build the library and copy both the shared object 
+file and the header into their respective environment locations on UNIX systems.
 
 ## How to Use This Library
 Before using this library, ensure your `main()` function accepts an `argc` and `argv` as parameters.
