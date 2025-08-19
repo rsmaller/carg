@@ -1,4 +1,6 @@
 #include "carg.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 void help(void) {
     printf("Help message here\n");

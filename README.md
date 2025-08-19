@@ -1,5 +1,15 @@
 # carg - C Argument Parsing Library
 
+## Setting Up The Environment
+Everything is in the `include/carg.h` header, so to add this library into your project,
+put it in your environment's include path and include the header accordingly.
+
+Similarly, link against the `libcarg` implementation. This library builds as a shared object library. The object file 
+will be stored in the `bin` directory of the CMake project.
+
+If you would like to install this library on your system, there is a UNIX install script for this called
+`generic-build-install-unix.sh` in the `/install` directory.
+
 ## How to Use This Library
 Before using this library, ensure your `main()` function accepts an `argc` and `argv` as parameters.
 This library parses those parameters using string formatters and sets variables to their values accordingly.
@@ -10,14 +20,6 @@ user-facing CLI applications easier. The library's context information is stored
 Because this library uses string formatters, you should only use types that support `scanf()` formatting.
 For example, there is no formatter for an array of 100 pointers to functions that accept integers and return a character.
 Nor should you expect data remotely resembling that from a user.
-
-This library is a header-only library. Everything is in the `include/carg.h` header, so to add this library into your project,
-put it in your environment's include path and include the header accordingly.
-
-Make sure to put the `carg_impl.h` implementation header in your project directory as well.
-
-If for any reason you would like to create your own implementation for this library, define `CARG_CUSTOM_IMPL`
-before including the `carg.h` header.
 
 To set up the library to use your argument vector, call `carg_init()` with the argument count and vector.
 

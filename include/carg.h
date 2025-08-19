@@ -223,10 +223,6 @@ void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContext, char
     #error args.h is only supported on the C99 standard and above.
 #else
 
-#ifndef CARG_CUSTOM_IMPL
-    #include "carg_impl.h" 
-#endif
-
 #endif
 
 #ifdef __cplusplus

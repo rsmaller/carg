@@ -1,4 +1,6 @@
 #include "carg.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 int main(const int argc, char **argv) {
     CargContext *threadSafeContext = NULL;

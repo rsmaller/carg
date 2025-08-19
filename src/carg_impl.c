@@ -1,4 +1,3 @@
-#pragma once
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -6,6 +5,7 @@
 #include <stdbool.h> 
 #include <stdarg.h>
 #include <inttypes.h>
+#include "carg.h"
 
 CargContext *cargDefaultContext;
 
