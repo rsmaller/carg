@@ -495,8 +495,10 @@ inline CargArgContainer *carg_nest_boolean_container(CargArgContainer *nestIn, C
         internal_carg_error("Only boolean arguments can be nested with this nesting function. Fix this!\n");
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {
+        void *newAllocation = realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));;
+        if (newAllocation) nestIn -> nestedArgs = (CargArgContainer **)newAllocation;
+        else internal_carg_free_nullify(&nestIn -> nestedArgs);
         nestIn -> nestedArgArraySize *= 2;
-        nestIn -> nestedArgs = (CargArgContainer **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
     } else if (!nestIn -> nestedArgs) {
         nestIn -> nestedArgs = (CargArgContainer **)calloc(4, sizeof(*nestIn -> nestedArgs));
         nestIn -> nestedArgArraySize = 4;
@@ -524,8 +526,10 @@ inline CargArgContainer *carg_nest_container(CargArgContainer *nestIn, CargArgCo
         internal_carg_error("Only non-boolean arguments can be nested with this nesting function. Fix this!\n");
     }
     if (nestIn -> nestedArgs && nestIn -> nestedArgFillIndex >= (int)nestIn -> nestedArgArraySize / 2) {
+        void *newAllocation = realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));;
+        if (newAllocation) nestIn -> nestedArgs = (CargArgContainer **)newAllocation;
+        else internal_carg_free_nullify(&nestIn -> nestedArgs);
         nestIn -> nestedArgArraySize *= 2;
-        nestIn -> nestedArgs = (CargArgContainer **)realloc(nestIn -> nestedArgs, nestIn -> nestedArgArraySize * sizeof(*nestIn -> nestedArgs));
     } else if (!nestIn -> nestedArgs) {
         nestIn -> nestedArgs = (CargArgContainer **)calloc(4, sizeof(*nestIn -> nestedArgs));
         nestIn -> nestedArgArraySize = 4;
