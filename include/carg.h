@@ -181,45 +181,46 @@ CARG_EXPORT void carg_set_env_defaults_tsv        (const CargContext *cargLocalC
 //  SECTION: Internal Function Prototypes
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-CARG_EXPORT bool internal_carg_has_flag   (uint64_t  item, uint64_t flag);
-CARG_EXPORT void internal_carg_set_flag   (uint64_t *item, uint64_t flag);
-CARG_EXPORT void internal_carg_clear_flag (uint64_t *item, uint64_t flag);
-CARG_EXPORT void internal_carg_toggle_flag(uint64_t *item, uint64_t flag);
-    
-CARG_EXPORT int   internal_carg_test_printf           (const char *formatter, ...);
-CARG_EXPORT int   internal_carg_test_vsnprintf        (const char *formatter, va_list args);
-CARG_EXPORT int   internal_carg_secure_sprintf_concat (char *startPointer, char *endPointer, char **cursor, const char *formatter, ...);
-CARG_EXPORT int   internal_carg_secure_vsprintf_concat(char *startPointer, char *endPointer, char **cursor, const char *formatter, va_list argsToCopy);
-CARG_EXPORT char *internal_carg_strdup                (const char *str);
-CARG_EXPORT char *internal_carg_strtok_reentrant      (char *str, const char *delim, char **savePtr);
+bool internal_carg_has_flag   (uint64_t  item, uint64_t flag);
+void internal_carg_set_flag   (uint64_t *item, uint64_t flag);
+void internal_carg_clear_flag (uint64_t *item, uint64_t flag);
+void internal_carg_toggle_flag(uint64_t *item, uint64_t flag);
 
-CARG_EXPORT void internal_carg_flag_conditional_ts(const CargContext *cargLocalContext, uint64_t flag, bool truthiness, const char *errorMessage);
-CARG_EXPORT void internal_carg_error              (const char *formatter, ...);
-CARG_EXPORT void internal_carg_heap_check         (const void *ptr);
-CARG_EXPORT void internal_carg_free_nullify       (const void *ptr);
+int internal_carg_test_printf   (const char *formatter, ...);
+int internal_carg_test_vsnprintf(const char *formatter, va_list args);
 
-CARG_EXPORT int internal_carg_cmp_flag(const char *argument, const char *parameter);
-CARG_EXPORT int internal_carg_is_flag (const char *formatter, const char *toCheck);
+int   internal_carg_secure_sprintf_concat (char *startPointer, char *endPointer, char **cursor, const char *formatter, ...);
+int   internal_carg_secure_vsprintf_concat(char *startPointer, char *endPointer, char **cursor, const char *formatter, va_list argsToCopy);
+char *internal_carg_strdup                (const char *str);
+char *internal_carg_strtok_reentrant      (char *str, const char *delim, char **savePtr);
 
-CARG_EXPORT void internal_carg_usage_default_ts(const CargContext *cargLocalContext);
+void internal_carg_flag_conditional_ts(const CargContext *cargLocalContext, uint64_t flag, bool truthiness, const char *errorMessage);
+void internal_carg_error              (const char *formatter, ...);
+void internal_carg_heap_check         (const void *ptr);
+void internal_carg_free_nullify       (const void *ptr);
 
-CARG_EXPORT void internal_carg_print_positional_usage_buffer_ts    (CargContext *cargLocalContext);
-CARG_EXPORT void internal_carg_print_non_positional_usage_buffer_ts(CargContext *cargLocalContext);
+int internal_carg_cmp_flag(const char *argument, const char *parameter);
+int internal_carg_is_flag (const char *formatter, const char *toCheck);
 
-CARG_EXPORT bool internal_carg_adjust_multi_arg_setter_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr);
-CARG_EXPORT bool internal_carg_adjust_named_assign_ts    (const CargContext *cargLocalContext, int argIndex, const char *formatToken, const char *flagToken, const char **argToFormat, char *argumentFlagToCompare);
+void internal_carg_usage_default_ts(const CargContext *cargLocalContext);
 
-CARG_EXPORT void internal_carg_validate_formatter_extended(const char *formatToken);
-CARG_EXPORT void internal_carg_validate_formatter         (const char *formatToken);
-CARG_EXPORT void internal_carg_validate_flag              (const char *flagToken);
+void internal_carg_print_positional_usage_buffer_ts    (CargContext *cargLocalContext);
+void internal_carg_print_non_positional_usage_buffer_ts(CargContext *cargLocalContext);
 
-CARG_EXPORT void internal_carg_reference_named_arg_formatter_ts          (const CargContext *cargLocalContext, int argIndex, const char *format, va_list args);
-CARG_EXPORT void internal_carg_reference_positional_arg_formatter_ts     (const CargContext *cargLocalContext, CargArgContainer *currentArg, int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr);
-CARG_EXPORT void internal_carg_reference_grouped_boolean_arg_formatter_ts(const CargContext *cargLocalContext, int i, size_t j, const char *noPrefixFormat, bool **varDataPtr, va_list args);
+bool internal_carg_adjust_multi_arg_setter_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr);
+bool internal_carg_adjust_named_assign_ts    (const CargContext *cargLocalContext, int argIndex, const char *formatToken, const char *flagToken, const char **argToFormat, char *argumentFlagToCompare);
 
-CARG_EXPORT void internal_carg_set_named_arg_ts   (const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr, int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare);
-CARG_EXPORT int  internal_carg_set_nested_arg_ts  (const CargContext *cargLocalContext, CargArgContainer *currentArg);
-CARG_EXPORT void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContext, char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args);
+void internal_carg_validate_formatter_extended(const char *formatToken);
+void internal_carg_validate_formatter         (const char *formatToken);
+void internal_carg_validate_flag              (const char *flagToken);
+
+void internal_carg_reference_named_arg_formatter_ts          (const CargContext *cargLocalContext, int argIndex, const char *format, va_list args);
+void internal_carg_reference_positional_arg_formatter_ts     (const CargContext *cargLocalContext, CargArgContainer *currentArg, int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr);
+void internal_carg_reference_grouped_boolean_arg_formatter_ts(const CargContext *cargLocalContext, int i, size_t j, const char *noPrefixFormat, bool **varDataPtr, va_list args);
+
+void internal_carg_set_named_arg_ts   (const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr, int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare);
+int  internal_carg_set_nested_arg_ts  (const CargContext *cargLocalContext, CargArgContainer *currentArg);
+void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContext, char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args);
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Platform Compatibility Enforcement

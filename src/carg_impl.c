@@ -8,7 +8,7 @@
 #define CARG_IMPL
 #include "carg.h"
 
-extern CargContext *cargDefaultContext;
+CargContext *cargDefaultContext;
 
 inline int carg_string_contains_char(const char * const container, const char subchar) {
     if (!container) return -1;
@@ -707,6 +707,7 @@ inline void carg_terminate_ts(const CargContext *cargLocalContext) {
     internal_carg_free_nullify(&cargLocalContext -> internal_cargUsageString);
     internal_carg_free_nullify(&cargLocalContext);
 }
+
 inline void carg_terminate(void) {
     carg_terminate_ts(cargDefaultContext);
 }
