@@ -5,13 +5,15 @@ Everything is in the `include/carg.h` header, so to add this library into your p
 put it in your environment's include path and include the header accordingly.
 
 Similarly, link against the `libcarg` implementation. This library can be built statically or dynamically, but the
-build process defaults to dynamic linking. To link statically, provide the flag `-DLink=static` as an argument to CMake.
+build process defaults to dynamic linking. A CMake file is provided for this. To link statically, provide the flag 
+`-DLink=static` as an argument to CMake.
 
 The object file will be stored in the `bin` directory of the CMake project.
 
 If you would like to install the dynamically linked library on your system, there is a UNIX install script for this called
 `unix-generic-build-install.sh` in the `/install` directory. It will build the library and copy both the shared object 
-file and the header into their respective environment locations on UNIX systems.
+file and the header into their respective environment locations on UNIX systems. For Linux machines, there is a package
+generator. See below in this section.
 
 There is another version of this script in PowerShell for MinGW on Windows called `mingw-generic-build-install.ps1`.
 This version of the installer script will copy the header to MinGW's include path, generate the library's runtime DLL, copy 
@@ -28,6 +30,15 @@ powershell ./msvc-generic-build-install.sh
 ```
 
 Please note that all installation scripts require respective administrator privileges.
+
+On Linux machines, it may be desirable to install this library as a package. CPack will generate a debian package for
+you. After building the library with CMake, for example:
+
+```
+cpack -G DEB
+```
+
+will generate a `.deb` installer package.
 
 ## How to Use This Library
 Before using this library, ensure your `main()` function accepts an `argc` and `argv` as parameters.
