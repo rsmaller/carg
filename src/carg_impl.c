@@ -7,8 +7,6 @@
 #include <inttypes.h>
 #include "carg.h"
 
-CargContext *cargDefaultContext;
-
 inline int carg_string_contains_char(const char * const container, const char subchar) {
     if (!container) return -1;
     const size_t len = strlen(container);

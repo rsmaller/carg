@@ -10,8 +10,24 @@ build process defaults to dynamic linking. To link statically, provide the flag 
 The object file will be stored in the `bin` directory of the CMake project.
 
 If you would like to install the dynamically linked library on your system, there is a UNIX install script for this called
-`generic-build-install-unix.sh` in the `/install` directory. It will build the library and copy both the shared object 
+`unix-generic-build-install.sh` in the `/install` directory. It will build the library and copy both the shared object 
 file and the header into their respective environment locations on UNIX systems.
+
+There is another version of this script in PowerShell for MinGW on Windows called `mingw-generic-build-install.ps1`.
+This version of the installer script will copy the header to MinGW's include path, generate the library's runtime DLL, copy 
+that to `System32`, and generate a link time `.lib` file.
+
+Lastly the MSVC version of this script, `msvc-generic-build-install.ps1` will generate the `.lib` and `.dll` files for the project.
+The DLL will be copied to `SysWOW64`. And the header file will be copied to the latest available MSVC installation's include
+directory. There is a small caveat with using the MSVC installation script; the script must be run from a Visual Studio
+Developer console with Administrator privileges, and the script must then be run in a PowerShell subshell. To run this
+from the Developer Administrator console:
+
+```
+powershell ./msvc-generic-build-install.sh
+```
+
+Please note that all installation scripts require respective administrator privileges.
 
 ## How to Use This Library
 Before using this library, ensure your `main()` function accepts an `argc` and `argv` as parameters.
