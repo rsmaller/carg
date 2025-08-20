@@ -8,6 +8,10 @@
 #define CARG_IMPL
 #include "carg.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 CARG_EXPORT CargContext *cargDefaultContext;
 
 inline int carg_string_contains_char(const char * const container, const char subchar) {
@@ -1058,3 +1062,7 @@ static void internal_carg_set_flag(uint64_t *item, const uint64_t flag) {
         cursor = cursor -> next;\
     }\
 } while (0)
+
+#ifdef __cplusplus
+}
+#endif

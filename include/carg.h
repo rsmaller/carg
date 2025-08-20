@@ -52,7 +52,7 @@ typedef struct CargArgArray {
 
 struct CargContext;
 
-typedef void (*CargCallbackFunc)(void);
+typedef void (*CargCallbackFunc)();
 typedef void (*CargUsageFunc)   (const struct CargContext *);
 
 typedef struct CargContext {
