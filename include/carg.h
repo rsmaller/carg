@@ -20,6 +20,7 @@ extern "C" {
     #define CARG_IMPORT __declspec(dllimport)
 #else
     #define CARG_EXPORT
+    #define CARG_IMPORT
 #endif
 
 typedef struct CargMultiArgContainer {
