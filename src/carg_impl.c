@@ -21,7 +21,7 @@ inline int carg_string_contains_char(const char * const container, const char su
     return -1;
 }
 
-inline char *internal_carg_strtok_reentrant(char *str, const char *delim, char **savePtr) {
+static char *internal_carg_strtok_reentrant(char *str, const char *delim, char **savePtr) {
     if (!savePtr) return NULL;
     if (!str) str = *savePtr;
     if (!str || !*str || !delim) return NULL;
@@ -44,7 +44,7 @@ inline char *internal_carg_strtok_reentrant(char *str, const char *delim, char *
     return NULL;
 }
 
-inline void internal_carg_heap_check(const void *ptr) {
+static void internal_carg_heap_check(const void *ptr) {
     if (!ptr) {
         printf("Heap allocation failure. Terminating\n");
         carg_terminate();
@@ -52,7 +52,7 @@ inline void internal_carg_heap_check(const void *ptr) {
     }
 }
 
-inline int internal_carg_cmp_flag(const char * const argument, const char * const parameter) {
+static int internal_carg_cmp_flag(const char * const argument, const char * const parameter) {
     return !strcmp(argument, parameter);
 }
 
@@ -135,20 +135,21 @@ inline const char *carg_basename(const char * const container) {
     return result;
 }
 
-inline int internal_carg_test_printf(const char *formatter, ...) {
-    va_list args;
-    va_start(args, formatter);
-    const int returnValue = vsnprintf(NULL, 0, formatter, args);
-    va_end(args);
-    return returnValue;
-}
+//  For future use.
+// static int internal_carg_test_printf(const char *formatter, ...) {
+//     va_list args;
+//     va_start(args, formatter);
+//     const int returnValue = vsnprintf(NULL, 0, formatter, args);
+//     va_end(args);
+//     return returnValue;
+// }
+//
+// static int internal_carg_test_vsnprintf(const char *formatter, va_list args) {
+//     const int returnValue = vsnprintf(NULL, 0, formatter, args);
+//     return returnValue;
+// }
 
-inline int internal_carg_test_vsnprintf(const char *formatter, va_list args) {
-    const int returnValue = vsnprintf(NULL, 0, formatter, args);
-    return returnValue;
-}
-
-inline int internal_carg_secure_sprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char * const formatter, ...) {
+static int internal_carg_secure_sprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char * const formatter, ...) {
     if (startPointer > endPointer) return 0;
     if (*endPointer) {
         internal_carg_error("endPointer 0x%" PRIxPTR " does not point to a null terminator.\n", (uintptr_t)endPointer);
@@ -166,7 +167,7 @@ inline int internal_carg_secure_sprintf_concat(char * const startPointer, char *
     return returnValue;
 }
 
-inline int internal_carg_secure_vsprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, va_list argsToCopy) {
+static int internal_carg_secure_vsprintf_concat(char * const startPointer, char * const endPointer, char **cursor, const char *formatter, va_list argsToCopy) {
     if (startPointer > endPointer) return 0;
     va_list argsCopy;
     va_copy(argsCopy, argsToCopy);
@@ -181,7 +182,7 @@ inline int internal_carg_secure_vsprintf_concat(char * const startPointer, char 
     return returnValue;
 }
 
-inline char *internal_carg_strdup(const char *str) {
+static char *internal_carg_strdup(const char *str) {
     const size_t size = strlen(str);
     char *returnVal = (char *)malloc(sizeof(*returnVal) * (size + 1));
     strncpy(returnVal, str, size);
@@ -716,14 +717,14 @@ inline void carg_terminate(void) {
     carg_terminate_ts(cargDefaultContext);
 }
 
-inline void internal_carg_flag_conditional_ts(const CargContext *cargLocalContext, const uint64_t flag, const bool truthiness, const char * const errorMessage) {
+static void internal_carg_flag_conditional_ts(const CargContext *cargLocalContext, const uint64_t flag, const bool truthiness, const char * const errorMessage) {
     carg_validate_context(cargLocalContext);
     if ((bool)internal_carg_has_flag(cargLocalContext -> internal_cargInternalFlags, flag) != truthiness) {
         internal_carg_error(errorMessage);
     }
 }
 
-inline void internal_carg_error(const char * const formatter, ...) {
+static void internal_carg_error(const char * const formatter, ...) {
     va_list args;
     va_start(args, formatter);
     fprintf(stderr, "cargError: ");
@@ -733,38 +734,39 @@ inline void internal_carg_error(const char * const formatter, ...) {
     exit(EXIT_FAILURE);
 }
 
-inline void internal_carg_free_nullify(const void *ptr) {
+static void internal_carg_free_nullify(const void *ptr) {
     if (*(void **)ptr) {
         free(*(void **)ptr);
         *(void **)ptr = NULL;
     }
 }
 
-inline int internal_carg_is_flag(const char * const formatter, const char * const toCheck) {
-    char *formatToTokenize = internal_carg_strdup(formatter);
-    internal_carg_heap_check(formatToTokenize);
-    char *savePtr = formatToTokenize;
-    while (1) {
-        char *flagToken = internal_carg_strtok_reentrant(savePtr, ": ", &savePtr);
-        internal_carg_strtok_reentrant(savePtr, " ", &savePtr); // Discard formatter item
-        if (!flagToken) {
-            break;
-        }
-        if (internal_carg_cmp_flag(toCheck, flagToken)) {
-            internal_carg_free_nullify(&formatToTokenize);
-            return 1;
-        }
-    }
-    internal_carg_free_nullify(&formatToTokenize);
-    return 0;
-}
+//  For future use.
+// static int internal_carg_is_flag(const char * const formatter, const char * const toCheck) {
+//     char *formatToTokenize = internal_carg_strdup(formatter);
+//     internal_carg_heap_check(formatToTokenize);
+//     char *savePtr = formatToTokenize;
+//     while (1) {
+//         char *flagToken = internal_carg_strtok_reentrant(savePtr, ": ", &savePtr);
+//         internal_carg_strtok_reentrant(savePtr, " ", &savePtr); // Discard formatter item
+//         if (!flagToken) {
+//             break;
+//         }
+//         if (internal_carg_cmp_flag(toCheck, flagToken)) {
+//             internal_carg_free_nullify(&formatToTokenize);
+//             return 1;
+//         }
+//     }
+//     internal_carg_free_nullify(&formatToTokenize);
+//     return 0;
+// }
 
-inline void internal_carg_usage_default_ts(const CargContext *cargLocalContext) {
+static void internal_carg_usage_default_ts(const CargContext *cargLocalContext) {
     carg_validate_context(cargLocalContext);
     printf("%s\n", cargLocalContext -> internal_cargUsageString);
 }
 
-inline bool internal_carg_adjust_multi_arg_setter_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr) {
+static bool internal_carg_adjust_multi_arg_setter_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr) {
     carg_validate_context(cargLocalContext);
     if (internal_carg_has_flag(currentArg -> flags, CARG_ITEM_MULTI) && currentArg -> hasValue) {
         CargMultiArgContainer *multiArgCursor = &currentArg->valueContainer;
@@ -783,7 +785,7 @@ inline bool internal_carg_adjust_multi_arg_setter_ts(const CargContext *cargLoca
     return false;
 }
 
-inline void internal_carg_set_named_arg_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare) {
+static void internal_carg_set_named_arg_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, void **varDataPtr, const int argIndex, const char *formatToken, const char *argToFormat, char **formatToTokenize, char **argumentFlagToCompare) {
     carg_validate_context(cargLocalContext);
     if (!currentArg) return;
     if (currentArg -> hasValue && !internal_carg_has_flag(currentArg -> flags, CARG_ITEM_MULTI)) {
@@ -815,25 +817,25 @@ inline void internal_carg_set_named_arg_ts(const CargContext *cargLocalContext, 
     if (formatToken) strncpy(currentArg -> formatterUsed, formatToken, CARG_MAX_FORMATTER_SIZE - 1);
 }
 
-inline void internal_carg_validate_formatter_extended(const char * const formatToken) {
+static void internal_carg_validate_formatter_extended(const char * const formatToken) {
     if (formatToken && (!internal_carg_cmp_flag(formatToken, "bool") && formatToken[0] != '%' || carg_string_contains_char(formatToken + 1, '%') >= 0)) {
         internal_carg_error("Cannot parse format token %s\n", formatToken);
     }
 }
 
-inline void internal_carg_validate_formatter(const char * const formatToken) {
+static void internal_carg_validate_formatter(const char * const formatToken) {
     if (formatToken && (formatToken[0] != '%' || carg_string_contains_char(formatToken + 1, '%') >= 0)) {
         internal_carg_error("Cannot parse format token %s\n", formatToken);
     }
 }
 
-inline void internal_carg_validate_flag(const char * const flagToken) {
+static void internal_carg_validate_flag(const char * const flagToken) {
     if (flagToken && carg_string_contains_char(flagToken, '%') > -1) {
         internal_carg_error("Cannot parse flag token %s\n", flagToken);
     }
 }
 
-inline bool internal_carg_adjust_named_assign_ts(const CargContext *cargLocalContext, const int argIndex, const char * const formatToken, const char * const flagToken, const char **argToFormat, char *argumentFlagToCompare) {
+static bool internal_carg_adjust_named_assign_ts(const CargContext *cargLocalContext, const int argIndex, const char * const formatToken, const char * const flagToken, const char **argToFormat, char *argumentFlagToCompare) {
     carg_validate_context(cargLocalContext);
     if (argumentFlagToCompare && carg_string_contains_char(cargLocalContext -> internal_cargArgVector[argIndex], '=') >= 0 && strcmp(formatToken, "bool") != 0) {
         int ncompare = 0;
@@ -845,7 +847,7 @@ inline bool internal_carg_adjust_named_assign_ts(const CargContext *cargLocalCon
     return true;
 }
 
-inline void internal_carg_reference_named_arg_formatter_ts(const CargContext *cargLocalContext, const int argIndex, const char *format, va_list args) {
+static void internal_carg_reference_named_arg_formatter_ts(const CargContext *cargLocalContext, const int argIndex, const char *format, va_list args) {
     carg_validate_context(cargLocalContext);
     if (cargLocalContext -> internal_cargSetArgs[argIndex]) return;
     char *formatToTokenize = internal_carg_strdup(format);
@@ -874,7 +876,7 @@ inline void internal_carg_reference_named_arg_formatter_ts(const CargContext *ca
     internal_carg_free_nullify(&argumentFlagToCompare);
 }
 
-inline void internal_carg_reference_positional_arg_formatter_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr) {
+static void internal_carg_reference_positional_arg_formatter_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg, const int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr) {
     carg_validate_context(cargLocalContext);
     *formatToTokenize = internal_carg_strtok_reentrant(*formatToTokenize, " ", tokenSavePointer);
     if (!internal_carg_has_flag(currentArg -> flags, CARG_ITEM_POSITIONAL)) {
@@ -894,7 +896,7 @@ inline void internal_carg_reference_positional_arg_formatter_ts(const CargContex
     *formatToTokenize = *tokenSavePointer;
 }
 
-inline void internal_carg_reference_grouped_boolean_arg_formatter_ts(const CargContext *cargLocalContext, const int i, const size_t j, const char *noPrefixFormat, bool **varDataPtr, va_list args) {
+static void internal_carg_reference_grouped_boolean_arg_formatter_ts(const CargContext *cargLocalContext, const int i, const size_t j, const char *noPrefixFormat, bool **varDataPtr, va_list args) {
     carg_validate_context(cargLocalContext);
     va_list argsCopy;
     va_copy(argsCopy, args);
@@ -916,7 +918,7 @@ inline void internal_carg_reference_grouped_boolean_arg_formatter_ts(const CargC
     va_end(argsCopy);
 }
 
-inline int internal_carg_set_nested_arg_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg) {
+static int internal_carg_set_nested_arg_ts(const CargContext *cargLocalContext, CargArgContainer *currentArg) {
     carg_validate_context(cargLocalContext);
     if (!currentArg) return 0;
     if (!internal_carg_has_flag(currentArg -> flags, CARG_ITEM_NESTED)) {
@@ -941,7 +943,7 @@ inline int internal_carg_set_nested_arg_ts(const CargContext *cargLocalContext, 
     return 0;
 }
 
-inline void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContext, char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args) {
+static void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContext, char **stringToTokenize, char **tokenSavePointer, void **stringAllocation, va_list args) {
     carg_validate_context(cargLocalContext);
     va_list argsCopy;
     va_copy(argsCopy, args);
@@ -968,7 +970,7 @@ inline void internal_carg_set_env_defaults_ts(const CargContext *cargLocalContex
     va_end(argsCopy);
 }
 
-inline void internal_carg_print_positional_usage_buffer_ts(CargContext *cargLocalContext) {
+static void internal_carg_print_positional_usage_buffer_ts(CargContext *cargLocalContext) {
     carg_validate_context(cargLocalContext);
     for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
         if (!cargLocalContext -> internal_cargAllArgs.array[i]) break;
@@ -978,7 +980,7 @@ inline void internal_carg_print_positional_usage_buffer_ts(CargContext *cargLoca
     }
 }
 
-inline void internal_carg_print_non_positional_usage_buffer_ts(CargContext *cargLocalContext) {
+static void internal_carg_print_non_positional_usage_buffer_ts(CargContext *cargLocalContext) {
     for (int i=0; i<=cargLocalContext -> internal_cargAllArgs.fillIndex; i++) {
         if (internal_carg_has_flag(cargLocalContext -> internal_cargAllArgs.array[i] -> flags, CARG_ITEM_BOOLEAN && cargLocalContext -> internal_cargAllArgs.array[i] -> usageString[0])) {
             internal_carg_secure_sprintf_concat(cargLocalContext -> internal_cargUsageStringCursor, cargLocalContext -> internal_cargUsageStringEnd, &cargLocalContext -> internal_cargUsageStringCursor, "%s ", cargLocalContext -> internal_cargAllArgs.array[i]->usageString);
@@ -1000,21 +1002,22 @@ inline void internal_carg_print_non_positional_usage_buffer_ts(CargContext *carg
     }
 }
 
-inline bool internal_carg_has_flag(const uint64_t item, const uint64_t flag) {
+static bool internal_carg_has_flag(const uint64_t item, const uint64_t flag) {
     return (bool)(item & flag);
 }
 
-inline void internal_carg_set_flag(uint64_t *item, const uint64_t flag) {
+static void internal_carg_set_flag(uint64_t *item, const uint64_t flag) {
     *item |= flag;
 }
 
-inline void internal_carg_clear_flag(uint64_t *item, const uint64_t flag) {
-    *item &= ~flag;
-}
-
-inline void internal_carg_toggle_flag(uint64_t *item, const uint64_t flag) {
-    *item ^= flag;
-}
+//  For future use.
+// static void internal_carg_clear_flag(uint64_t *item, const uint64_t flag) {
+//     *item &= ~flag;
+// }
+//
+// static void internal_carg_toggle_flag(uint64_t *item, const uint64_t flag) {
+//     *item ^= flag;
+// }
 
 #define CARG_PRINT_STRING_ITEM(argument) do {\
     carg_print_container_data(argument);\
