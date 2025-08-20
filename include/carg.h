@@ -21,7 +21,6 @@ extern "C" {
     #define CARG_EXPORT
 #endif
 
-
 typedef struct CargMultiArgContainer {
     struct CargMultiArgContainer *next;
     void                         *value;
