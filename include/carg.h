@@ -71,7 +71,7 @@ typedef struct CargContext {
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #if !defined(CARG_INCLUDE) && !defined(CARG_IMPL)
-    extern CargContext *cargDefaultContext;
+    CargContext *cargDefaultContext;
     #define CARG_INCLUDE
 #endif
 
