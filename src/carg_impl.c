@@ -5,7 +5,10 @@
 #include <stdbool.h> 
 #include <stdarg.h>
 #include <inttypes.h>
+#define CARG_IMPL
 #include "carg.h"
+
+extern CargContext *cargDefaultContext;
 
 inline int carg_string_contains_char(const char * const container, const char subchar) {
     if (!container) return -1;

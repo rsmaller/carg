@@ -14,7 +14,7 @@ ENDIF()
 
 IF (Link STREQUAL "static")
     add_library(carg STATIC ${CMAKE_SOURCE_DIR}/src/carg_impl.c)
-    target_compile_definitions(carg STATIC CARG_STATIC)
+    target_compile_definitions(carg PRIVATE CARG_STATIC)
 ELSE()
     add_library(carg SHARED ${CMAKE_SOURCE_DIR}/src/carg_impl.c)
 ENDIF()

@@ -70,7 +70,10 @@ typedef struct CargContext {
 //  SECTION: Global Variables and Definitions
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-CargContext *cargDefaultContext;
+#if !defined(CARG_INCLUDE) && !defined(CARG_IMPL)
+    CargContext *cargDefaultContext;
+    #define CARG_INCLUDE
+#endif
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //  SECTION: Flags and Initializer Macros
