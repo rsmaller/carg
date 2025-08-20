@@ -17,6 +17,7 @@ extern "C" {
 
 #if defined(_MSC_VER) && !defined(CARG_STATIC)
     #define CARG_EXPORT __declspec(dllexport)
+    #define CARG_IMPORT __declspec(dllimport)
 #else
     #define CARG_EXPORT
 #endif
@@ -71,7 +72,7 @@ typedef struct CargContext {
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #if !defined(CARG_INCLUDE) && !defined(CARG_IMPL)
-    CargContext *cargDefaultContext;
+    CARG_IMPORT CargContext *cargDefaultContext;
     #define CARG_INCLUDE
 #endif
 
