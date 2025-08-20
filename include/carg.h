@@ -7,12 +7,6 @@
 extern "C" {
 #endif
 
-#if defined(_MSC_VER) && !defined(CARG_STATIC)
-    #define CARG_EXPORT __declspec(dllexport)
-#else
-    #define CARG_EXPORT
-#endif
-
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -20,6 +14,13 @@ extern "C" {
 
 #define CARG_MAX_FORMATTER_SIZE ((size_t)128U)
 #define CARG_USAGE_STRING_SIZE ((size_t)2048U)
+
+#if defined(_MSC_VER) && !defined(CARG_STATIC)
+    #define CARG_EXPORT __declspec(dllexport)
+#else
+    #define CARG_EXPORT
+#endif
+
 
 typedef struct CargMultiArgContainer {
     struct CargMultiArgContainer *next;
@@ -193,14 +194,13 @@ CARG_EXPORT int   internal_carg_secure_vsprintf_concat(char *startPointer, char 
 CARG_EXPORT char *internal_carg_strdup                (const char *str);
 CARG_EXPORT char *internal_carg_strtok_reentrant      (char *str, const char *delim, char **savePtr);
 
-
 CARG_EXPORT void internal_carg_flag_conditional_ts(const CargContext *cargLocalContext, uint64_t flag, bool truthiness, const char *errorMessage);
 CARG_EXPORT void internal_carg_error              (const char *formatter, ...);
 CARG_EXPORT void internal_carg_heap_check         (const void *ptr);
 CARG_EXPORT void internal_carg_free_nullify       (const void *ptr);
 
-CARG_EXPORT int internal_carg_cmp_flag     (const char *argument, const char *parameter);
-CARG_EXPORT int internal_carg_is_flag      (const char *formatter, const char *toCheck);
+CARG_EXPORT int internal_carg_cmp_flag(const char *argument, const char *parameter);
+CARG_EXPORT int internal_carg_is_flag (const char *formatter, const char *toCheck);
 
 CARG_EXPORT void internal_carg_usage_default_ts(const CargContext *cargLocalContext);
 
@@ -212,7 +212,7 @@ CARG_EXPORT bool internal_carg_adjust_named_assign_ts    (const CargContext *car
 
 CARG_EXPORT void internal_carg_validate_formatter_extended(const char *formatToken);
 CARG_EXPORT void internal_carg_validate_formatter         (const char *formatToken);
-CARG_EXPORT void internal_carg_validate_flag     (const char *flagToken);
+CARG_EXPORT void internal_carg_validate_flag              (const char *flagToken);
 
 CARG_EXPORT void internal_carg_reference_named_arg_formatter_ts          (const CargContext *cargLocalContext, int argIndex, const char *format, va_list args);
 CARG_EXPORT void internal_carg_reference_positional_arg_formatter_ts     (const CargContext *cargLocalContext, CargArgContainer *currentArg, int i, void **formatToTokenizeAllocation, char **formatToTokenize, char **tokenSavePointer, void **varDataPtr);
