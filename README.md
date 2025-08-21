@@ -17,10 +17,10 @@ generator. See below in this section.
 
 There is another version of this script in PowerShell for MinGW on Windows called `mingw-generic-build-install.ps1`.
 This version of the installer script will copy the header to MinGW's include path, generate the library's runtime DLL, copy 
-that to `System32`, and generate a link time `.lib` file.
+that to `C:\Program Files\libcarg`, and generate a link time `.lib` file.
 
 Lastly the MSVC version of this script, `msvc-generic-build-install.ps1` will generate the `.lib` and `.dll` files for the project.
-The DLL will be copied to `SysWOW64`. And the header file will be copied to the latest available MSVC installation's include
+The DLL will be copied to `C:\Program Files\libcarg`. And the header file will be copied to the latest available MSVC installation's include
 directory. There is a small caveat with using the MSVC installation script; the script must be run from a Visual Studio
 Developer console with Administrator privileges, and the script must then be run in a PowerShell subshell. To run this
 from the Developer Administrator console:

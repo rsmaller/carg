@@ -1,11 +1,14 @@
-$mingwpath = gcc -print-search-dirs | findstr ^install:.*$
+$mingwpath = gcc -print-search-dirs | findstr install:.
 $mingwpath = $mingwpath.Substring(9) + "include/"
-echo $mingwpath
 gcc -I../include -c -fpic ../src/carg_impl.c
 gcc -shared -o carg.dll carg_impl.o
 gendef carg.dll
 dlltool -d carg.def -l carg.lib -D carg.dll
-rm carg_impl.o
-rm carg.def
-cp carg.dll C:\Windows\System32\
-cp ..\include\carg.h $mingwpath
+Remove-Item carg_impl.o
+Remove-Item carg.def
+mkdir -Force "C:\Program Files\libcarg\"
+Copy-Item carg.dll "C:\Program Files\libcarg\"
+$prevPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+$newPath = "$prevPath;C:\Program Files\libcarg;"
+[System.Environment]::SetEnvironmentVariable("Path", $newPath, "Machine")
+Copy-Item ..\include\carg.h $mingwpath
