@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-CARG_EXPORT CargContext *cargDefaultContext;
+CARG_IMPL_EXPORT CargContext *cargDefaultContext;
 
 inline int carg_string_contains_char(const char * const container, const char subchar) {
     if (!container) return -1;

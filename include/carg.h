@@ -16,10 +16,20 @@ extern "C" {
 #define CARG_USAGE_STRING_SIZE ((size_t)2048U)
 
 #if defined(_MSC_VER) && !defined(CARG_STATIC)
-    #define CARG_EXPORT __declspec(dllexport)
-    #define CARG_IMPORT __declspec(dllimport)
-#else
+    #define CARG_EXPORT      __declspec(dllexport)
+    #define CARG_IMPL_EXPORT __declspec(dllexport)
+    #define CARG_IMPORT      __declspec(dllimport)
+#elif defined(_MSC_VER)
+    #define CARG_EXPORT extern
+    #define CARG_IMPL_EXPORT
+    #define CARG_IMPORT
+#elif !defined(CARG_STATIC)
     #define CARG_EXPORT
+    #define CARG_IMPL_EXPORT
+    #define CARG_IMPORT
+#else
+    #define CARG_EXPORT extern
+    #define CARG_IMPL_EXPORT extern
     #define CARG_IMPORT
 #endif
 
