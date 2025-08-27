@@ -6,6 +6,8 @@
 *.dir
 *.cmake
 /CMakeCache.txt
+/install_manifest.txt
+/_CPack_Packages
 
 # Prerequisites
 *.d
@@ -59,6 +61,12 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Software Packages
+*.msi
+*.deb
+*.rpm
+*.tar*
 
 /cmake-build-relwithdebinfo
 /cmake-build-release
