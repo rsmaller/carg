@@ -31,7 +31,7 @@ powershell ./msvc-generic-build-install.sh
 
 Please note that all installation scripts require respective administrator privileges.
 
-On Linux machines, it may be desirable to install this library as a package. CPack will generate a debian package for
+On Linux machines, it may be desirable to install this library as a package. CPack will generate a Debian package for
 you. After building the library with CMake, for example:
 
 ```
