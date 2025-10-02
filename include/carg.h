@@ -18,19 +18,19 @@ extern "C" {
 #if defined(_MSC_VER) && !defined(CARG_STATIC)
     #define CARG_EXPORT      __declspec(dllexport)
     #define CARG_IMPL_EXPORT __declspec(dllexport)
-    #define CARG_IMPORT      __declspec(dllimport)
+    #define CARG_IMPORT __declspec(dllimport)
 #elif defined(_MSC_VER)
     #define CARG_EXPORT extern
     #define CARG_IMPL_EXPORT
     #define CARG_IMPORT
-// #elif !defined(CARG_STATIC)
-//     #define CARG_EXPORT extern
-//     #define CARG_IMPL_EXPORT
-//     #define CARG_IMPORT
-#else
-    #define CARG_EXPORT extern
+#elif !defined(CARG_STATIC)
+    #define CARG_EXPORT
     #define CARG_IMPL_EXPORT
-    #define CARG_IMPORT
+    #define CARG_IMPORT extern
+#else
+    #define CARG_EXPORT
+    #define CARG_IMPL_EXPORT
+    #define CARG_IMPORT extern
 #endif
 
 typedef struct CargMultiArgContainer {
@@ -83,7 +83,7 @@ typedef struct CargContext {
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #if !defined(CARG_INCLUDE) && !defined(CARG_IMPL)
-    CARG_EXPORT CargContext *cargDefaultContext;
+    CARG_IMPORT CargContext *cargDefaultContext;
     #define CARG_INCLUDE
 #endif
 
