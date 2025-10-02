@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h> 
-#include <stdarg.h>
+#include <stdarg.h> // NOLINT
 #include <inttypes.h>
 #define CARG_IMPL
 #include "carg.h"
@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-CARG_IMPL_EXPORT CargContext *cargDefaultContext;
+CARG_IMPL_EXPORT CargContext *cargDefaultContext = NULL;
 
 inline int carg_string_contains_char(const char * const container, const char subchar) {
     if (!container) return -1;

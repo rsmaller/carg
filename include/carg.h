@@ -24,7 +24,7 @@ extern "C" {
     #define CARG_IMPL_EXPORT
     #define CARG_IMPORT
 #elif !defined(CARG_STATIC)
-    #define CARG_EXPORT
+    #define CARG_EXPORT extern
     #define CARG_IMPL_EXPORT
     #define CARG_IMPORT
 #else
@@ -83,7 +83,7 @@ typedef struct CargContext {
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #if !defined(CARG_INCLUDE) && !defined(CARG_IMPL)
-    CARG_IMPORT CargContext *cargDefaultContext;
+    CARG_EXPORT CargContext *cargDefaultContext;
     #define CARG_INCLUDE
 #endif
 
