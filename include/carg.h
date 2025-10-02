@@ -23,13 +23,13 @@ extern "C" {
     #define CARG_EXPORT extern
     #define CARG_IMPL_EXPORT
     #define CARG_IMPORT
-#elif !defined(CARG_STATIC)
-    #define CARG_EXPORT extern
-    #define CARG_IMPL_EXPORT
-    #define CARG_IMPORT
+// #elif !defined(CARG_STATIC)
+//     #define CARG_EXPORT extern
+//     #define CARG_IMPL_EXPORT
+//     #define CARG_IMPORT
 #else
     #define CARG_EXPORT extern
-    #define CARG_IMPL_EXPORT extern
+    #define CARG_IMPL_EXPORT
     #define CARG_IMPORT
 #endif
 
